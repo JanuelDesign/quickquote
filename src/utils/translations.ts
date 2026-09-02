@@ -1,0 +1,320 @@
+export type Language = 'en' | 'es';
+
+export const translations = {
+  en: {
+    // Top Bar & Brand
+    appSubtitle: 'Quicksurfaces Sales Terminal',
+    quoteNumberLabel: 'Quote',
+    newQuoteBtn: 'New Quote',
+    brandSubtitle: 'Luxury Surfaces • Miami, FL',
+    switchLang: 'Language',
+
+    // Client Selector & Banner
+    clientLabel: 'Client',
+    selectClient: 'Select Client...',
+    changeClient: 'Change',
+    assignClient: 'Assign',
+    quotingFor: 'Quoting For:',
+    unassignedClient: 'No client selected',
+    changeClientBtn: 'Change Client',
+    addOtherProductBtn: '+ Custom Product',
+    salesperson: 'Sales Rep',
+
+    // Category Tabs
+    tabFloors: 'Flooring',
+    tabFloorsSub: 'SPC & Laminate',
+    tabBaseboard: 'Baseboard',
+    tabBaseboardSub: '16ft Strips',
+    tabProfiles: 'Profiles & Trims',
+    tabProfilesSub: 'T-Molding, Reducer & End Cap',
+    tabStairs: 'Stair Treads',
+    tabStairsSub: 'Steps & Flush Risers',
+    customProductTabBtn: '+ Custom Item / Labor',
+
+    // Calculators Common
+    selectModel: '1. Select Product Model',
+    selectColor: '2. Select Color & Finish',
+    roomPreview: 'Room View',
+    enterQuantity: '3. Enter Dimensions & Pricing',
+    unitPrice: 'Unit Price',
+    subtotalLabel: 'Subtotal:',
+    notesPlaceholder: 'Optional note for customer (e.g., Master bedroom & hallway)...',
+    addedToCart: 'Added to Quote!',
+
+    // Floor Calculator
+    requiredSqft: 'Area Needed (Sq Ft)',
+    boxesNeededLabel: 'Boxes Required',
+    boxesText: 'Boxes',
+    coverageText: 'coverage',
+    yieldPerBox: 'Yields',
+    wasteAllowance: 'waste buffer',
+    pricePerSqft: 'Sell Price / SqFt',
+    addFloorBtn: 'Add Boxes to Quote',
+
+    // Baseboard Calculator
+    linearFeetRequired: 'Perimeter Needed (Linear Feet - LF)',
+    stripsNeededLabel: '16 Ft Strips Required',
+    stripsText: 'Strips of 16 ft',
+    surplusText: 'surplus',
+    pricePerLF: 'Price / Linear Ft',
+    addBaseboardBtn: 'Add Strips to Quote',
+
+    // Profiles Calculator
+    profileQtyLabel: 'Quantity (Pieces)',
+    profilePieces: 'Pieces',
+    profilePricePerPiece: 'Price / Piece',
+    addProfileBtn: 'Add Profiles to Quote',
+
+    // Stairs Calculator
+    stepsCountLabel: 'Number of Steps (Peldaños)',
+    stepUnitPrice: 'Step Price (Without Riser)',
+    includeRiserOption: 'Include Matching Flush Riser (+ $9.00 / step)',
+    riserIncludedBadge: 'Includes Step + Matching Riser',
+    addStairsBtn: 'Add Steps to Quote',
+
+    // Custom Item Modal
+    customTitle: 'Custom Product, Labor & Services',
+    customSubtitle: 'Add installation labor, demolition, floor leveling, adhesives or custom products',
+    customDescLabel: 'Product / Service Description *',
+    customCategoryLabel: 'Category',
+    customQtyLabel: 'Quantity',
+    customUnitPriceLabel: 'Unit Price ($)',
+    customIsTaxableLabel: 'Apply 7% Florida Sales Tax',
+    customIsLaborLabel: 'This item is Labor / Service (Tax Exempt in FL)',
+    customAddBtn: 'Add to Quotation',
+
+    // Cart / Sidebar
+    cartTitle: 'Client Information',
+    clearCart: 'Clear',
+    emptyCartTitle: 'No items in quote yet',
+    emptyCartSubtitle: 'Select flooring, baseboard, profiles or stairs to compute quote.',
+    removeBtn: 'Remove',
+    includeDelivery: 'Include Delivery ($60.00)',
+    deliverySubtext: 'Miami-Dade & Broward, FL',
+    subtotalProducts: 'Products Subtotal (Taxable)',
+    deliveryTaxable: 'Delivery Fee (Taxable)',
+    salesTax: 'Sales Tax (7%)',
+    installationServices: 'Installation / Labor (Tax Exempt)',
+    estimatedTotal: 'ESTIMATED TOTAL',
+    generatePdfBtn: 'GENERATE PDF QUOTE',
+
+    // Quote Modal / Document
+    quoteDocTitle: 'QUOTATION',
+    readyToExport: 'Ready to Export',
+    quoteValidity: 'Quote Validity:',
+    days: 'days',
+    validUntil: 'Valid Until:',
+    clientInfoTitle: 'CLIENT INFORMATION',
+    salesRepTitle: 'ISSUER & SALES CONSULTANT',
+    tableHash: '#',
+    tableDesc: 'Product / Service Description',
+    tableQty: 'Quantity & Dispatch Specs',
+    tableUnitPrice: 'Unit Price',
+    tableSubtotal: 'Subtotal',
+    termsTitle: 'TERMS AND CONDITIONS',
+    termsBody: 'This is a reference estimate. Prices and inventory are subject to change without prior notice. Valid for {days} days from date of issue ({date}).\n\nBox and strip calculations include standard yield adjustments. Installation and demolition are excluded unless explicitly itemized.',
+    copyTextBtn: 'Copy Text',
+    copiedBtn: 'Copied!',
+    whatsAppBtn: 'Share on WhatsApp',
+    downloadPdfBtn: 'Download PDF',
+    generatingPdf: 'Generating...',
+
+    // Client Directory Modal
+    clientsModalTitle: 'Client Directory',
+    clientsModalSubtitle: 'Assign a client to the quote or create a new client record',
+    savedTab: 'Saved Clients',
+    newClientTab: '+ New Client',
+    searchClientPlaceholder: 'Search by name, phone or email...',
+    noClientsFound: 'No clients found.',
+    registerClientNow: '+ Register client now',
+    clientNameLabel: 'Client or Company Name *',
+    phoneLabel: 'Phone / WhatsApp *',
+    emailLabel: 'Email (Optional)',
+    addressLabel: 'Project / Delivery Address (Optional)',
+    internalNotesLabel: 'Internal Notes (Optional)',
+    saveAndAssignBtn: 'Save & Assign to Quote',
+
+    // Price List & DB Manager
+    priceManagerTitle: 'Product Catalog & Price Database',
+    priceManagerSubtitle: 'Edit factory base prices, manage items, export schemas, and sync with Google Sheets',
+    exportDbTab: 'Database Schema & Sync',
+    catalogTab: 'Catalog List',
+    addNewProductBtn: '+ Add Product',
+    resetDefaultPrices: 'Reset to Factory Defaults',
+    searchCatalog: 'Search products...',
+    basePriceCol: 'Base Price',
+    actionsCol: 'Actions',
+
+    // History Modal
+    historyTitle: 'Quotation History',
+    historyModalTitle: 'Quotation History',
+    historySubtitle: 'View and restore previously generated quotes',
+    noHistory: 'No quotes recorded yet.',
+    noQuotesYet: 'No quotes recorded yet.',
+    noQuotesSubtitle: 'Quotes you generate will be automatically saved here for quick recall.',
+    loadQuoteBtn: 'Load to Workspace',
+    deleteQuoteBtn: 'Delete',
+    clearAllHistory: 'Clear All History',
+    clearHistoryBtn: 'Clear History',
+    searchHistoryPlaceholder: 'Search by quote number, client name or phone...',
+    itemsWord: 'items'
+  },
+  es: {
+    // Top Bar & Brand
+    appSubtitle: 'Terminal Ventas Quicksurfaces',
+    quoteNumberLabel: 'Cotización',
+    newQuoteBtn: 'Nueva Cotización',
+    brandSubtitle: 'Luxury Surfaces • Miami, FL',
+    switchLang: 'Idioma',
+
+    // Client Selector & Banner
+    clientLabel: 'Cliente',
+    selectClient: 'Seleccionar Cliente...',
+    changeClient: 'Cambiar',
+    assignClient: 'Asignar',
+    quotingFor: 'Cotizando Para:',
+    unassignedClient: 'Cliente sin asignar',
+    changeClientBtn: 'Cambiar Cliente',
+    addOtherProductBtn: '+ Otro Producto',
+    salesperson: 'Vendedor',
+
+    // Category Tabs
+    tabFloors: 'Pisos',
+    tabFloorsSub: 'SPC & Laminado',
+    tabBaseboard: 'Rodapié',
+    tabBaseboardSub: 'Tiras de 16 ft',
+    tabProfiles: 'Perfiles',
+    tabProfilesSub: 'T-Molding, Reducer & Cap',
+    tabStairs: 'Escalones',
+    tabStairsSub: 'Peldaños & Contrahuellas',
+    customProductTabBtn: '+ Producto / Mano de Obra',
+
+    // Calculators Common
+    selectModel: '1. Selecciona el Modelo',
+    selectColor: '2. Selecciona el Color & Acabado',
+    roomPreview: 'Ver Ambiente',
+    enterQuantity: '3. Dimensiones & Precios de Venta',
+    unitPrice: 'Precio Unitario',
+    subtotalLabel: 'Subtotal:',
+    notesPlaceholder: 'Nota opcional para el cliente (ej. Para sala y dormitorios)...',
+    addedToCart: '¡Agregado con éxito!',
+
+    // Floor Calculator
+    requiredSqft: 'Metraje Requerido (Sq Ft)',
+    boxesNeededLabel: 'Cajas Requeridas',
+    boxesText: 'Cajas',
+    coverageText: 'cubiertos',
+    yieldPerBox: 'Rinde',
+    wasteAllowance: 'ajuste por desperdicio',
+    pricePerSqft: 'Precio Venta / SqFt',
+    addFloorBtn: 'Agregar Cajas a la Cotización',
+
+    // Baseboard Calculator
+    linearFeetRequired: 'Perímetro Requerido (Pies Lineales - LF)',
+    stripsNeededLabel: 'Tiras de 16 Ft Requeridas',
+    stripsText: 'Tiras de 16 ft',
+    surplusText: 'sobrante',
+    pricePerLF: 'Precio / Pie Lineal (LF)',
+    addBaseboardBtn: 'Agregar Tiras a la Cotización',
+
+    // Profiles Calculator
+    profileQtyLabel: 'Cantidad de Piezas',
+    profilePieces: 'Piezas',
+    profilePricePerPiece: 'Precio / Pieza',
+    addProfileBtn: 'Agregar Perfiles a la Cotización',
+
+    // Stairs Calculator
+    stepsCountLabel: 'Cantidad de Escalones (Peldaños)',
+    stepUnitPrice: 'Precio Peldaño (Sin Contrahuella)',
+    includeRiserOption: 'Incluir Contrahuella / Riser a juego (+ $9.00 / escalón)',
+    riserIncludedBadge: 'Incluye: Peldaño + Contrahuella a juego',
+    addStairsBtn: 'Agregar Escalones a la Cotización',
+
+    // Custom Item Modal
+    customTitle: 'Producto Personalizado o Mano de Obra',
+    customSubtitle: 'Agrega mano de obra de instalación, demolición, nivelación, pegamentos o ítems especiales',
+    customDescLabel: 'Descripción del Producto o Servicio *',
+    customCategoryLabel: 'Categoría',
+    customQtyLabel: 'Cantidad',
+    customUnitPriceLabel: 'Precio Unitario ($)',
+    customIsTaxableLabel: 'Aplica Impuesto de Ventas Florida (7%)',
+    customIsLaborLabel: 'Es Mano de Obra / Servicio (Exento de Tax en Florida)',
+    customAddBtn: 'Agregar a la Cotización',
+
+    // Cart / Sidebar
+    cartTitle: 'Datos del Cliente',
+    clearCart: 'Vaciar',
+    emptyCartTitle: 'Sin productos agregados',
+    emptyCartSubtitle: 'Selecciona pisos, rodapié o perfiles para calcular la cotización.',
+    removeBtn: 'Quitar',
+    includeDelivery: 'Incluir Delivery ($60.00)',
+    deliverySubtext: 'Miami-Dade y Broward, FL',
+    subtotalProducts: 'Subtotal Materiales (Gravable)',
+    deliveryTaxable: 'Delivery Fijo (Gravable)',
+    salesTax: 'Impuesto Sales Tax (7%)',
+    installationServices: 'Instalación / Servicios (Exento)',
+    estimatedTotal: 'TOTAL ESTIMADO',
+    generatePdfBtn: 'GENERAR COTIZACIÓN PDF',
+
+    // Quote Modal / Document
+    quoteDocTitle: 'COTIZACIÓN',
+    readyToExport: 'Lista para exportar',
+    quoteValidity: 'Validez del Estimado:',
+    days: 'días',
+    validUntil: 'Válido hasta:',
+    clientInfoTitle: 'DATOS DEL CLIENTE',
+    salesRepTitle: 'EMISOR & ASESOR COMERCIAL',
+    tableHash: '#',
+    tableDesc: 'Descripción del Producto / Servicio',
+    tableQty: 'Cantidad Solicitada & Despacho',
+    tableUnitPrice: 'Precio Unit.',
+    tableSubtotal: 'Subtotal',
+    termsTitle: 'TÉRMINOS Y CONDICIONES DEL ESTIMADO',
+    termsBody: 'Este es un estimado referencial. Los precios y el inventario están sujetos a cambio sin previo aviso. Válido por {days} días a partir de la fecha de emisión ({date}).\n\nEl cálculo de cajas y tiras incluye el ajuste por rendimiento estándar. No incluye desinstalación o nivelación de piso a menos que se especifique expresamente.',
+    copyTextBtn: 'Copiar Texto',
+    copiedBtn: '¡Copiado!',
+    whatsAppBtn: 'Enviar por WhatsApp',
+    downloadPdfBtn: 'Descargar PDF',
+    generatingPdf: 'Generando...',
+
+    // Client Directory Modal
+    clientsModalTitle: 'Directorio de Clientes',
+    clientsModalSubtitle: 'Asigna un cliente para la cotización o crea uno nuevo',
+    savedTab: 'Clientes Guardados',
+    newClientTab: '+ Nuevo Cliente',
+    searchClientPlaceholder: 'Buscar por nombre, teléfono o email...',
+    noClientsFound: 'No se encontraron clientes.',
+    registerClientNow: '+ Registrar cliente ahora',
+    clientNameLabel: 'Nombre del Cliente o Empresa *',
+    phoneLabel: 'Teléfono / WhatsApp *',
+    emailLabel: 'Email (opcional)',
+    addressLabel: 'Dirección del Proyecto / Entrega (opcional)',
+    internalNotesLabel: 'Notas internas del cliente (opcional)',
+    saveAndAssignBtn: 'Guardar y Asignar a Cotización',
+
+    // Price List & DB Manager
+    priceManagerTitle: 'Catálogo de Productos & Base de Datos',
+    priceManagerSubtitle: 'Edita precios base de fábrica, gestiona modelos, exporta esquemas y sincroniza con Google Sheets',
+    exportDbTab: 'Esquema de BD & Sync',
+    catalogTab: 'Lista de Catálogo',
+    addNewProductBtn: '+ Agregar Producto',
+    resetDefaultPrices: 'Restablecer Precios de Fábrica',
+    searchCatalog: 'Buscar productos...',
+    basePriceCol: 'Precio Base',
+    actionsCol: 'Acciones',
+
+    // History Modal
+    historyTitle: 'Historial de Cotizaciones',
+    historyModalTitle: 'Historial de Cotizaciones',
+    historySubtitle: 'Revisa y restaura cotizaciones generadas previamente',
+    noHistory: 'No hay cotizaciones registradas aún.',
+    noQuotesYet: 'No hay cotizaciones registradas aún.',
+    noQuotesSubtitle: 'Las cotizaciones que generes se guardarán aquí automáticamente.',
+    loadQuoteBtn: 'Cargar al Carrito',
+    deleteQuoteBtn: 'Eliminar',
+    clearAllHistory: 'Vaciar Todo el Historial',
+    clearHistoryBtn: 'Vaciar Historial',
+    searchHistoryPlaceholder: 'Buscar por número de cotización, cliente o teléfono...',
+    itemsWord: 'ítems'
+  }
+};
