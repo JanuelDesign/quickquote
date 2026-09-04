@@ -274,17 +274,14 @@ export const CartSummary: React.FC<CartSummaryProps> = ({
 
             {includeDelivery && (
               <div className="flex justify-between items-center">
-                <span className="text-[#8C8C8C]">{t.deliveryTaxable}</span>
+                <span className="text-[#8C8C8C]">{language === 'en' ? 'Delivery (Fixed rate, no tax):' : 'Delivery ($60 sin impuesto):'}</span>
                 <span className="font-semibold text-black font-mono">{formatCurrency(deliveryTotal)}</span>
               </div>
             )}
 
             <div className="flex justify-between items-center">
               <div className="flex items-center gap-1">
-                <span className="text-[#8C8C8C]">{t.salesTax}</span>
-                <span className="text-[10px] text-amber-600 font-bold bg-amber-50 px-1 rounded">
-                  {includeDelivery ? (language === 'en' ? 'Prod + Delivery' : 'Prod + Delivery') : 'Prod'}
-                </span>
+                <span className="text-[#8C8C8C]">{language === 'en' ? 'FL Sales Tax (7% on products):' : 'Impuesto (7% solo s/materiales):'}</span>
               </div>
               <span className="font-semibold text-black font-mono">{formatCurrency(taxAmount)}</span>
             </div>

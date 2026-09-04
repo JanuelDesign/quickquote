@@ -1,234 +1,293 @@
-import React from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { 
-  Plus, 
-  ShoppingBag, 
   Users, 
+  MoreHorizontal, 
+  Plus, 
   History, 
   Settings2, 
-  Globe,
-  Check
+  Check, 
+  UserCheck,
+  FileText,
+  Globe
 } from 'lucide-react';
 import { Client, Language } from '../types';
-import { formatCurrency } from '../utils/calculations';
 import { translations } from '../utils/translations';
 import { QuickSurfacesLogo } from './QuickSurfacesLogo';
 
 interface HeaderProps {
   quoteNumber: string;
-  client: Client | null;
-  itemCount: number;
-  totalAmount: number;
+  client?: Client | null;
+  clientName?: string;
+  itemCount?: number;
+  cartTotal?: number;
   salespersonName?: string;
+  onSelectSalesperson?: (name: string) => void;
   language: Language;
-  onToggleLanguage: (lang: Language) => void;
+  onToggleLanguage: (lang?: Language) => void;
   onOpenClientModal: () => void;
-  onOpenHistoryModal: () => void;
-  onOpenPriceListModal: () => void;
-  onNewQuote: () => void;
-  onToggleCart: () => void;
+  onOpenHistoryModal?: () => void;
+  onOpenPriceListModal?: () => void;
+  onOpenHistory?: () => void;
+  onOpenPriceManager?: () => void;
+  onNewQuote?: () => void;
+  onToggleCart?: () => void;
+  onOpenCart?: () => void;
   isCartOpen?: boolean;
 }
 
 export const Header: React.FC<HeaderProps> = ({
   quoteNumber,
   client,
-  itemCount,
-  totalAmount,
+  clientName,
   salespersonName = 'Esteban Gavotti',
+  onSelectSalesperson,
   language,
   onToggleLanguage,
   onOpenClientModal,
   onOpenHistoryModal,
   onOpenPriceListModal,
-  onNewQuote,
-  onToggleCart
+  onOpenHistory,
+  onOpenPriceManager,
+  onNewQuote
 }) => {
   const t = translations[language];
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  const activeClientName = client?.name || clientName;
+
+  // Close menu when clicking outside
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+        setIsMenuOpen(false);
+      }
+    }
+    if (isMenuOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [isMenuOpen]);
+
+  const handleHistoryClick = () => {
+    setIsMenuOpen(false);
+    if (onOpenHistoryModal) onOpenHistoryModal();
+    else if (onOpenHistory) onOpenHistory();
+  };
+
+  const handlePriceManagerClick = () => {
+    setIsMenuOpen(false);
+    if (onOpenPriceListModal) onOpenPriceListModal();
+    else if (onOpenPriceManager) onOpenPriceManager();
+  };
+
+  const handleNewQuoteClick = () => {
+    setIsMenuOpen(false);
+    if (onNewQuote) onNewQuote();
+  };
+
+  const salesReps = [
+    { name: 'Esteban Gavotti', phone: '(305) 555-0199' },
+    { name: 'Ruben Valverde', phone: '(305) 555-0188' }
+  ];
 
   return (
-    <header className="sticky top-0 z-40 bg-white border-b border-[#E5E5E5] shadow-xs">
-      {/* Top micro bar */}
-      <div className="bg-[#000000] text-white px-4 sm:px-8 py-1.5 text-xs flex items-center justify-between">
-        <div className="flex items-center space-x-2.5">
-          <span className="inline-block w-2 h-2 rounded-full bg-[#FF8407] animate-pulse"></span>
-          <span className="text-gray-300 font-semibold tracking-tight">QuickQuote Studio</span>
-          <span className="text-zinc-600 hidden sm:inline">|</span>
-          <span className="text-[#8C8C8C] hidden sm:inline text-[11px] uppercase tracking-[1px]">
-            {t.appSubtitle}
-          </span>
+    <header className="sticky top-0 z-40 bg-white border-b border-[#E4E2DA] shadow-xs">
+      <div className="max-w-7xl mx-auto px-3 sm:px-6 h-13 sm:h-14 flex items-center justify-between gap-3">
+        {/* Brand & Logo in a single slim line */}
+        <div className="flex items-center gap-2.5">
+          <QuickSurfacesLogo className="h-7 sm:h-8 w-auto text-black cursor-pointer hover:opacity-90 transition-opacity" />
+          <div className="hidden xs:flex items-center gap-2 border-l border-[#E4E2DA] pl-2.5">
+            <span className="text-xs sm:text-sm font-black tracking-tight text-[#181818]">
+              Quick<span className="text-[#FF8407]">Quote</span>
+            </span>
+            <span className="text-[10px] text-[#9C9A90] font-medium hidden md:inline">
+              by Quicksurfaces
+            </span>
+          </div>
         </div>
-        
-        <div className="flex items-center space-x-3 sm:space-x-4">
-          {/* Bilingual Language Switcher */}
-          <div className="flex items-center bg-zinc-900 border border-zinc-700 rounded-lg p-0.5">
-            <button
-              id="lang-btn-en"
-              type="button"
-              onClick={() => onToggleLanguage('en')}
-              className={`px-2 py-0.5 rounded text-[10px] font-black tracking-wider transition-all cursor-pointer ${
-                language === 'en'
-                  ? 'bg-[#FF8407] text-white'
-                  : 'text-zinc-400 hover:text-white'
-              }`}
+
+        {/* Right Action Icons (Salesperson dropdown, Client button & "···" options menu) */}
+        <div className="flex items-center gap-2" ref={menuRef}>
+          {/* Salesperson Dropdown directly on header */}
+          <div className="hidden sm:flex items-center gap-1.5 bg-[#F2F1EC] border border-[#E4E2DA] rounded-full px-2.5 py-1 text-xs">
+            <UserCheck className="w-3.5 h-3.5 text-[#FF8407] shrink-0" />
+            <select
+              id="header-sales-rep-select"
+              value={salespersonName}
+              onChange={(e) => {
+                if (onSelectSalesperson) {
+                  onSelectSalesperson(e.target.value);
+                }
+              }}
+              className="bg-transparent text-xs font-bold text-[#181818] focus:outline-hidden cursor-pointer"
             >
-              EN
-            </button>
+              {salesReps.map((rep) => (
+                <option key={rep.name} value={rep.name}>
+                  {rep.name}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Client icon button */}
+          <button
+            id="btn-header-client"
+            type="button"
+            onClick={onOpenClientModal}
+            className={`h-9 px-2.5 sm:px-3 rounded-full border text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer ${
+              activeClientName
+                ? 'bg-[#F2F1EC] border-[#E4E2DA] text-[#181818] hover:border-[#FF8407]'
+                : 'bg-white border-[#E4E2DA] text-[#6B6A63] hover:bg-[#F2F1EC]'
+            }`}
+            title={activeClientName ? `Cliente: ${activeClientName}` : 'Seleccionar cliente'}
+          >
+            <div className="w-5 h-5 rounded-full bg-[#181818] text-[#FF8407] flex items-center justify-center text-[10px] font-bold shrink-0">
+              {activeClientName ? activeClientName.charAt(0).toUpperCase() : <Users className="w-3 h-3" />}
+            </div>
+            <span className="max-w-[85px] sm:max-w-[130px] truncate font-medium">
+              {activeClientName || (language === 'en' ? 'Client' : 'Cliente')}
+            </span>
+          </button>
+
+          {/* More options (···) icon button */}
+          <div className="relative">
             <button
-              id="lang-btn-es"
+              id="btn-header-menu"
               type="button"
-              onClick={() => onToggleLanguage('es')}
-              className={`px-2 py-0.5 rounded text-[10px] font-black tracking-wider transition-all cursor-pointer ${
-                language === 'es'
-                  ? 'bg-[#FF8407] text-white'
-                  : 'text-zinc-400 hover:text-white'
+              onClick={() => setIsMenuOpen(prev => !prev)}
+              className={`w-9 h-9 rounded-full border flex items-center justify-center transition-all cursor-pointer ${
+                isMenuOpen 
+                  ? 'bg-[#181818] text-white border-[#181818]' 
+                  : 'bg-white border-[#E4E2DA] text-[#6B6A63] hover:bg-[#F2F1EC] hover:text-[#181818]'
               }`}
+              title="Más opciones / Configuración"
             >
-              ES
+              <MoreHorizontal className="w-4 h-4" />
             </button>
-          </div>
 
-          <div className="flex items-center gap-1.5">
-            <span className="text-[#8C8C8C] text-[10px] uppercase tracking-wider hidden xs:inline">
-              {t.quoteNumberLabel}
-            </span>
-            <span className="font-mono text-[#FF8407] font-bold">
-              #{quoteNumber || 'QS-2026-DRAFT'}
-            </span>
-          </div>
+            {/* Dropdown Menu Panel */}
+            {isMenuOpen && (
+              <div 
+                id="header-dropdown-menu"
+                className="absolute right-0 top-11 w-72 sm:w-80 bg-white border border-[#E4E2DA] rounded-xl shadow-xl p-3 z-50 animate-in fade-in slide-in-from-top-2 duration-150 text-xs text-[#181818] space-y-3"
+              >
+                {/* Quote Number & Status */}
+                <div className="bg-[#F2F1EC] p-2.5 rounded-lg flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <FileText className="w-4 h-4 text-[#FF8407]" />
+                    <div>
+                      <span className="text-[10px] text-[#9C9A90] uppercase font-bold block">
+                        {language === 'en' ? 'Quote' : 'Cotización'}
+                      </span>
+                      <span className="font-mono font-bold text-black text-xs">
+                        #{quoteNumber || 'QS-2026-014'}
+                      </span>
+                    </div>
+                  </div>
+                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-[#181818] text-[#FF8407] uppercase tracking-wider">
+                    {language === 'en' ? 'Draft' : 'Borrador'}
+                  </span>
+                </div>
 
-          <button 
-            id="btn-new-quote"
-            onClick={onNewQuote}
-            className="text-zinc-300 hover:text-white transition-colors flex items-center gap-1.5 px-2.5 py-0.5 rounded bg-zinc-900 border border-zinc-700 hover:border-zinc-500 cursor-pointer text-[11px] font-medium"
-            title="Start new blank quote"
-          >
-            <Plus className="w-3 h-3 text-[#FF8407]" />
-            <span className="hidden sm:inline">{t.newQuoteBtn}</span>
-          </button>
-        </div>
-      </div>
+                {/* Sales Representative Dropdown (Esteban Gavotti vs Ruben Valverde) */}
+                <div className="space-y-1">
+                  <label className="text-[10px] uppercase font-bold tracking-wider text-[#9C9A90] block">
+                    {language === 'en' ? 'Sales Representative' : 'Vendedor Asignado'}
+                  </label>
+                  <div className="relative">
+                    <select
+                      id="select-sales-rep"
+                      value={salespersonName}
+                      onChange={(e) => {
+                        if (onSelectSalesperson) {
+                          onSelectSalesperson(e.target.value);
+                        }
+                      }}
+                      className="w-full bg-[#FAFAFA] border border-[#E4E2DA] rounded-lg px-3 py-2 text-xs font-semibold text-[#181818] focus:outline-hidden focus:border-[#FF8407] cursor-pointer"
+                    >
+                      {salesReps.map((rep) => (
+                        <option key={rep.name} value={rep.name}>
+                          {rep.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
 
-      {/* Main navigation header */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-8 py-3 flex items-center justify-between gap-4">
-        {/* Logo and Brand */}
-        <div className="flex items-center gap-3">
-          <QuickSurfacesLogo className="h-9 sm:h-10 w-auto text-black cursor-pointer hover:opacity-95 transition-opacity" />
-          <div className="hidden sm:block border-l border-zinc-200 pl-3">
-            <span className="text-[11px] font-black uppercase tracking-[1.5px] text-[#FF8407] block leading-none">
-              QuickQuote Studio
-            </span>
-            <p className="text-[10px] tracking-wider uppercase text-zinc-500 font-semibold mt-0.5">
-              {t.brandSubtitle}
-            </p>
-          </div>
-        </div>
+                {/* Language Switcher */}
+                <div className="flex items-center justify-between py-1 border-t border-[#E4E2DA]">
+                  <div className="flex items-center gap-1.5 text-[#6B6A63]">
+                    <Globe className="w-3.5 h-3.5 text-[#FF8407]" />
+                    <span className="font-medium text-xs">
+                      {language === 'en' ? 'Language' : 'Idioma'}
+                    </span>
+                  </div>
+                  <div className="flex items-center bg-[#F2F1EC] p-0.5 rounded-lg border border-[#E4E2DA]">
+                    <button
+                      type="button"
+                      onClick={() => onToggleLanguage('en')}
+                      className={`px-2 py-1 rounded text-[10px] font-bold transition-colors cursor-pointer ${
+                        language === 'en'
+                          ? 'bg-[#181818] text-[#FF8407]'
+                          : 'text-[#6B6A63] hover:text-black'
+                      }`}
+                    >
+                      EN
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => onToggleLanguage('es')}
+                      className={`px-2 py-1 rounded text-[10px] font-bold transition-colors cursor-pointer ${
+                        language === 'es'
+                          ? 'bg-[#181818] text-[#FF8407]'
+                          : 'text-[#6B6A63] hover:text-black'
+                      }`}
+                    >
+                      ES
+                    </button>
+                  </div>
+                </div>
 
-        {/* Client quick selector widget (Desktop) */}
-        <div className="flex-1 max-w-xs hidden md:block">
-          <button
-            id="btn-select-client-header"
-            onClick={onOpenClientModal}
-            className={`w-full text-left px-3 py-2 rounded-lg border transition-all flex items-center justify-between cursor-pointer ${
-              client 
-                ? 'bg-zinc-50 border-[#FF8407]/50 hover:border-[#FF8407]' 
-                : 'bg-[#F9F9F9] border-[#E5E5E5] hover:bg-zinc-100 hover:border-zinc-300'
-            }`}
-          >
-            <div className="flex items-center space-x-2.5 truncate">
-              <div className={`w-7 h-7 rounded-md flex items-center justify-center text-xs font-black shrink-0 ${
-                client ? 'bg-black text-[#FF8407]' : 'bg-zinc-200 text-zinc-600'
-              }`}>
-                {client ? client.name.charAt(0).toUpperCase() : <Users className="w-3.5 h-3.5" />}
+                {/* Fast Action Buttons */}
+                <div className="pt-2 border-t border-[#E4E2DA] space-y-1">
+                  {onNewQuote && (
+                    <button
+                      type="button"
+                      id="btn-menu-new-quote"
+                      onClick={handleNewQuoteClick}
+                      className="w-full px-2.5 py-2 rounded-lg hover:bg-[#F2F1EC] text-left flex items-center gap-2 text-xs font-medium text-[#181818] transition-colors cursor-pointer"
+                    >
+                      <Plus className="w-4 h-4 text-[#FF8407]" />
+                      <span>{language === 'en' ? 'New Blank Quote' : 'Nueva Cotización en Blanco'}</span>
+                    </button>
+                  )}
+
+                  <button
+                    type="button"
+                    id="btn-menu-history"
+                    onClick={handleHistoryClick}
+                    className="w-full px-2.5 py-2 rounded-lg hover:bg-[#F2F1EC] text-left flex items-center gap-2 text-xs font-medium text-[#181818] transition-colors cursor-pointer"
+                  >
+                    <History className="w-4 h-4 text-[#6B6A63]" />
+                    <span>{language === 'en' ? 'Quotes History' : 'Historial de Cotizaciones'}</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    id="btn-menu-prices"
+                    onClick={handlePriceManagerClick}
+                    className="w-full px-2.5 py-2 rounded-lg hover:bg-[#F2F1EC] text-left flex items-center gap-2 text-xs font-medium text-[#181818] transition-colors cursor-pointer"
+                  >
+                    <Settings2 className="w-4 h-4 text-[#6B6A63]" />
+                    <span>{language === 'en' ? 'Catalog & Price List' : 'Catálogo y Lista de Precios'}</span>
+                  </button>
+                </div>
               </div>
-              <div className="truncate">
-                <span className="text-[10px] uppercase tracking-[0.5px] text-[#8C8C8C] block -mb-0.5">
-                  {t.clientLabel}
-                </span>
-                <p className="text-xs font-bold text-black truncate">
-                  {client ? client.name : t.selectClient}
-                </p>
-              </div>
-            </div>
-            <span className="text-[10px] font-bold text-[#FF8407] shrink-0 uppercase tracking-wider ml-1">
-              {client ? t.changeClient : t.assignClient}
-            </span>
-          </button>
-        </div>
-
-        {/* Salesperson & Top Actions */}
-        <div className="flex items-center space-x-2 sm:space-x-3">
-          {/* Salesperson indicator in desktop */}
-          <div className="hidden lg:flex flex-col items-end pr-2 border-r border-[#E5E5E5]">
-            <span className="text-[10px] uppercase tracking-[1px] text-[#8C8C8C] font-semibold">
-              {t.salesperson}
-            </span>
-            <span className="text-xs font-bold text-black">{salespersonName}</span>
+            )}
           </div>
-
-          {/* Mobile Client selector button */}
-          <button
-            id="btn-select-client-mobile"
-            onClick={onOpenClientModal}
-            className={`md:hidden p-2 rounded-lg border text-xs font-medium flex items-center gap-1.5 cursor-pointer ${
-              client 
-                ? 'bg-black text-white border-black' 
-                : 'bg-white border-[#E5E5E5] text-zinc-800'
-            }`}
-            title="Select Client"
-          >
-            <Users className="w-4 h-4 text-[#FF8407]" />
-            <span className="max-w-[70px] truncate font-bold">
-              {client ? client.name.split(' ')[0] : t.clientLabel}
-            </span>
-          </button>
-
-          {/* History Button */}
-          <button
-            id="btn-open-history"
-            onClick={onOpenHistoryModal}
-            className="p-2 sm:px-3 sm:py-2 rounded-lg border border-[#E5E5E5] bg-white text-zinc-800 hover:bg-zinc-50 hover:text-black hover:border-zinc-300 transition-colors flex items-center gap-1.5 text-xs font-semibold cursor-pointer"
-            title="Quotation History"
-          >
-            <History className="w-4 h-4 text-[#8C8C8C]" />
-            <span className="hidden sm:inline">{language === 'en' ? 'History' : 'Historial'}</span>
-          </button>
-
-          {/* Price List & Database Sync Button */}
-          <button
-            id="btn-open-pricelist"
-            onClick={onOpenPriceListModal}
-            className="p-2 sm:px-3 sm:py-2 rounded-lg border border-[#E5E5E5] bg-white text-zinc-800 hover:bg-zinc-50 hover:text-black hover:border-zinc-300 transition-colors flex items-center gap-1.5 text-xs font-semibold cursor-pointer"
-            title="Catalog, Pricing & Database Sync"
-          >
-            <Settings2 className="w-4 h-4 text-[#8C8C8C]" />
-            <span className="hidden sm:inline">{language === 'en' ? 'Prices & DB' : 'Precios & BD'}</span>
-          </button>
-
-          {/* Cart / Quotation Trigger Button */}
-          <button
-            id="btn-toggle-cart"
-            onClick={onToggleCart}
-            className={`px-3 sm:px-4 py-2 rounded-lg font-bold text-xs sm:text-sm flex items-center gap-2.5 transition-all cursor-pointer shadow-xs ${
-              itemCount > 0
-                ? 'bg-[#FF8407] text-white hover:bg-[#E07300] active:scale-95 shadow-[0_4px_12px_rgba(255,132,7,0.25)]'
-                : 'bg-black text-white hover:bg-zinc-800'
-            }`}
-          >
-            <div className="relative">
-              <ShoppingBag className="w-4 h-4 text-white" />
-              {itemCount > 0 && (
-                <span className="absolute -top-1.5 -right-2 bg-black text-white text-[9px] w-4 h-4 rounded-full flex items-center justify-center font-black border border-white">
-                  {itemCount}
-                </span>
-              )}
-            </div>
-            <span className="hidden sm:inline font-medium">
-              {language === 'en' ? 'Quote' : 'Cotización'}
-            </span>
-            <span className="font-bold font-mono">
-              {formatCurrency(totalAmount)}
-            </span>
-          </button>
         </div>
       </div>
     </header>

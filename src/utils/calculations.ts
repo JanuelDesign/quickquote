@@ -251,11 +251,11 @@ export function calculateQuoteTotals(
   installationTotal = Number(installationTotal.toFixed(2));
   const deliveryTotal = includeDelivery ? deliveryFee : 0;
 
-  // In Florida: Tangible products + Delivery fee are subject to the 7% sales tax
-  const taxableBase = Number((subtotalProducts + deliveryTotal).toFixed(2));
+  // Business rule: Tax (7%) applies ONLY to tangible products (never on installation or delivery)
+  const taxableBase = subtotalProducts;
   const taxAmount = Number((taxableBase * taxRate).toFixed(2));
 
-  // Formula: Total = Subtotal Products + Delivery + Tax (7% on Products + Delivery) + Installation / Services (Tax-Exempt)
+  // Formula: Total = Subtotal Products + Delivery ($60 if enabled, tax-free) + Tax (7% only on products) + Installation (tax-free)
   const total = Number((subtotalProducts + deliveryTotal + taxAmount + installationTotal).toFixed(2));
 
   return {

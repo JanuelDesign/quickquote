@@ -4,9 +4,9 @@ import { calculateBaseboardUnits, formatCurrency } from '../utils/calculations';
 import { translations } from '../utils/translations';
 import { 
   Check, 
-  Plus, 
   Ruler, 
-  Layers
+  ArrowLeft,
+  ChevronRight
 } from 'lucide-react';
 
 interface BaseboardCalculatorProps {
@@ -29,15 +29,17 @@ export const BaseboardCalculator: React.FC<BaseboardCalculatorProps> = ({
   const t = translations[language];
   const baseboardProducts = products.filter(p => p.category === 'rodapie');
   
+  const [currentStep, setCurrentStep] = useState<1 | 2>(1);
   const [selectedProduct, setSelectedProduct] = useState<Product>(baseboardProducts[0] || {} as Product);
   const [linearFeetInput, setLinearFeetInput] = useState<string>('134');
-  const [pricePerLinearFt, setPricePerLinearFt] = useState<number>(baseboardProducts[0]?.basePrice || 0.99);
+  const [pricePerLinearFt, setPricePerLinearFt] = useState<number>(baseboardProducts[0]?.basePrice || 1.19);
   const [notes, setNotes] = useState<string>('');
   const [addedSuccess, setAddedSuccess] = useState(false);
 
-  const handleProductChange = (prod: Product) => {
+  const handleProductSelect = (prod: Product) => {
     setSelectedProduct(prod);
     setPricePerLinearFt(prod.basePrice);
+    setCurrentStep(2);
   };
 
   const stripLength = selectedProduct.stripLengthFeet || 16;
@@ -53,8 +55,7 @@ export const BaseboardCalculator: React.FC<BaseboardCalculatorProps> = ({
   };
 
   const handlePriceMarkup = (delta: number) => {
-    const newPrice = Math.max(0.1, Number((pricePerLinearFt + delta).toFixed(2)));
-    setPricePerLinearFt(newPrice);
+    setPricePerLinearFt(prev => Math.max(0.1, Number((prev + delta).toFixed(2))));
   };
 
   const handleAddToCart = () => {
@@ -67,23 +68,78 @@ export const BaseboardCalculator: React.FC<BaseboardCalculatorProps> = ({
       notes
     );
     setAddedSuccess(true);
-    setTimeout(() => setAddedSuccess(false), 2000);
+    setTimeout(() => {
+      setAddedSuccess(false);
+      setCurrentStep(1);
+    }, 900);
   };
 
   return (
-    <div className="space-y-6">
-      {/* Product Selection Grid */}
-      <div className="space-y-3">
-        <div className="flex items-center justify-between">
-          <span className="text-[11px] font-bold uppercase tracking-[1px] text-[#8C8C8C]">
-            {t.selectModel} ({baseboardProducts.length})
-          </span>
-          <span className="text-[11px] font-semibold text-[#8C8C8C]">
-            {language === 'en' ? 'Primed White Pine & MDF (16 ft Strips)' : 'Pino blanco imprimado (Tiras de 16 ft)'}
-          </span>
+    <div className="space-y-4">
+      {/* Step Navigation Bar */}
+      <div className="bg-white rounded-xl p-3 border border-[#E4E2DA] shadow-xs flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          {currentStep === 2 ? (
+            <button
+              type="button"
+              id="btn-bb-back"
+              onClick={() => setCurrentStep(1)}
+              className="h-8 px-2.5 rounded-lg border border-[#E4E2DA] hover:border-[#181818] bg-[#F2F1EC] text-[#181818] text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer"
+            >
+              <ArrowLeft className="w-3.5 h-3.5" />
+              <span>{language === 'en' ? 'Back' : 'Atrás'}</span>
+            </button>
+          ) : (
+            <div className="w-8 h-8 rounded-lg bg-[#181818] text-[#FF8407] flex items-center justify-center font-bold text-xs">
+              <Ruler className="w-4 h-4" />
+            </div>
+          )}
+
+          <div>
+            <div className="flex items-center gap-2">
+              <span className="text-[10px] uppercase font-bold tracking-wider text-[#9C9A90]">
+                {language === 'en' ? `Step ${currentStep} of 2` : `Paso ${currentStep} de 2`}
+              </span>
+              <span className="text-zinc-300">•</span>
+              <span className="text-xs font-bold text-[#181818]">
+                {currentStep === 1 
+                  ? (language === 'en' ? '1. Select Baseboard Model' : '1. Seleccionar modelo de rodapié')
+                  : (language === 'en' ? '2. Linear Feet & Pricing' : '2. Pies lineales y precio')}
+              </span>
+            </div>
+            <p className="text-[11px] text-[#6B6A63] font-medium">
+              {currentStep === 1
+                ? `${baseboardProducts.length} ${language === 'en' ? 'options (16 ft strips)' : 'opciones (tiras de 16 ft)'}`
+                : `${selectedProduct.name} • ${stripLength} ft / tira`}
+            </p>
+          </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+        {/* Progress pills */}
+        <div className="flex items-center gap-1.5">
+          {[1, 2].map((step) => (
+            <div
+              key={step}
+              onClick={() => {
+                if (step < currentStep) setCurrentStep(step as 1 | 2);
+              }}
+              className={`w-6 h-6 rounded-full text-[11px] font-bold flex items-center justify-center transition-all ${
+                currentStep === step
+                  ? 'bg-[#FF8407] text-white shadow-2xs'
+                  : currentStep > step
+                  ? 'bg-[#181818] text-white cursor-pointer'
+                  : 'bg-[#F2F1EC] text-[#9C9A90]'
+              }`}
+            >
+              {currentStep > step ? '✓' : step}
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* STEP 1: Select Model */}
+      {currentStep === 1 && (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5">
           {baseboardProducts.map((product) => {
             const isSelected = selectedProduct.id === product.id;
             const len = product.stripLengthFeet || 16;
@@ -93,238 +149,246 @@ export const BaseboardCalculator: React.FC<BaseboardCalculatorProps> = ({
               <div
                 key={product.id}
                 id={`bb-card-${product.id}`}
-                onClick={() => handleProductChange(product)}
-                className={`bg-white border rounded-xl p-4 flex flex-col justify-between relative transition-all cursor-pointer shadow-2xs group hover:border-black ${
+                onClick={() => handleProductSelect(product)}
+                className={`bg-white border rounded-xl p-4 flex flex-col justify-between relative transition-all cursor-pointer shadow-xs hover:border-[#181818] ${
                   isSelected
-                    ? 'border-black ring-1 ring-black bg-zinc-50/50'
-                    : 'border-[#E5E5E5]'
+                    ? 'border-[#FF8407] ring-2 ring-[#FF8407]/20 bg-amber-50/10'
+                    : 'border-[#E4E2DA]'
                 }`}
               >
-                <span className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded tracking-wider absolute top-3 right-3 ${
-                  isSelected ? 'bg-[#FF8407] text-white' : 'bg-black text-white'
-                }`}>
-                  {len} FT {language === 'en' ? 'STRIPS' : 'TIRAS'}
+                <span className="text-[10px] font-bold uppercase px-2 py-0.5 rounded tracking-wider absolute top-3.5 right-3.5 bg-[#181818] text-white">
+                  {len} FT TIRAS
                 </span>
 
-                <div className="pr-16">
-                  <h3 className="text-base font-bold text-black leading-snug">
+                <div className="pr-16 space-y-1">
+                  <h3 className="text-base font-bold text-[#181818] leading-snug">
                     {product.name}
                   </h3>
-                  <p className="text-xs text-[#8C8C8C] mt-1">
-                    {product.size || '3 1/4" - 5 1/4"'} • ${stripCost.toFixed(2)}/{language === 'en' ? 'strip' : 'tira'}
+                  <p className="text-xs text-[#6B6A63]">
+                    {product.size || '5 1/4"'} • ${stripCost.toFixed(2)}/tira
                   </p>
                 </div>
 
-                <div className="flex items-baseline justify-between mt-4 pt-2 border-t border-[#E5E5E5]">
+                <div className="flex items-baseline justify-between mt-4 pt-2.5 border-t border-[#E4E2DA]">
                   <div>
-                    <span className="text-lg font-bold text-black font-mono">
+                    <span className="text-lg font-bold text-[#181818] font-mono">
                       ${product.basePrice.toFixed(2)}
                     </span>
-                    <span className="text-xs text-[#8C8C8C] ml-1">/ LF</span>
+                    <span className="text-xs text-[#6B6A63] ml-1">/ LF</span>
                   </div>
 
                   <button
                     type="button"
                     onClick={(e) => {
                       e.stopPropagation();
-                      handleProductChange(product);
+                      handleProductSelect(product);
                     }}
-                    className={`px-3 py-1.5 rounded-md text-xs font-bold uppercase tracking-wider transition-colors cursor-pointer ${
-                      isSelected
-                        ? 'bg-[#FF8407] text-white'
-                        : 'bg-black text-white hover:bg-zinc-800'
-                    }`}
+                    className="px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-wider transition-colors cursor-pointer bg-[#181818] hover:bg-black text-white flex items-center gap-1.5"
                   >
-                    {isSelected ? (language === 'en' ? 'Selected' : 'Seleccionado') : (language === 'en' ? 'Select' : 'Seleccionar')}
+                    <span>{language === 'en' ? 'Select' : 'Seleccionar'}</span>
+                    <ChevronRight className="w-3.5 h-3.5 text-[#FF8407]" />
                   </button>
                 </div>
               </div>
             );
           })}
         </div>
-      </div>
+      )}
 
-      {/* Redesigned 4-Card Visual Calculation Module */}
-      <div className="bg-white rounded-xl p-5 sm:p-6 border border-[#E5E5E5] shadow-xs space-y-5">
-        <div className="flex items-center justify-between pb-3 border-b border-[#E5E5E5]">
-          <div className="flex items-center gap-2.5">
-            <div className="w-7 h-7 rounded-md bg-black text-[#FF8407] flex items-center justify-center font-bold text-xs">
-              <Ruler className="w-3.5 h-3.5" />
+      {/* STEP 2: Linear Feet & Calculation */}
+      {currentStep === 2 && (
+        <div className="space-y-4">
+          {/* Top selected model badge */}
+          <div className="bg-[#F2F1EC] border border-[#E4E2DA] rounded-xl px-4 py-2.5 flex items-center justify-between">
+            <div className="flex items-center gap-2 text-xs">
+              <span className="font-bold text-[#181818]">{selectedProduct.name}</span>
+              <span className="text-[#9C9A90]">•</span>
+              <span className="text-[#6B6A63] font-medium">Tiras de {stripLength} ft</span>
             </div>
-            <div>
-              <h3 className="text-sm font-bold text-black uppercase tracking-wide">
-                {t.enterQuantity}
-              </h3>
-              <p className="text-[11px] text-[#8C8C8C]">
-                {selectedProduct.name} • {selectedProduct.stripLengthFeet || 16} ft {language === 'en' ? 'per strip' : 'por tira'}
-              </p>
-            </div>
+            <button
+              type="button"
+              onClick={() => setCurrentStep(1)}
+              className="text-[11px] font-bold text-[#FF8407] hover:underline cursor-pointer"
+            >
+              {language === 'en' ? 'Change' : 'Cambiar'}
+            </button>
           </div>
-        </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          {/* Card 1: Linear Feet Input */}
-          <div className="p-4 rounded-xl bg-[#FAFAFA] border border-[#E5E5E5] space-y-2 flex flex-col justify-between">
-            <div>
-              <label htmlFor="input-bb-linear-feet" className="text-[11px] font-bold uppercase tracking-[0.5px] text-[#8C8C8C] block">
-                {t.linearFeetRequired}
-              </label>
-              <div className="relative mt-1">
+          {/* Unified Cards Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* EDITABLE INPUTS: Card 1 - Linear Feet */}
+            <div className="bg-white rounded-xl p-4 sm:p-5 border border-[#E4E2DA] shadow-xs space-y-3">
+              <div className="flex items-center justify-between">
+                <label htmlFor="input-bb-lf" className="text-[10px] font-bold uppercase tracking-wider text-[#9C9A90]">
+                  {language === 'en' ? 'Required Linear Feet' : 'Pies Lineales Requeridos'}
+                </label>
+                <span className="text-[10px] text-[#6B6A63] font-mono">
+                  {stripLength} ft / tira
+                </span>
+              </div>
+
+              <div className="flex items-center gap-2">
                 <input
                   type="number"
-                  id="input-bb-linear-feet"
+                  id="input-bb-lf"
                   value={linearFeetInput}
                   onChange={(e) => setLinearFeetInput(e.target.value)}
                   placeholder="0"
-                  min="0"
-                  step="1"
-                  className="w-full text-2xl font-black text-black bg-white border border-[#E5E5E5] focus:border-black rounded-lg px-3 py-2 outline-none font-mono"
-                />
-                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-bold text-[#8C8C8C]">
-                  LF
-                </span>
-              </div>
-            </div>
-
-            <div className="flex flex-wrap gap-1 pt-1">
-              {[+16, +32, +64, +100].map((amt) => (
-                <button
-                  key={amt}
-                  type="button"
-                  onClick={() => handleAddLF(amt)}
-                  className="px-2 py-1 bg-white border border-[#E5E5E5] hover:border-black rounded text-[10px] font-bold text-black cursor-pointer shadow-2xs transition-colors"
-                >
-                  +{amt}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Card 2: 16ft Strips Computation Display */}
-          <div className="p-4 rounded-xl bg-black text-white border border-black space-y-2 flex flex-col justify-between shadow-xs">
-            <div>
-              <div className="flex items-center justify-between">
-                <span className="text-[10px] font-bold uppercase tracking-[1px] text-[#8C8C8C]">
-                  {t.stripsNeededLabel}
-                </span>
-                <Ruler className="w-4 h-4 text-[#FF8407]" />
-              </div>
-
-              <div className="mt-1 flex items-baseline gap-1.5">
-                <span className="text-2xl sm:text-3xl font-black text-[#FF8407] font-mono">
-                  {stripsNeeded}
-                </span>
-                <span className="text-xs font-bold uppercase tracking-wider text-gray-300">
-                  {language === 'en' ? 'Strips' : 'Tiras'}
-                </span>
-              </div>
-            </div>
-
-            <div className="pt-2 border-t border-zinc-800 space-y-0.5">
-              <div className="flex justify-between text-[11px] text-gray-300">
-                <span>{language === 'en' ? 'Covers:' : 'Cubre:'}</span>
-                <strong className="text-white font-mono">{totalLinearFeetCovered} LF</strong>
-              </div>
-              <div className="flex justify-between text-[10px] text-[#8C8C8C]">
-                <span>{stripLength} ft/{language === 'en' ? 'strip' : 'tira'}</span>
-                {surplusFeet > 0 && (
-                  <span className="text-amber-400 font-medium">+{surplusFeet} ft {t.surplusText}</span>
-                )}
-              </div>
-            </div>
-          </div>
-
-          {/* Card 3: Price per LF & Markup */}
-          <div className="p-4 rounded-xl bg-[#FAFAFA] border border-[#E5E5E5] space-y-2 flex flex-col justify-between">
-            <div>
-              <label className="text-[11px] font-bold uppercase tracking-[0.5px] text-[#8C8C8C] block">
-                {t.pricePerLF}
-              </label>
-              <div className="relative mt-1">
-                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm font-bold text-[#8C8C8C]">
-                  $
-                </span>
-                <input
-                  type="number"
-                  value={pricePerLinearFt}
-                  onChange={(e) => setPricePerLinearFt(parseFloat(e.target.value) || 0)}
-                  step="0.05"
-                  className="w-full text-xl font-black text-black bg-white border border-[#E5E5E5] focus:border-black rounded-lg pl-7 pr-2 py-2 outline-none font-mono"
+                  className="w-full text-2xl font-bold text-[#181818] bg-[#FAFAFA] border border-[#E4E2DA] rounded-xl px-3 py-2 focus:outline-hidden focus:border-[#FF8407]"
                 />
               </div>
-            </div>
 
-            <div>
-              <div className="flex justify-between text-[10px] text-[#8C8C8C] mb-1">
-                <span>{language === 'en' ? 'Strip Cost:' : 'Costo Tira:'} <strong className="text-black font-mono">${stripUnitPrice.toFixed(2)}</strong></span>
-              </div>
-              <div className="flex gap-1">
-                {[+0.05, +0.10, +0.25].map((m) => (
+              {/* Quick Add Chips */}
+              <div className="flex flex-wrap items-center gap-1.5 pt-1">
+                <span className="text-[10px] text-[#9C9A90] font-semibold uppercase">Rápido:</span>
+                {[16, 32, 64, 100].map((amount) => (
                   <button
-                    key={m}
+                    key={amount}
                     type="button"
-                    onClick={() => handlePriceMarkup(m)}
-                    className="flex-1 py-0.5 bg-amber-500/10 border border-[#FF8407]/20 rounded text-[10px] font-bold text-[#FF8407] hover:bg-amber-500/20 cursor-pointer"
+                    onClick={() => handleAddLF(amount)}
+                    className="text-xs font-semibold px-2.5 py-1 rounded-lg bg-[#F2F1EC] hover:bg-[#E4E2DA] text-[#181818] transition-colors cursor-pointer"
                   >
-                    +${m.toFixed(2)}
+                    +{amount}
                   </button>
                 ))}
               </div>
             </div>
-          </div>
 
-          {/* Card 4: Subtotal & Big CTA Action */}
-          <div className="p-4 rounded-xl bg-zinc-50 border border-[#E5E5E5] space-y-3 flex flex-col justify-between">
-            <div>
-              <span className="text-[11px] font-bold uppercase tracking-[0.5px] text-[#8C8C8C] block">
-                {t.subtotalLabel}
-              </span>
-              <div className="mt-0.5">
-                <span className="text-2xl font-black text-black font-mono">
-                  {formatCurrency(subtotal)}
+            {/* CALCULATED RESULT: Card 2 - 16ft Strips (Dark Card with Orange Number) */}
+            <div className="bg-[#181818] text-white rounded-xl p-4 sm:p-5 shadow-xs flex flex-col justify-between space-y-3">
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-[#A8A8A8]">
+                  {language === 'en' ? 'Strips Needed (Ceil to 16 ft)' : 'Tiras Necesarias (Múltiplos de 16 ft)'}
                 </span>
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-white/10 text-white font-mono">
+                  {stripsNeeded} {stripsNeeded === 1 ? 'tira' : 'tiras'}
+                </span>
+              </div>
+
+              <div>
+                <div className="text-3xl sm:text-4xl font-black text-[#FF8407] font-mono leading-none">
+                  {stripsNeeded} <span className="text-lg font-medium text-white">{language === 'en' ? 'Strips' : 'Tiras'}</span>
+                </div>
+                <div className="text-xs text-[#C9C9C9] mt-2 flex items-center justify-between">
+                  <span>Cubre: <strong>{totalLinearFeetCovered} LF</strong></span>
+                  <span>Longitud: <strong>{stripLength} ft/tira</strong></span>
+                </div>
+              </div>
+
+              <div className="text-[11px] text-[#A8A8A8] pt-2 border-t border-zinc-800 flex justify-between">
+                <span>Sobrante estimado:</span>
+                <span className="font-mono text-zinc-300">+{surplusFeet} ft</span>
               </div>
             </div>
 
-            <button
-              type="button"
-              id="btn-add-bb-to-cart"
-              onClick={handleAddToCart}
-              disabled={lfNumber <= 0}
-              className={`w-full py-3 rounded-lg font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-2 transition-all cursor-pointer shadow-md active:scale-98 ${
-                addedSuccess
-                  ? 'bg-emerald-600 text-white shadow-emerald-600/30'
-                  : lfNumber > 0
-                  ? 'bg-[#FF8407] text-white hover:bg-[#E07300] shadow-[0_4px_12px_rgba(255,132,7,0.3)]'
-                  : 'bg-zinc-300 text-zinc-500 cursor-not-allowed shadow-none'
-              }`}
-            >
-              {addedSuccess ? (
-                <>
-                  <Check className="w-4 h-4" />
-                  <span>{t.addedToCart}</span>
-                </>
-              ) : (
-                <>
-                  <Plus className="w-4 h-4" />
-                  <span>{language === 'en' ? `Add ${stripsNeeded} Strips` : `Agregar ${stripsNeeded} Tiras`}</span>
-                </>
-              )}
-            </button>
-          </div>
-        </div>
+            {/* EDITABLE INPUTS: Card 3 - Sales Price per LF */}
+            <div className="bg-white rounded-xl p-4 sm:p-5 border border-[#E4E2DA] shadow-xs space-y-3">
+              <div className="flex items-center justify-between">
+                <label htmlFor="input-bb-price" className="text-[10px] font-bold uppercase tracking-wider text-[#9C9A90]">
+                  {language === 'en' ? 'Selling Price per Linear Foot' : 'Precio de Venta / Pie Lineal'}
+                </label>
+                <span className="text-[10px] text-[#6B6A63] font-mono">
+                  ${stripUnitPrice.toFixed(2)} / tira
+                </span>
+              </div>
 
-        {/* Optional Notes Input */}
-        <div className="pt-2 border-t border-[#E5E5E5]">
-          <input
-            type="text"
-            value={notes}
-            onChange={(e) => setNotes(e.target.value)}
-            placeholder={t.notesPlaceholder}
-            className="w-full text-xs text-black bg-[#FAFAFA] border border-[#E5E5E5] rounded-lg px-3 py-2 outline-none focus:border-black focus:bg-white"
-          />
+              <div className="flex items-center gap-2">
+                <div className="relative w-full">
+                  <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-lg font-bold text-[#9C9A90]">$</span>
+                  <input
+                    type="number"
+                    step="0.01"
+                    id="input-bb-price"
+                    value={pricePerLinearFt}
+                    onChange={(e) => setPricePerLinearFt(parseFloat(e.target.value) || 0)}
+                    className="w-full text-2xl font-bold text-[#181818] bg-[#FAFAFA] border border-[#E4E2DA] rounded-xl pl-8 pr-3 py-2 focus:outline-hidden focus:border-[#FF8407]"
+                  />
+                </div>
+              </div>
+
+              {/* Quick Markup Chips */}
+              <div className="flex flex-wrap items-center gap-1.5 pt-1">
+                <span className="text-[10px] text-[#9C9A90] font-semibold uppercase">Margen:</span>
+                {[0.10, 0.25, 0.50].map((delta) => (
+                  <button
+                    key={delta}
+                    type="button"
+                    onClick={() => handlePriceMarkup(delta)}
+                    className="text-xs font-semibold px-2.5 py-1 rounded-lg bg-[#F2F1EC] hover:bg-[#E4E2DA] text-[#181818] transition-colors cursor-pointer"
+                  >
+                    +${delta.toFixed(2)}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* CALCULATED RESULT: Card 4 - Subtotal */}
+            <div className="bg-[#F2F1EC] border border-[#E4E2DA] rounded-xl p-4 sm:p-5 flex flex-col justify-between space-y-3">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-[#9C9A90]">
+                {language === 'en' ? 'Baseboard Subtotal' : 'Subtotal Rodapié'}
+              </span>
+
+              <div>
+                <div className="text-2xl sm:text-3xl font-black text-[#181818] font-mono">
+                  {formatCurrency(subtotal)}
+                </div>
+                <p className="text-[11px] text-[#6B6A63] mt-1">
+                  {stripsNeeded} tiras × ${stripUnitPrice.toFixed(2)}/tira
+                </p>
+              </div>
+
+              <div className="text-[10px] text-[#9C9A90] pt-2 border-t border-[#E4E2DA]">
+                * Gravable con el 7% de sales tax de Florida en el total
+              </div>
+            </div>
+          </div>
+
+          {/* EDITABLE: Customer note with clean placeholder */}
+          <div className="bg-white rounded-xl p-4 border border-[#E4E2DA] shadow-xs space-y-1.5">
+            <label htmlFor="bb-notes" className="text-[10px] font-bold uppercase tracking-wider text-[#9C9A90] block">
+              {language === 'en' ? 'Optional note for customer:' : 'Nota para el cliente (opcional):'}
+            </label>
+            <input
+              type="text"
+              id="bb-notes"
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              placeholder={language === 'en' ? 'e.g., White primed, perimeter baseboards' : 'Ej: Pintura blanca, perímetro completo'}
+              className="w-full bg-[#FAFAFA] border border-[#E4E2DA] rounded-lg px-3 py-2 text-xs text-[#181818] placeholder:text-[#9C9A90] focus:outline-hidden focus:border-[#FF8407]"
+            />
+          </div>
+
+          {/* Primary Action Button */}
+          <button
+            type="button"
+            id="btn-add-bb-to-quote"
+            onClick={handleAddToCart}
+            disabled={lfNumber <= 0}
+            className={`w-full py-3.5 rounded-xl text-xs sm:text-sm font-bold uppercase tracking-wider flex items-center justify-center gap-2 transition-all cursor-pointer shadow-md active:scale-95 ${
+              addedSuccess
+                ? 'bg-[#1E8E5A] text-white'
+                : lfNumber <= 0
+                ? 'bg-zinc-200 text-zinc-400 cursor-not-allowed'
+                : 'bg-[#FF8407] hover:bg-[#E07300] text-white'
+            }`}
+          >
+            {addedSuccess ? (
+              <>
+                <Check className="w-5 h-5 text-white" />
+                <span>{language === 'en' ? '✓ Added to Quote!' : '✓ ¡Agregado a la cotización!'}</span>
+              </>
+            ) : (
+              <>
+                <span>
+                  {language === 'en'
+                    ? `+ Add ${stripsNeeded} Strips to Quote (${formatCurrency(subtotal)})`
+                    : `+ Agregar ${stripsNeeded} Tiras a la Cotización (${formatCurrency(subtotal)})`}
+                </span>
+              </>
+            )}
+          </button>
         </div>
-      </div>
+      )}
     </div>
   );
 };

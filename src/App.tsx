@@ -34,6 +34,7 @@ import { ClientModal } from './components/ClientModal';
 import { QuoteModal } from './components/QuoteModal';
 import { PriceListManager } from './components/PriceListManager';
 import { QuotesHistoryModal } from './components/QuotesHistoryModal';
+import { AIQuoteInterpreter } from './components/AIQuoteInterpreter';
 
 import { ShoppingBag, ChevronRight, Plus, Sparkles, User } from 'lucide-react';
 
@@ -110,6 +111,14 @@ export default function App() {
   const [includeDelivery, setIncludeDelivery] = useState<boolean>(false);
   const [activeCategory, setActiveCategory] = useState<ProductCategory>('piso');
   const [quoteValidDays, setQuoteValidDays] = useState<number>(settings.defaultValidDays || 3);
+  const [salespersonName, setSalespersonName] = useState<string>(() => {
+    return localStorage.getItem('qs_salesperson_name') || 'Esteban Gavotti';
+  });
+
+  const handleAddAIParsedItems = (parsedItems: CartItem[]) => {
+    setCartItems(prev => [...prev, ...parsedItems]);
+    setIsCartOpen(true);
+  };
 
   // Modal open states
   const [isCartOpen, setIsCartOpen] = useState(false);
@@ -395,8 +404,8 @@ export default function App() {
       phone: '(305) 555-0123',
       createdAt: new Date().toISOString()
     },
-    salespersonName: settings.salespersonName,
-    salespersonPhone: settings.salespersonPhone,
+    salespersonName: salespersonName,
+    salespersonPhone: salespersonName === 'Ruben Valverde' ? '(305) 555-0188' : '(305) 555-0199',
     items: cartItems,
     subtotalProducts,
     taxRate: settings.taxRate,
@@ -450,38 +459,46 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-[#F7F7F7] text-black flex flex-col font-sans pb-24 lg:pb-10">
-      {/* Top Header with Language Switcher and Client Information */}
+      {/* Top Header with Language Switcher, Salesperson and Menu */}
       <Header
+        quoteNumber={activeQuote.quoteNumber}
+        client={currentClient}
         clientName={currentClient?.name}
+        salespersonName={salespersonName}
+        onSelectSalesperson={(name) => {
+          setSalespersonName(name);
+          localStorage.setItem('qs_salesperson_name', name);
+        }}
         cartItemsCount={cartItems.length}
         cartTotal={total}
         onOpenCart={() => setIsCartOpen(true)}
         onOpenClientModal={() => setIsClientModalOpen(true)}
         onOpenPriceManager={() => setIsPriceManagerOpen(true)}
         onOpenHistory={() => setIsHistoryOpen(true)}
+        onNewQuote={() => setCartItems([])}
         language={language}
         onToggleLanguage={toggleLanguage}
       />
 
       {/* Main Content Area */}
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
-        {/* Active Client Banner */}
-        <div className="bg-white p-4 rounded-xl border border-[#E5E5E5] shadow-2xs flex flex-wrap items-center justify-between gap-3">
+        {/* Active Client Banner (Discreet ghost buttons, no competing giant orange) */}
+        <div className="bg-white p-4 rounded-xl border border-[#E4E2DA] shadow-xs flex flex-wrap items-center justify-between gap-3">
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-lg bg-black text-[#FF8407] flex items-center justify-center font-bold shrink-0">
+            <div className="w-9 h-9 rounded-lg bg-[#181818] text-[#FF8407] flex items-center justify-center font-bold shrink-0">
               <User className="w-5 h-5" />
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <span className="text-[11px] font-bold uppercase tracking-[1px] text-[#8C8C8C]">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-[#9C9A90]">
                   {t.quotingFor}:
                 </span>
-                <span className="text-sm font-bold text-black">
+                <span className="text-sm font-bold text-[#181818]">
                   {currentClient?.name || t.unassignedClient}
                 </span>
               </div>
               {currentClient?.phone && (
-                <span className="text-[11px] text-[#8C8C8C] font-mono">
+                <span className="text-[11px] text-[#6B6A63] font-mono">
                   Tel: {currentClient.phone} {currentClient.address && `• ${currentClient.address}`}
                 </span>
               )}
@@ -493,7 +510,7 @@ export default function App() {
               type="button"
               id="btn-switch-client"
               onClick={() => setIsClientModalOpen(true)}
-              className="px-3.5 py-2 rounded-lg border border-[#E5E5E5] hover:border-black bg-white text-black text-xs font-bold transition-colors cursor-pointer uppercase tracking-wider"
+              className="px-3 py-1.5 rounded-lg border border-[#E4E2DA] hover:border-[#181818] bg-[#F2F1EC] text-[#181818] text-xs font-bold transition-colors cursor-pointer uppercase tracking-wider"
             >
               {currentClient ? t.changeClient : t.assignClient}
             </button>
@@ -501,13 +518,20 @@ export default function App() {
               type="button"
               id="btn-add-other-product"
               onClick={() => setIsCustomModalOpen(true)}
-              className="px-3.5 py-2 rounded-lg bg-[#FF8407] hover:bg-[#E07300] text-white text-xs font-bold transition-all shadow-xs flex items-center gap-1.5 cursor-pointer active:scale-95 uppercase tracking-wider"
+              className="px-3 py-1.5 rounded-lg border border-[#E4E2DA] hover:border-[#181818] bg-white text-[#6B6A63] hover:text-[#181818] text-xs font-semibold transition-colors flex items-center gap-1.5 cursor-pointer uppercase tracking-wider"
             >
-              <Plus className="w-4 h-4" />
-              <span>+ {t.customProductTabBtn}</span>
+              <Plus className="w-3.5 h-3.5 text-[#FF8407]" />
+              <span>{t.customProductTabBtn}</span>
             </button>
           </div>
         </div>
+
+        {/* AI Quote Interpreter (WhatsApp message / Voice text parser) */}
+        <AIQuoteInterpreter
+          catalog={products}
+          onAddParsedItems={handleAddAIParsedItems}
+          language={language}
+        />
 
         {/* 4 Category Tabs */}
         <div>
@@ -606,55 +630,85 @@ export default function App() {
         </div>
       </main>
 
-      {/* Mobile Sticky Bottom Floating Summary Bar */}
-      <div className="lg:hidden fixed bottom-0 left-0 right-0 p-3 bg-white/95 backdrop-blur-md border-t border-[#E5E5E5] shadow-2xl z-30 flex items-center justify-between gap-3">
-        <div 
-          onClick={() => setIsCartOpen(true)} 
-          className="flex items-center gap-2.5 cursor-pointer flex-1"
-        >
-          <div className="relative">
-            <div className="w-10 h-10 rounded-lg bg-black text-white flex items-center justify-center">
-              <ShoppingBag className="w-4 h-4 text-[#FF8407]" />
+      {/* Floating Bottom Bar (Mobile & Desktop Accessible) */}
+      <div className="fixed bottom-0 left-0 right-0 p-2.5 sm:p-3 bg-white/95 backdrop-blur-md border-t border-[#E4E2DA] shadow-2xl z-30">
+        <div className="max-w-7xl mx-auto flex items-center justify-between gap-3">
+          {/* Cart Icon + Badge + Accumulated Total */}
+          <div 
+            id="btn-bottom-bar-cart"
+            onClick={() => setIsCartOpen(true)} 
+            className="flex items-center gap-3 cursor-pointer flex-1 group"
+          >
+            <div className="relative">
+              <div className="w-10 h-10 rounded-xl bg-[#181818] group-hover:bg-black text-white flex items-center justify-center transition-colors shadow-xs">
+                <ShoppingBag className="w-4 h-4 text-[#FF8407]" />
+              </div>
+              {cartItems.length > 0 && (
+                <span className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-[#FF8407] text-white text-[10px] font-bold rounded-full flex items-center justify-center shadow-xs">
+                  {cartItems.length}
+                </span>
+              )}
             </div>
-            {cartItems.length > 0 && (
-              <span className="absolute -top-1.5 -right-1.5 w-4 h-4 bg-[#FF8407] text-white text-[9px] font-bold rounded-full flex items-center justify-center">
-                {cartItems.length}
-              </span>
-            )}
+
+            <div>
+              <div className="flex items-center gap-1.5">
+                <span className="text-[10px] text-[#9C9A90] uppercase font-bold tracking-wider">
+                  {language === 'en' ? 'Cart Total' : 'Total Carrito'} ({cartItems.length} {cartItems.length === 1 ? (language === 'en' ? 'item' : 'ítem') : (language === 'en' ? 'items' : 'ítems')}):
+                </span>
+                <span className="text-[10px] text-[#FF8407] font-semibold underline hidden sm:inline">
+                  {language === 'en' ? 'View details' : 'Ver detalle'}
+                </span>
+              </div>
+              <div className="flex items-baseline gap-2">
+                <span className="text-lg sm:text-xl font-black text-[#181818] font-mono leading-tight">
+                  {formatCurrency(total)}
+                </span>
+                {subtotalProducts > 0 && (
+                  <span className="text-[10px] text-[#6B6A63] hidden sm:inline">
+                    ({language === 'en' ? 'Prod' : 'Prod'}: {formatCurrency(subtotalProducts)} + 7% Tax)
+                  </span>
+                )}
+              </div>
+            </div>
           </div>
-          <div>
-            <span className="text-[10px] text-[#8C8C8C] uppercase font-bold block">
-              Total ({cartItems.length} {t.itemsWord}):
-            </span>
-            <span className="text-base font-bold text-black font-mono leading-none">
-              {formatCurrency(total)}
-            </span>
+
+          {/* Siguiente / Next button for export step */}
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              id="btn-bottom-bar-details"
+              onClick={() => setIsCartOpen(true)}
+              className="hidden md:flex px-3.5 py-2.5 rounded-xl text-xs font-bold border border-[#E4E2DA] hover:border-[#181818] bg-[#F2F1EC] text-[#181818] transition-colors cursor-pointer"
+            >
+              {language === 'en' ? 'Cart Items' : 'Ver Carrito'}
+            </button>
+
+            <button
+              type="button"
+              id="btn-bottom-bar-next"
+              onClick={() => {
+                if (cartItems.length > 0) {
+                  setIsQuoteModalOpen(true);
+                } else {
+                  setIsCartOpen(true);
+                }
+              }}
+              disabled={cartItems.length === 0}
+              className={`py-2.5 px-4 sm:px-6 rounded-xl font-bold text-xs sm:text-sm uppercase tracking-wider flex items-center gap-2 shadow-md active:scale-95 transition-all cursor-pointer ${
+                cartItems.length > 0
+                  ? 'bg-[#FF8407] hover:bg-[#E07300] text-white'
+                  : 'bg-zinc-200 text-zinc-400 cursor-not-allowed'
+              }`}
+            >
+              <span>{language === 'en' ? 'Next: Review Quote' : 'Siguiente: Ver Cotización'}</span>
+              <ChevronRight className="w-4 h-4" />
+            </button>
           </div>
         </div>
-
-        <button
-          type="button"
-          onClick={() => {
-            if (cartItems.length > 0) {
-              setIsQuoteModalOpen(true);
-            } else {
-              setIsCartOpen(true);
-            }
-          }}
-          disabled={cartItems.length === 0}
-          className={`py-2 px-4 rounded-lg font-bold text-xs uppercase tracking-wider flex items-center gap-1.5 shadow-md active:scale-95 transition-all ${
-            cartItems.length > 0
-              ? 'bg-[#FF8407] text-white'
-              : 'bg-zinc-200 text-zinc-400 cursor-not-allowed'
-          }`}
-        >
-          <span>{t.mobileQuoteBtn}</span>
-          <ChevronRight className="w-4 h-4" />
-        </button>
       </div>
 
-      {/* Mobile Cart Drawer */}
-      <div className="lg:hidden">
+      {/* Cart Drawer Overlay (Works on both mobile & desktop when triggered) */}
+      {isCartOpen && (
         <CartSummary
           items={cartItems}
           client={currentClient}
@@ -682,7 +736,7 @@ export default function App() {
           total={total}
           language={language}
         />
-      </div>
+      )}
 
       {/* Modals */}
       <CustomProductModal
@@ -710,9 +764,7 @@ export default function App() {
         quote={activeQuote}
         settings={settings}
         onUpdateQuoteDays={setQuoteValidDays}
-        onUpdateSalesperson={(name, phone) => {
-          setSettings(prev => ({ ...prev, salespersonName: name, salespersonPhone: phone }));
-        }}
+        onToggleDelivery={setIncludeDelivery}
         onSaveToHistory={handleSaveQuoteToHistory}
         language={language}
       />
