@@ -169,49 +169,50 @@ export const CustomProductModal: React.FC<CustomProductModalProps> = ({
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="p-5 border-b border-[#E5E5E5] bg-black text-white flex items-center justify-between">
+        <div className="p-4 sm:p-5 border-b border-[#E5E5E5] bg-black text-white flex items-center justify-between">
           <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-md bg-zinc-900 border border-zinc-800 text-[#FF8407] flex items-center justify-center">
+            <div className="w-8 h-8 rounded-md bg-zinc-900 border border-zinc-800 text-[#FF8407] flex items-center justify-center shrink-0">
               <Sparkles className="w-4 h-4" />
             </div>
             <div>
               <h2 className="text-sm sm:text-base font-bold text-white tracking-wide">
-                {t.customProductTitle}
+                {language === 'en' ? 'Add Custom Item or Labor' : 'Agregar Ítem Personalizado o Mano de Obra'}
               </h2>
               <p className="text-[11px] text-[#8C8C8C]">
-                {t.customProductSubtitle}
+                {language === 'en' ? 'Enter installation labor, custom services or extra materials' : 'Ingresa mano de obra de instalación, servicios o materiales extra'}
               </p>
             </div>
           </div>
 
           <button
+            type="button"
             onClick={onClose}
-            className="w-8 h-8 rounded-md hover:bg-zinc-800 text-[#8C8C8C] hover:text-white flex items-center justify-center transition-colors cursor-pointer"
+            className="w-8 h-8 rounded-md hover:bg-zinc-800 text-[#8C8C8C] hover:text-white flex items-center justify-center transition-colors cursor-pointer shrink-0"
           >
             <X className="w-4 h-4" />
           </button>
         </div>
 
         {/* Form Body */}
-        <form onSubmit={handleSave} className="p-5 space-y-4">
+        <form onSubmit={handleSave} className="p-4 sm:p-5 space-y-4">
           {/* Quick Presets */}
           <div>
             <label className="text-[11px] font-bold uppercase tracking-[1px] text-[#8C8C8C] block mb-1.5">
               {t.quickPresets}
             </label>
-            <div className="grid grid-cols-2 gap-1.5">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
               {presets.map((p, idx) => (
                 <button
                   key={idx}
                   type="button"
                   onClick={() => handleApplyPreset(p)}
-                  className="p-2 text-left rounded-lg border border-[#E5E5E5] hover:border-black bg-[#FAFAFA] hover:bg-white text-xs transition-all cursor-pointer group"
+                  className="p-2.5 text-left rounded-lg border border-[#E5E5E5] hover:border-black bg-[#FAFAFA] hover:bg-white text-xs transition-all cursor-pointer group flex flex-col justify-between"
                 >
-                  <p className="font-bold text-black group-hover:text-[#FF8407] line-clamp-1">
+                  <p className="font-bold text-black group-hover:text-[#FF8407] line-clamp-2 leading-snug min-h-[32px]">
                     {p.label}
                   </p>
-                  <p className="text-[10px] text-[#8C8C8C]">
-                    ${p.price.toFixed(2)} / {p.unit} {p.isLabor && '• Labor'}
+                  <p className="text-[11px] text-[#6B6A63] font-mono mt-1 pt-1 border-t border-zinc-100">
+                    ${p.price.toFixed(2)} / {p.unit} <span className="text-[#FF8407] font-semibold">{p.isLabor ? '• Labor' : '• Product'}</span>
                   </p>
                 </button>
               ))}
@@ -221,8 +222,8 @@ export const CustomProductModal: React.FC<CustomProductModalProps> = ({
           <div className="pt-2 border-t border-[#E5E5E5] space-y-3.5">
             {/* Description */}
             <div>
-              <label className="text-[11px] font-bold uppercase tracking-[1px] text-[#8C8C8C] block mb-1">
-                {t.descLabel}
+              <label className="text-[11px] font-bold uppercase tracking-[1px] text-[#181818] block mb-1">
+                {language === 'en' ? 'Description / Name' : 'Descripción / Nombre'}
               </label>
               <input
                 type="text"
@@ -237,8 +238,8 @@ export const CustomProductModal: React.FC<CustomProductModalProps> = ({
             {/* Quantity & Unit Label */}
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="text-[11px] font-bold uppercase tracking-[1px] text-[#8C8C8C] block mb-1">
-                  {t.quantityLabel}
+                <label className="text-[11px] font-bold uppercase tracking-[1px] text-[#181818] block mb-1">
+                  {language === 'en' ? 'Quantity' : 'Cantidad'}
                 </label>
                 <input
                   type="number"
@@ -252,14 +253,14 @@ export const CustomProductModal: React.FC<CustomProductModalProps> = ({
               </div>
 
               <div>
-                <label className="text-[11px] font-bold uppercase tracking-[1px] text-[#8C8C8C] block mb-1">
-                  {t.unitOfMeasure}
+                <label className="text-[11px] font-bold uppercase tracking-[1px] text-[#181818] block mb-1">
+                  {language === 'en' ? 'Unit (pza, sqft, LF, hour...)' : 'Unidad (pza, sqft, LF, hora...)'}
                 </label>
                 <input
                   type="text"
                   value={unitLabel}
                   onChange={(e) => setUnitLabel(e.target.value)}
-                  placeholder="sqft, LF, global, pza"
+                  placeholder="sqft, LF, global, pza, hr"
                   className="w-full text-xs sm:text-sm bg-white border border-[#E5E5E5] focus:border-black rounded-lg px-3 py-2 outline-none text-black"
                 />
               </div>
@@ -267,8 +268,8 @@ export const CustomProductModal: React.FC<CustomProductModalProps> = ({
 
             {/* Unit Price */}
             <div>
-              <label className="text-[11px] font-bold uppercase tracking-[1px] text-[#8C8C8C] block mb-1">
-                {t.unitPriceLabel}
+              <label className="text-[11px] font-bold uppercase tracking-[1px] text-[#181818] block mb-1">
+                {language === 'en' ? 'Unit Price ($)' : 'Precio unitario ($)'}
               </label>
               <div className="relative">
                 <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-bold text-[#8C8C8C]">
@@ -286,39 +287,55 @@ export const CustomProductModal: React.FC<CustomProductModalProps> = ({
               </div>
             </div>
 
-            {/* Taxable & Labor Checkboxes */}
-            <div className="grid grid-cols-2 gap-3 pt-1">
-              <label className="flex items-center gap-2 p-2.5 rounded-lg border border-[#E5E5E5] bg-[#FAFAFA] cursor-pointer">
+            {/* Taxable & Labor Checkboxes with full visible text */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-1">
+              <label className="flex items-start gap-2.5 p-3 rounded-lg border border-[#E5E5E5] bg-[#FAFAFA] hover:bg-white cursor-pointer select-none">
                 <input
                   type="checkbox"
                   checked={isTaxable}
-                  onChange={(e) => setIsTaxable(e.target.checked)}
-                  className="w-4 h-4 accent-[#FF8407] rounded cursor-pointer"
+                  onChange={(e) => {
+                    const val = e.target.checked;
+                    setIsTaxable(val);
+                    if (val) setIsLabor(false);
+                  }}
+                  className="w-4 h-4 mt-0.5 accent-[#FF8407] rounded cursor-pointer shrink-0"
                 />
-                <div>
-                  <span className="text-xs font-bold text-black block">{t.applySalesTax}</span>
-                  <span className="text-[10px] text-[#8C8C8C]">{t.applySalesTaxSub}</span>
+                <div className="flex-1 min-w-0">
+                  <span className="text-xs font-bold text-black block leading-tight">
+                    {language === 'en' ? 'Tangible Product' : 'Es producto tangible'}
+                  </span>
+                  <span className="text-[11px] text-[#6B6A63] block mt-0.5 leading-snug">
+                    {language === 'en' ? 'Applies 7% sales tax' : 'Aplica 7% de impuesto'}
+                  </span>
                 </div>
               </label>
 
-              <label className="flex items-center gap-2 p-2.5 rounded-lg border border-[#E5E5E5] bg-[#FAFAFA] cursor-pointer">
+              <label className="flex items-start gap-2.5 p-3 rounded-lg border border-[#E5E5E5] bg-[#FAFAFA] hover:bg-white cursor-pointer select-none">
                 <input
                   type="checkbox"
                   checked={isLabor}
-                  onChange={(e) => setIsLabor(e.target.checked)}
-                  className="w-4 h-4 accent-[#FF8407] rounded cursor-pointer"
+                  onChange={(e) => {
+                    const val = e.target.checked;
+                    setIsLabor(val);
+                    if (val) setIsTaxable(false);
+                  }}
+                  className="w-4 h-4 mt-0.5 accent-[#FF8407] rounded cursor-pointer shrink-0"
                 />
-                <div>
-                  <span className="text-xs font-bold text-black block">{t.isLaborService}</span>
-                  <span className="text-[10px] text-[#8C8C8C]">{t.isLaborServiceSub}</span>
+                <div className="flex-1 min-w-0">
+                  <span className="text-xs font-bold text-black block leading-tight">
+                    {language === 'en' ? 'Labor / Service' : 'Es mano de obra o servicio'}
+                  </span>
+                  <span className="text-[11px] text-[#6B6A63] block mt-0.5 leading-snug">
+                    {language === 'en' ? 'Tax-exempt (0% tax)' : 'Exento de impuesto (0% tax)'}
+                  </span>
                 </div>
               </label>
             </div>
 
             {/* Notes */}
             <div>
-              <label className="text-[11px] font-bold uppercase tracking-[1px] text-[#8C8C8C] block mb-1">
-                {t.noteForClient}
+              <label className="text-[11px] font-bold uppercase tracking-[1px] text-[#181818] block mb-1">
+                {language === 'en' ? 'Notes / Specification' : 'Notas / Especificación'}
               </label>
               <input
                 type="text"
@@ -344,7 +361,7 @@ export const CustomProductModal: React.FC<CustomProductModalProps> = ({
               className="px-5 py-2.5 rounded-lg text-xs font-bold bg-[#FF8407] text-white hover:bg-[#E07300] transition-colors flex items-center gap-1.5 cursor-pointer shadow-md uppercase tracking-wider"
             >
               <Plus className="w-4 h-4" />
-              <span>{t.addToQuote}</span>
+              <span>{language === 'en' ? 'Add to Quote' : 'Agregar a la cotización'}</span>
             </button>
           </div>
         </form>

@@ -17,7 +17,7 @@ export const translations = {
     quotingFor: 'Quoting For:',
     unassignedClient: 'No client selected',
     changeClientBtn: 'Change Client',
-    addOtherProductBtn: '+ Custom Product',
+    addOtherProductBtn: 'Custom Item / Labor',
     salesperson: 'Sales Rep',
 
     // Category Tabs
@@ -29,7 +29,7 @@ export const translations = {
     tabProfilesSub: 'T-Molding, Reducer & End Cap',
     tabStairs: 'Stair Treads',
     tabStairsSub: 'Steps & Flush Risers',
-    customProductTabBtn: '+ Custom Item / Labor',
+    customProductTabBtn: 'Custom Item / Labor',
 
     // Calculators Common
     selectModel: '1. Select Product Model',
@@ -175,7 +175,7 @@ export const translations = {
     quotingFor: 'Cotizando Para:',
     unassignedClient: 'Cliente sin asignar',
     changeClientBtn: 'Cambiar Cliente',
-    addOtherProductBtn: '+ Otro Producto',
+    addOtherProductBtn: 'Item / Mano de Obra',
     salesperson: 'Vendedor',
 
     // Category Tabs
@@ -187,7 +187,7 @@ export const translations = {
     tabProfilesSub: 'T-Molding, Reducer & Cap',
     tabStairs: 'Escalones',
     tabStairsSub: 'Peldaños & Contrahuellas',
-    customProductTabBtn: '+ Producto / Mano de Obra',
+    customProductTabBtn: 'Item / Mano de Obra',
 
     // Calculators Common
     selectModel: '1. Selecciona el Modelo',

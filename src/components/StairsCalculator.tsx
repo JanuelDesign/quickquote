@@ -6,7 +6,8 @@ import {
   Check, 
   MoveUpRight, 
   ArrowLeft,
-  ChevronRight
+  ChevronRight,
+  Ruler
 } from 'lucide-react';
 
 interface StairsCalculatorProps {
@@ -78,64 +79,66 @@ export const StairsCalculator: React.FC<StairsCalculatorProps> = ({
 
   return (
     <div className="space-y-4">
-      {/* Step Navigation Bar */}
-      <div className="bg-white rounded-xl p-3 border border-[#E4E2DA] shadow-xs flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          {currentStep === 2 ? (
-            <button
-              type="button"
-              id="btn-stairs-back"
-              onClick={() => setCurrentStep(1)}
-              className="h-8 px-2.5 rounded-lg border border-[#E4E2DA] hover:border-[#181818] bg-[#F2F1EC] text-[#181818] text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer"
-            >
-              <ArrowLeft className="w-3.5 h-3.5" />
-              <span>{language === 'en' ? 'Back' : 'Atrás'}</span>
-            </button>
-          ) : (
-            <div className="w-8 h-8 rounded-lg bg-[#181818] text-[#FF8407] flex items-center justify-center font-bold text-xs">
-              <MoveUpRight className="w-4 h-4" />
-            </div>
-          )}
+      {/* Step Navigation Card - 2 Distinct Rows */}
+      <div className="bg-white rounded-xl p-4 sm:p-5 border border-[#E4E2DA] shadow-xs space-y-3">
+        {/* Row 1: Step indication on Left, Progress Dots on Right */}
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            {currentStep === 2 && (
+              <button
+                type="button"
+                id="btn-stairs-back"
+                onClick={() => setCurrentStep(1)}
+                className="h-7 px-2.5 rounded-lg border border-[#E4E2DA] hover:border-[#181818] bg-[#F2F1EC] text-[#181818] text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer mr-1"
+              >
+                <ArrowLeft className="w-3.5 h-3.5" />
+                <span>{language === 'en' ? 'Back' : 'Atrás'}</span>
+              </button>
+            )}
+            <span className="text-[11px] uppercase font-bold tracking-wider text-[#9C9A90]">
+              {language === 'en' ? `Step ${currentStep} of 2` : `Paso ${currentStep} de 2`}
+            </span>
+          </div>
 
-          <div>
-            <div className="flex items-center gap-2">
-              <span className="text-[10px] uppercase font-bold tracking-wider text-[#9C9A90]">
-                {language === 'en' ? `Step ${currentStep} of 2` : `Paso ${currentStep} de 2`}
-              </span>
-              <span className="text-zinc-300">•</span>
-              <span className="text-xs font-bold text-[#181818]">
-                {currentStep === 1 
-                  ? (language === 'en' ? '1. Select Stair Tread Package' : '1. Seleccionar paquete de peldaños')
-                  : (language === 'en' ? '2. Steps Count & Pricing' : '2. Cantidad de peldaños y precio')}
-              </span>
-            </div>
-            <p className="text-[11px] text-[#6B6A63] font-medium">
+          <div className="flex items-center gap-1.5">
+            {[1, 2].map((step) => (
+              <button
+                key={step}
+                type="button"
+                onClick={() => {
+                  if (step < currentStep) setCurrentStep(step as 1 | 2);
+                }}
+                className={`w-6 h-6 rounded-full text-[11px] font-bold flex items-center justify-center transition-all ${
+                  currentStep === step
+                    ? 'bg-[#FF8407] text-white shadow-xs'
+                    : currentStep > step
+                    ? 'bg-[#181818] text-white cursor-pointer hover:bg-black'
+                    : 'bg-[#F2F1EC] text-[#9C9A90] cursor-default'
+                }`}
+              >
+                {currentStep > step ? '✓' : step}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Row 2: Category Icon (36px) on Left + Title/Subtitle in Column on Right with min 10px spacing */}
+        <div className="flex items-center gap-3.5 pt-2 border-t border-[#F2F1EC]">
+          <div className="w-9 h-9 min-w-[36px] min-h-[36px] rounded-lg bg-[#181818] text-[#FF8407] flex items-center justify-center font-bold shrink-0">
+            <MoveUpRight className="w-4 h-4" />
+          </div>
+          <div className="min-w-0">
+            <h3 className="text-sm font-bold text-[#181818] leading-tight truncate">
+              {currentStep === 1 
+                ? (language === 'en' ? '1. Select Stair Tread Package' : '1. Seleccionar paquete de peldaños')
+                : (language === 'en' ? '2. Steps Count & Pricing' : '2. Cantidad de peldaños y precio')}
+            </h3>
+            <p className="text-xs text-[#6B6A63] font-medium leading-normal mt-0.5 truncate">
               {currentStep === 1
                 ? `${stairProducts.length} ${language === 'en' ? 'options (12" x 48" format)' : 'opciones (formato 12" x 48")'}`
                 : `${selectedProduct.name} • ${selectedProduct.size || '12" x 48"'}`}
             </p>
           </div>
-        </div>
-
-        {/* Progress pills */}
-        <div className="flex items-center gap-1.5">
-          {[1, 2].map((step) => (
-            <div
-              key={step}
-              onClick={() => {
-                if (step < currentStep) setCurrentStep(step as 1 | 2);
-              }}
-              className={`w-6 h-6 rounded-full text-[11px] font-bold flex items-center justify-center transition-all ${
-                currentStep === step
-                  ? 'bg-[#FF8407] text-white shadow-2xs'
-                  : currentStep > step
-                  ? 'bg-[#181818] text-white cursor-pointer'
-                  : 'bg-[#F2F1EC] text-[#9C9A90]'
-              }`}
-            >
-              {currentStep > step ? '✓' : step}
-            </div>
-          ))}
         </div>
       </div>
 
@@ -150,26 +153,36 @@ export const StairsCalculator: React.FC<StairsCalculatorProps> = ({
                 key={product.id}
                 id={`stair-card-${product.id}`}
                 onClick={() => handleProductSelect(product)}
-                className={`bg-white border rounded-xl p-4 flex flex-col justify-between relative transition-all cursor-pointer shadow-xs hover:border-[#181818] ${
+                className={`bg-white border rounded-xl p-4 sm:p-5 flex flex-col justify-between transition-all cursor-pointer shadow-xs hover:border-[#181818] ${
                   isSelected
                     ? 'border-[#FF8407] ring-2 ring-[#FF8407]/20 bg-amber-50/10'
                     : 'border-[#E4E2DA]'
                 }`}
               >
-                <span className="text-[10px] font-bold uppercase px-2 py-0.5 rounded tracking-wider absolute top-3.5 right-3.5 bg-[#181818] text-white">
-                  {product.size || '12" x 48"'}
-                </span>
+                <div className="space-y-2">
+                  <div className="flex items-start justify-between gap-2">
+                    <h3 className="text-base font-bold text-[#181818] leading-snug">
+                      {product.name}
+                    </h3>
+                    <span className="text-[10px] font-bold uppercase px-2 py-0.5 rounded tracking-wider bg-[#181818] text-white shrink-0">
+                      {product.size || '12" x 48"'}
+                    </span>
+                  </div>
 
-                <div className="pr-16 space-y-1">
-                  <h3 className="text-base font-bold text-[#181818] leading-snug">
-                    {product.name}
-                  </h3>
-                  <p className="text-xs text-[#6B6A63]">
+                  <p className="text-xs text-[#6B6A63] leading-relaxed">
                     {product.description || (language === 'en' ? 'Stair nose with click system' : 'Peldaño completo con nariz redondeada')}
                   </p>
+
+                  {/* Technical measurement specification cleanly BELOW title and description */}
+                  <div className="pt-1">
+                    <span className="inline-flex items-center gap-1.5 text-[11px] font-mono text-[#181818] bg-[#F2F1EC] border border-[#E4E2DA] px-2.5 py-1 rounded-md font-medium">
+                      <Ruler className="w-3 h-3 text-[#FF8407] shrink-0" />
+                      <span>{product.size || '12" x 48"'} format</span>
+                    </span>
+                  </div>
                 </div>
 
-                <div className="flex items-baseline justify-between mt-4 pt-2.5 border-t border-[#E4E2DA]">
+                <div className="flex items-baseline justify-between mt-4 pt-3 border-t border-[#E4E2DA]">
                   <div>
                     <span className="text-lg font-bold text-[#181818] font-mono">
                       ${product.basePrice.toFixed(2)}

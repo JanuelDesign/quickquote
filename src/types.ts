@@ -13,15 +13,19 @@ export interface Product {
   name: string;
   category: ProductCategory;
   subcategory?: string;
+  model?: string; // Model or collection name
   thickness?: string;
   wearLayer?: string;
   size?: string;
+  dimensions?: string;
+  yieldPerUnit?: string; // e.g. "24.26 sqft/caja", "16 LF/tira"
   sqftPerBox?: number;
   planksPerBox?: number;
   basePrice: number; // Base price (per sqft for floors, per strip or per LF for baseboards, per piece for others)
   priceUnit: 'sqft' | 'box' | 'piece' | 'strip' | 'linear_ft' | 'unit';
   stripLengthFeet?: number; // E.g. 16 ft for baseboard, 8 ft for quarter round
   colors?: ProductColor[];
+  badge?: string; // e.g. "Best Seller", "Premium"
   description?: string;
   isCustom?: boolean;
 }
@@ -100,6 +104,8 @@ export interface Quotation {
   total: number;               // subtotalProducts + deliveryTotal + taxAmount + installationTotal
   
   status: QuoteStatus;
+  shippingAddress?: string;
+  sameAsBillingAddress?: boolean;
   notes?: string;
   createdAt: string;
 }

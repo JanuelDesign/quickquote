@@ -34,9 +34,8 @@ import { ClientModal } from './components/ClientModal';
 import { QuoteModal } from './components/QuoteModal';
 import { PriceListManager } from './components/PriceListManager';
 import { QuotesHistoryModal } from './components/QuotesHistoryModal';
-import { AIQuoteInterpreter } from './components/AIQuoteInterpreter';
 
-import { ShoppingBag, ChevronRight, Plus, Sparkles, User } from 'lucide-react';
+import { ShoppingBag, ChevronRight, ChevronDown, Plus, Sparkles, User } from 'lucide-react';
 
 export default function App() {
   // Language state (defaults to English 'en' as requested, with instant Spanish toggle)
@@ -114,6 +113,8 @@ export default function App() {
   const [salespersonName, setSalespersonName] = useState<string>(() => {
     return localStorage.getItem('qs_salesperson_name') || 'Esteban Gavotti';
   });
+  const [shippingAddress, setShippingAddress] = useState<string>('');
+  const [sameAsBillingAddress, setSameAsBillingAddress] = useState<boolean>(true);
 
   const handleAddAIParsedItems = (parsedItems: CartItem[]) => {
     setCartItems(prev => [...prev, ...parsedItems]);
@@ -417,6 +418,8 @@ export default function App() {
     deliveryTotal,
     total,
     status: 'draft',
+    shippingAddress: sameAsBillingAddress ? (currentClient?.address || '') : shippingAddress,
+    sameAsBillingAddress,
     createdAt: new Date().toISOString()
   };
 
@@ -429,6 +432,12 @@ export default function App() {
     setIncludeDelivery(quote.includeDelivery);
     setCurrentClient(quote.client);
     setQuoteValidDays(quote.validDays);
+    if (quote.shippingAddress) {
+      setShippingAddress(quote.shippingAddress);
+    }
+    if (quote.sameAsBillingAddress !== undefined) {
+      setSameAsBillingAddress(quote.sameAsBillingAddress);
+    }
   };
 
   const handleSaveClient = (client: Client) => {
@@ -482,30 +491,30 @@ export default function App() {
 
       {/* Main Content Area */}
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
-        {/* Active Client Banner (Discreet ghost buttons, no competing giant orange) */}
-        <div className="bg-white p-4 rounded-xl border border-[#E4E2DA] shadow-xs flex flex-wrap items-center justify-between gap-3">
-          <div className="flex items-center gap-3">
+        {/* Active Client Banner (100% width, flex-1 min-w-0, no premature truncation) */}
+        <div className="bg-white p-3.5 sm:p-4 rounded-xl border border-[#E4E2DA] shadow-xs w-full flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+          <div className="flex items-center gap-3 flex-1 min-w-0">
             <div className="w-9 h-9 rounded-lg bg-[#181818] text-[#FF8407] flex items-center justify-center font-bold shrink-0">
               <User className="w-5 h-5" />
             </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <span className="text-[10px] font-bold uppercase tracking-wider text-[#9C9A90]">
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2 min-w-0">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-[#9C9A90] shrink-0">
                   {t.quotingFor}:
                 </span>
-                <span className="text-sm font-bold text-[#181818]">
+                <span className="text-sm font-bold text-[#181818] truncate">
                   {currentClient?.name || t.unassignedClient}
                 </span>
               </div>
               {currentClient?.phone && (
-                <span className="text-[11px] text-[#6B6A63] font-mono">
+                <p className="text-[11px] text-[#6B6A63] font-mono truncate">
                   Tel: {currentClient.phone} {currentClient.address && `• ${currentClient.address}`}
-                </span>
+                </p>
               )}
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 shrink-0">
             <button
               type="button"
               id="btn-switch-client"
@@ -525,13 +534,6 @@ export default function App() {
             </button>
           </div>
         </div>
-
-        {/* AI Quote Interpreter (WhatsApp message / Voice text parser) */}
-        <AIQuoteInterpreter
-          catalog={products}
-          onAddParsedItems={handleAddAIParsedItems}
-          language={language}
-        />
 
         {/* 4 Category Tabs */}
         <div>
@@ -633,13 +635,14 @@ export default function App() {
       {/* Floating Bottom Bar (Mobile & Desktop Accessible) */}
       <div className="fixed bottom-0 left-0 right-0 p-2.5 sm:p-3 bg-white/95 backdrop-blur-md border-t border-[#E4E2DA] shadow-2xl z-30">
         <div className="max-w-7xl mx-auto flex items-center justify-between gap-3">
-          {/* Cart Icon + Badge + Accumulated Total */}
-          <div 
+          {/* Cart Icon + Badge + Accumulated Total (Entire Left Block is a Single Clickable Trigger) */}
+          <button 
+            type="button"
             id="btn-bottom-bar-cart"
-            onClick={() => setIsCartOpen(true)} 
-            className="flex items-center gap-3 cursor-pointer flex-1 group"
+            onClick={() => setIsCartOpen((prev) => !prev)} 
+            className="flex items-center gap-3 cursor-pointer select-none group text-left bg-transparent border-0 p-0 focus:outline-none flex-1 min-w-0"
           >
-            <div className="relative">
+            <div className="relative shrink-0">
               <div className="w-10 h-10 rounded-xl bg-[#181818] group-hover:bg-black text-white flex items-center justify-center transition-colors shadow-xs">
                 <ShoppingBag className="w-4 h-4 text-[#FF8407]" />
               </div>
@@ -650,39 +653,37 @@ export default function App() {
               )}
             </div>
 
-            <div>
+            <div className="min-w-0">
               <div className="flex items-center gap-1.5">
-                <span className="text-[10px] text-[#9C9A90] uppercase font-bold tracking-wider">
+                <span className="text-[10px] text-[#9C9A90] uppercase font-bold tracking-wider truncate">
                   {language === 'en' ? 'Cart Total' : 'Total Carrito'} ({cartItems.length} {cartItems.length === 1 ? (language === 'en' ? 'item' : 'ítem') : (language === 'en' ? 'items' : 'ítems')}):
                 </span>
-                <span className="text-[10px] text-[#FF8407] font-semibold underline hidden sm:inline">
-                  {language === 'en' ? 'View details' : 'Ver detalle'}
-                </span>
               </div>
-              <div className="flex items-baseline gap-2">
-                <span className="text-lg sm:text-xl font-black text-[#181818] font-mono leading-tight">
-                  {formatCurrency(total)}
-                </span>
+              <div className="flex items-center gap-2">
+                {/* Price and Chevron on the exact same line, never wrapped */}
+                <div className="inline-flex items-center gap-1.5 shrink-0">
+                  <span className="text-lg sm:text-xl font-black text-[#181818] font-mono leading-tight whitespace-nowrap">
+                    {formatCurrency(total)}
+                  </span>
+                  {/* Single 18px chevron in brand orange (#FF8407), rotates 180° when cart items are shown */}
+                  <ChevronDown 
+                    className={`w-[18px] h-[18px] text-[#FF8407] shrink-0 transition-transform duration-300 stroke-[2.5] ${
+                      isCartOpen ? 'rotate-180' : 'group-hover:translate-y-0.5'
+                    }`} 
+                  />
+                </div>
+
                 {subtotalProducts > 0 && (
-                  <span className="text-[10px] text-[#6B6A63] hidden sm:inline">
+                  <span className="text-[10px] text-[#6B6A63] hidden md:inline font-normal truncate">
                     ({language === 'en' ? 'Prod' : 'Prod'}: {formatCurrency(subtotalProducts)} + 7% Tax)
                   </span>
                 )}
               </div>
             </div>
-          </div>
+          </button>
 
-          {/* Siguiente / Next button for export step */}
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              id="btn-bottom-bar-details"
-              onClick={() => setIsCartOpen(true)}
-              className="hidden md:flex px-3.5 py-2.5 rounded-xl text-xs font-bold border border-[#E4E2DA] hover:border-[#181818] bg-[#F2F1EC] text-[#181818] transition-colors cursor-pointer"
-            >
-              {language === 'en' ? 'Cart Items' : 'Ver Carrito'}
-            </button>
-
+          {/* Siguiente / Next: Review Quote button (sole solid action on this bar) */}
+          <div className="flex items-center">
             <button
               type="button"
               id="btn-bottom-bar-next"
@@ -763,6 +764,10 @@ export default function App() {
         onClose={() => setIsQuoteModalOpen(false)}
         quote={activeQuote}
         settings={settings}
+        shippingAddress={shippingAddress}
+        onUpdateShippingAddress={setShippingAddress}
+        sameAsBillingAddress={sameAsBillingAddress}
+        onToggleSameAsBilling={setSameAsBillingAddress}
         onUpdateQuoteDays={setQuoteValidDays}
         onToggleDelivery={setIncludeDelivery}
         onSaveToHistory={handleSaveQuoteToHistory}

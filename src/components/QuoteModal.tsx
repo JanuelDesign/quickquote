@@ -21,6 +21,10 @@ interface QuoteModalProps {
   onClose: () => void;
   quote: Quotation;
   settings: AppSettings;
+  shippingAddress?: string;
+  onUpdateShippingAddress?: (addr: string) => void;
+  sameAsBillingAddress?: boolean;
+  onToggleSameAsBilling?: (same: boolean) => void;
   onUpdateQuoteDays: (days: number) => void;
   onToggleDelivery?: (include: boolean) => void;
   onSaveToHistory: () => void;
@@ -32,6 +36,10 @@ export const QuoteModal: React.FC<QuoteModalProps> = ({
   onClose,
   quote,
   settings,
+  shippingAddress = '',
+  onUpdateShippingAddress,
+  sameAsBillingAddress = true,
+  onToggleSameAsBilling,
   onUpdateQuoteDays,
   onToggleDelivery,
   onSaveToHistory,
@@ -49,7 +57,14 @@ export const QuoteModal: React.FC<QuoteModalProps> = ({
   const handleDownloadPDF = () => {
     setDownloading(true);
     try {
-      const doc = generateQuotePDF(quote, settings, currentLang);
+      // Ensure the quote carries the latest shipping address
+      const quoteWithShipping: Quotation = {
+        ...quote,
+        shippingAddress: sameAsBillingAddress ? (quote.client.address || '') : (shippingAddress || ''),
+        sameAsBillingAddress
+      };
+
+      const doc = generateQuotePDF(quoteWithShipping, settings, currentLang);
       doc.save(`QuickSurfaces_${quote.quoteNumber}_${quote.client.name.replace(/\s+/g, '_')}.pdf`);
       
       confetti({
@@ -155,13 +170,16 @@ export const QuoteModal: React.FC<QuoteModalProps> = ({
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 pb-3 border-b border-[#E4E2DA]">
               <div>
                 <span className="text-[10px] font-bold text-[#9C9A90] uppercase tracking-wider block">
-                  {currentLang === 'en' ? 'Quoted For:' : 'Cotizado para:'}
+                  {currentLang === 'en' ? 'Quoted For (Billing):' : 'Cotizado para (Facturación):'}
                 </span>
                 <h3 className="text-sm font-bold text-[#181818]">
                   {quote.client.name}
                 </h3>
                 {quote.client.phone && (
                   <p className="text-[11px] text-[#6B6A63]">{quote.client.phone}</p>
+                )}
+                {quote.client.address && (
+                  <p className="text-[11px] text-[#6B6A63]">{quote.client.address}</p>
                 )}
               </div>
 
@@ -172,6 +190,45 @@ export const QuoteModal: React.FC<QuoteModalProps> = ({
                 <p className="text-xs font-bold text-[#181818]">{salespersonName}</p>
                 <p className="text-[11px] text-[#6B6A63]">{salespersonPhone}</p>
               </div>
+            </div>
+
+            {/* Shipping Address Section */}
+            <div className="bg-[#FAFAFA] p-3 sm:p-3.5 rounded-lg border border-[#E4E2DA] space-y-2">
+              <label className="flex items-center gap-2 cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  id="chk-same-as-billing"
+                  checked={sameAsBillingAddress}
+                  onChange={(e) => onToggleSameAsBilling?.(e.target.checked)}
+                  className="w-4 h-4 accent-[#FF8407] rounded cursor-pointer shrink-0"
+                />
+                <span className="text-xs font-bold text-[#181818]">
+                  {currentLang === 'en' 
+                    ? 'Shipping address same as billing' 
+                    : 'Dirección de entrega igual a la de facturación'}
+                </span>
+              </label>
+
+              {!sameAsBillingAddress && (
+                <div className="pt-1.5 space-y-1">
+                  <label className="text-[10px] font-bold uppercase tracking-wider text-[#6B6A63] block">
+                    {currentLang === 'en' ? 'Shipping / Delivery Address' : 'Dirección de Entrega (Shipping Address)'}
+                  </label>
+                  <input
+                    type="text"
+                    id="input-shipping-address"
+                    value={shippingAddress}
+                    onChange={(e) => onUpdateShippingAddress?.(e.target.value)}
+                    placeholder={currentLang === 'en' ? 'e.g. 8320 NW 56th St, Doral, FL 33166' : 'Ej. 8320 NW 56th St, Doral, FL 33166'}
+                    className="w-full text-xs bg-white border border-[#E4E2DA] focus:border-[#181818] rounded-lg px-3 py-2 outline-none font-medium text-[#181818]"
+                  />
+                  <p className="text-[10px] text-[#9C9A90]">
+                    {currentLang === 'en' 
+                      ? 'This delivery address will be printed on the quotation PDF for logistics and installation.' 
+                      : 'Esta dirección de entrega se imprimirá en el PDF de cotización para logística e instalación.'}
+                  </p>
+                </div>
+              )}
             </div>
 
             {/* Itemized Table */}

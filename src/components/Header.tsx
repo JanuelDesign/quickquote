@@ -94,10 +94,10 @@ export const Header: React.FC<HeaderProps> = ({
   ];
 
   return (
-    <header className="sticky top-0 z-40 bg-white border-b border-[#E4E2DA] shadow-xs">
-      <div className="max-w-7xl mx-auto px-3 sm:px-6 h-13 sm:h-14 flex items-center justify-between gap-3">
+    <header className="sticky top-0 z-40 bg-white border-b border-[#E4E2DA] shadow-xs w-full">
+      <div className="w-full max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 h-13 sm:h-14 flex items-center justify-between gap-3">
         {/* Brand & Logo in a single slim line */}
-        <div className="flex items-center gap-2.5">
+        <div className="flex items-center gap-2.5 shrink-0">
           <QuickSurfacesLogo className="h-7 sm:h-8 w-auto text-black cursor-pointer hover:opacity-90 transition-opacity" />
           <div className="hidden xs:flex items-center gap-2 border-l border-[#E4E2DA] pl-2.5">
             <span className="text-xs sm:text-sm font-black tracking-tight text-[#181818]">
@@ -110,9 +110,9 @@ export const Header: React.FC<HeaderProps> = ({
         </div>
 
         {/* Right Action Icons (Salesperson dropdown, Client button & "···" options menu) */}
-        <div className="flex items-center gap-2" ref={menuRef}>
+        <div className="flex items-center gap-2 min-w-0" ref={menuRef}>
           {/* Salesperson Dropdown directly on header */}
-          <div className="hidden sm:flex items-center gap-1.5 bg-[#F2F1EC] border border-[#E4E2DA] rounded-full px-2.5 py-1 text-xs">
+          <div className="hidden sm:flex items-center gap-1.5 bg-[#F2F1EC] border border-[#E4E2DA] rounded-full px-2.5 py-1 text-xs shrink-0">
             <UserCheck className="w-3.5 h-3.5 text-[#FF8407] shrink-0" />
             <select
               id="header-sales-rep-select"
@@ -137,7 +137,7 @@ export const Header: React.FC<HeaderProps> = ({
             id="btn-header-client"
             type="button"
             onClick={onOpenClientModal}
-            className={`h-9 px-2.5 sm:px-3 rounded-full border text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer ${
+            className={`h-9 px-2.5 sm:px-3 rounded-full border text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer min-w-0 max-w-[180px] sm:max-w-[260px] md:max-w-xs ${
               activeClientName
                 ? 'bg-[#F2F1EC] border-[#E4E2DA] text-[#181818] hover:border-[#FF8407]'
                 : 'bg-white border-[#E4E2DA] text-[#6B6A63] hover:bg-[#F2F1EC]'
@@ -147,7 +147,7 @@ export const Header: React.FC<HeaderProps> = ({
             <div className="w-5 h-5 rounded-full bg-[#181818] text-[#FF8407] flex items-center justify-center text-[10px] font-bold shrink-0">
               {activeClientName ? activeClientName.charAt(0).toUpperCase() : <Users className="w-3 h-3" />}
             </div>
-            <span className="max-w-[85px] sm:max-w-[130px] truncate font-medium">
+            <span className="truncate font-medium min-w-0">
               {activeClientName || (language === 'en' ? 'Client' : 'Cliente')}
             </span>
           </button>

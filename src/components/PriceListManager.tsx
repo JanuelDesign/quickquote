@@ -17,6 +17,7 @@ import {
   Info
 } from 'lucide-react';
 import { INITIAL_PRODUCTS } from '../data/initialProducts';
+import { generateProductsTSV, generateServicesTSV, copyTextToClipboard } from '../utils/tsvExporter';
 
 interface PriceListManagerProps {
   isOpen: boolean;
@@ -46,6 +47,9 @@ export const PriceListManager: React.FC<PriceListManagerProps> = ({
   // JSON/CSV state
   const [jsonText, setJsonText] = useState(JSON.stringify(products, null, 2));
   const [copiedGuide, setCopiedGuide] = useState(false);
+  const [copiedTabla1, setCopiedTabla1] = useState(false);
+  const [copiedTabla2, setCopiedTabla2] = useState(false);
+  const [previewTsvType, setPreviewTsvType] = useState<'tabla1' | 'tabla2' | null>(null);
   const [importSuccess, setImportSuccess] = useState(false);
   const [importError, setImportError] = useState<string | null>(null);
 
@@ -144,6 +148,20 @@ export const PriceListManager: React.FC<PriceListManagerProps> = ({
     navigator.clipboard.writeText(header);
     setCopiedGuide(true);
     setTimeout(() => setCopiedGuide(false), 2000);
+  };
+
+  const handleCopyTabla1 = async () => {
+    const tsv = generateProductsTSV(products);
+    await copyTextToClipboard(tsv);
+    setCopiedTabla1(true);
+    setTimeout(() => setCopiedTabla1(false), 2500);
+  };
+
+  const handleCopyTabla2 = async () => {
+    const tsv = generateServicesTSV();
+    await copyTextToClipboard(tsv);
+    setCopiedTabla2(true);
+    setTimeout(() => setCopiedTabla2(false), 2500);
   };
 
   return (
@@ -516,6 +534,124 @@ export const PriceListManager: React.FC<PriceListManagerProps> = ({
                 </div>
               </div>
 
+              {/* TSV Direct Export for Google Sheets */}
+              <div className="p-4 rounded-xl border-2 border-[#FF8407]/40 bg-orange-50/40 space-y-3">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                  <div>
+                    <h4 className="text-xs font-bold uppercase tracking-wider text-black flex items-center gap-1.5">
+                      <Table className="w-4 h-4 text-[#FF8407]" />
+                      Exportación TSV Directa (Listo para Pegar en Google Sheets)
+                    </h4>
+                    <p className="text-[11px] text-zinc-600">
+                      Haz clic para copiar al portapapeles y pega directo en la celda A1 de tu Google Sheet.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+                  {/* TABLA 1: PRODUCTOS */}
+                  <div className="bg-white p-3.5 rounded-lg border border-[#E5E5E5] flex flex-col justify-between gap-3 shadow-2xs">
+                    <div>
+                      <div className="flex items-center justify-between">
+                        <span className="font-bold text-xs text-black uppercase tracking-wider">TABLA 1: Productos</span>
+                        <span className="text-[10px] font-mono bg-zinc-100 text-zinc-600 px-1.5 py-0.5 rounded">70 filas</span>
+                      </div>
+                      <p className="text-[11px] text-zinc-500 mt-1">
+                        Pisos, rodapiés, molduras, escalones y accesorios desglosados por color con imágenes y especificaciones.
+                      </p>
+                    </div>
+                    <div className="flex flex-col gap-1.5 pt-1 border-t border-zinc-100">
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={handleCopyTabla1}
+                          className="flex-1 py-2 px-3 bg-[#FF8407] hover:bg-[#E07300] text-white rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 transition-colors cursor-pointer uppercase tracking-wider shadow-2xs"
+                        >
+                          {copiedTabla1 ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+                          <span>{copiedTabla1 ? '¡Copiado!' : 'Copiar TSV'}</span>
+                        </button>
+                        <a
+                          href="/tabla_1_productos.tsv"
+                          download="tabla_1_productos.tsv"
+                          className="p-2 border border-zinc-200 hover:border-black text-zinc-700 hover:text-black rounded-lg transition-colors"
+                          title="Descargar archivo .tsv"
+                        >
+                          <Download className="w-4 h-4" />
+                        </a>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setPreviewTsvType('tabla1')}
+                        className="text-[11px] text-[#FF8407] hover:underline text-center font-medium py-0.5 cursor-pointer"
+                      >
+                        Ver texto / Copiar manualmente
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* TABLA 2: SERVICIOS Y LABOR */}
+                  <div className="bg-white p-3.5 rounded-lg border border-[#E5E5E5] flex flex-col justify-between gap-3 shadow-2xs">
+                    <div>
+                      <div className="flex items-center justify-between">
+                        <span className="font-bold text-xs text-black uppercase tracking-wider">TABLA 2: Servicios y Labor</span>
+                        <span className="text-[10px] font-mono bg-zinc-100 text-zinc-600 px-1.5 py-0.5 rounded">7 filas</span>
+                      </div>
+                      <p className="text-[11px] text-zinc-500 mt-1">
+                        Mano de obra (SPC, baseboard, escaleras), remoción/disposal, nivelación, adhesivo y delivery.
+                      </p>
+                    </div>
+                    <div className="flex flex-col gap-1.5 pt-1 border-t border-zinc-100">
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={handleCopyTabla2}
+                          className="flex-1 py-2 px-3 bg-black hover:bg-zinc-800 text-white rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 transition-colors cursor-pointer uppercase tracking-wider shadow-2xs"
+                        >
+                          {copiedTabla2 ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+                          <span>{copiedTabla2 ? '¡Copiado!' : 'Copiar TSV'}</span>
+                        </button>
+                        <a
+                          href="/tabla_2_servicios_labor.tsv"
+                          download="tabla_2_servicios_labor.tsv"
+                          className="p-2 border border-zinc-200 hover:border-black text-zinc-700 hover:text-black rounded-lg transition-colors"
+                          title="Descargar archivo .tsv"
+                        >
+                          <Download className="w-4 h-4" />
+                        </a>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setPreviewTsvType('tabla2')}
+                        className="text-[11px] text-zinc-600 hover:text-black hover:underline text-center font-medium py-0.5 cursor-pointer"
+                      >
+                        Ver texto / Copiar manualmente
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Info banner about the 2 tabs in Google Sheets */}
+                <div className="bg-white/80 p-3 rounded-lg border border-[#FF8407]/30 text-xs text-zinc-700 space-y-1">
+                  <div className="font-bold text-black flex items-center gap-1.5">
+                    <span>📋</span>
+                    <span>¿Cómo organizar tus pestañas en Google Sheets?</span>
+                  </div>
+                  <p className="text-[11px] text-zinc-600 leading-relaxed">
+                    Crea <strong>2 pestañas (hojas)</strong> en tu documento de Google Sheets usando el botón <strong>"+"</strong> en la barra inferior:
+                  </p>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1 text-[11px]">
+                    <div className="p-2 rounded bg-zinc-50 border border-zinc-200">
+                      <span className="font-bold text-black block">Pestaña 1: "Productos"</span>
+                      <span className="text-zinc-500">Pega aquí el contenido de la <strong>TABLA 1</strong> en la celda <code>A1</code> (16 columnas).</span>
+                    </div>
+                    <div className="p-2 rounded bg-zinc-50 border border-zinc-200">
+                      <span className="font-bold text-black block">Pestaña 2: "Servicios_Labor"</span>
+                      <span className="text-zinc-500">Pega aquí el contenido de la <strong>TABLA 2</strong> en la celda <code>A1</code> (7 columnas).</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
               {/* Column Structure Reference */}
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
@@ -640,6 +776,82 @@ export const PriceListManager: React.FC<PriceListManagerProps> = ({
           )}
         </div>
       </div>
+
+      {/* TSV Manual Selection & Preview Sub-modal */}
+      {previewTsvType && (
+        <div className="fixed inset-0 z-60 bg-black/80 backdrop-blur-xs flex items-center justify-center p-3 sm:p-6">
+          <div className="bg-white rounded-xl w-full max-w-3xl shadow-2xl border border-zinc-200 overflow-hidden flex flex-col max-h-[85vh]">
+            <div className="p-4 bg-black text-white flex items-center justify-between shrink-0">
+              <div>
+                <h3 className="text-sm font-bold uppercase tracking-wider flex items-center gap-2">
+                  <Table className="w-4 h-4 text-[#FF8407]" />
+                  {previewTsvType === 'tabla1' ? 'TABLA 1: Productos (70 filas)' : 'TABLA 2: Servicios y Labor (7 filas)'}
+                </h3>
+                <p className="text-xs text-zinc-400 mt-0.5">
+                  {previewTsvType === 'tabla1' ? 'Pega este contenido en la pestaña "Productos" (Celda A1)' : 'Pega este contenido en la pestaña "Servicios_Labor" (Celda A1)'}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setPreviewTsvType(null)}
+                className="p-1.5 text-zinc-400 hover:text-white rounded-lg hover:bg-zinc-800 transition-colors cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            
+            <div className="p-4 space-y-3 flex-1 overflow-hidden flex flex-col bg-zinc-50">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between text-xs text-zinc-600 gap-1">
+                <span>Haz clic dentro del cuadro para auto-seleccionar todo el texto, o presiona el botón copiar:</span>
+                <span className="font-mono text-[10px] bg-white border border-zinc-200 text-zinc-600 px-2 py-0.5 rounded shrink-0">
+                  Separado por tabulaciones (TSV)
+                </span>
+              </div>
+              
+              <textarea
+                readOnly
+                value={previewTsvType === 'tabla1' ? generateProductsTSV(products) : generateServicesTSV()}
+                onFocus={(e) => e.target.select()}
+                className="flex-1 w-full p-3 font-mono text-[11px] bg-white border border-zinc-300 rounded-lg select-all outline-none focus:ring-2 focus:ring-[#FF8407] resize-none overflow-auto leading-relaxed"
+                rows={14}
+              />
+            </div>
+
+            <div className="p-4 bg-white border-t border-zinc-200 flex flex-col sm:flex-row items-center justify-between gap-3 shrink-0">
+              <span className="text-xs text-zinc-500">
+                💡 En Google Sheets solo presiona <strong>Ctrl+V</strong> (o <strong>Cmd+V</strong>) en la celda <strong>A1</strong>.
+              </span>
+              <div className="flex items-center gap-2 w-full sm:w-auto">
+                <button
+                  type="button"
+                  onClick={async () => {
+                    const text = previewTsvType === 'tabla1' ? generateProductsTSV(products) : generateServicesTSV();
+                    await copyTextToClipboard(text);
+                    if (previewTsvType === 'tabla1') {
+                      setCopiedTabla1(true);
+                      setTimeout(() => setCopiedTabla1(false), 2500);
+                    } else {
+                      setCopiedTabla2(true);
+                      setTimeout(() => setCopiedTabla2(false), 2500);
+                    }
+                  }}
+                  className="flex-1 sm:flex-initial px-4 py-2 bg-[#FF8407] hover:bg-[#E07300] text-white font-bold text-xs rounded-lg uppercase tracking-wider flex items-center justify-center gap-1.5 cursor-pointer shadow-xs transition-colors"
+                >
+                  <Copy className="w-4 h-4" />
+                  <span>{(previewTsvType === 'tabla1' ? copiedTabla1 : copiedTabla2) ? '¡Copiado al Portapapeles!' : 'Copiar Todo el Texto'}</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setPreviewTsvType(null)}
+                  className="px-4 py-2 border border-zinc-300 hover:border-black text-zinc-700 hover:text-black font-bold text-xs rounded-lg uppercase tracking-wider transition-colors cursor-pointer"
+                >
+                  Cerrar
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

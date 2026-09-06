@@ -1,0 +1,8 @@
+id	nombre	descripcion	precio_base	unidad	aplica_impuesto	notas
+labor-installation-spc	Installation Labor / SPC Flooring	Professional SPC floor installation with cut, trim and layout adjustment	2.00	sqft	NO	Mano de obra exenta de tax según normativa Florida para servicios puros de instalación
+labor-installation-baseboard	Baseboard Installation Labor	Baseboard miter cuts, nailing and caulking	1.50	LF	NO	Cortes en inglete, fijación con clavos y sellado con masilla (exento de tax)
+labor-installation-stairs	Stair Treads Installation Labor	Installation labor for flush stair tread and riser	25.00	step	NO	Mano de obra por peldaño y contrahuella (exento de tax)
+labor-removal-disposal	Old Carpet / Floor Removal & Disposal	Demolition, rip-out and debris haul-away	1.00	sqft	NO	Demolición, levantamiento y retiro de alfombra o piso previo a vertedero (exento de tax)
+labor-subfloor-leveling	Floor Subfloor Leveling Labor	Slab prep and self-leveling compound application	1.25	sqft	NO	Preparación de superficie y aplicación de compuesto autonivelante (exento de tax)
+supply-specialty-adhesive	Specialty High-Performance Adhesive	Heavy-duty flooring adhesive bucket	45.00	bucket	SÍ	Material/adhesivo de alto rendimiento para pisos y escalones (sujeto a 7% FL Sales Tax)
+service-flat-delivery	Delivery Service / Flete de Entrega	Jobsite delivery in Miami-Dade and Broward areas	60.00	trip	NO	Tarifa estándar por viaje/despacho, configurable en ajustes (Settings) de la app
