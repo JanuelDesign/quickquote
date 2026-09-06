@@ -29,6 +29,10 @@ export const translations = {
     tabProfilesSub: 'T-Molding, Reducer & End Cap',
     tabStairs: 'Stair Treads',
     tabStairsSub: 'Steps & Flush Risers',
+    tabWallPanels: 'Wall Panels',
+    tabWallPanelsSub: 'Fluted & Slat Panels',
+    tabUnderlayment: 'Underlayment',
+    tabUnderlaymentSub: 'Acoustic & Moisture Rolls',
     customProductTabBtn: 'Custom Item / Labor',
 
     // Calculators Common
@@ -187,6 +191,10 @@ export const translations = {
     tabProfilesSub: 'T-Molding, Reducer & Cap',
     tabStairs: 'Escalones',
     tabStairsSub: 'Peldaños & Contrahuellas',
+    tabWallPanels: 'Wall Panels',
+    tabWallPanelsSub: 'Paneles de Pared',
+    tabUnderlayment: 'Underlayment',
+    tabUnderlaymentSub: 'Aislantes y Barreras',
     customProductTabBtn: 'Item / Mano de Obra',
 
     // Calculators Common

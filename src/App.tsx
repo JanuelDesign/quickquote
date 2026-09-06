@@ -14,7 +14,9 @@ import {
   createFloorCartItem, 
   createBaseboardCartItem, 
   createProfileCartItem, 
-  createStairsCartItem, 
+  createStairsCartItem,
+  createWallPanelCartItem,
+  createUnderlaymentCartItem,
   calculateQuoteTotals, 
   formatCurrency, 
   getValidUntilDate 
@@ -28,14 +30,24 @@ import { FloorCalculator } from './components/FloorCalculator';
 import { BaseboardCalculator } from './components/BaseboardCalculator';
 import { ProfilesCalculator } from './components/ProfilesCalculator';
 import { StairsCalculator } from './components/StairsCalculator';
+import { WallPanelsCalculator } from './components/WallPanelsCalculator';
+import { UnderlaymentCalculator } from './components/UnderlaymentCalculator';
 import { CartSummary } from './components/CartSummary';
 import { CustomProductModal } from './components/CustomProductModal';
 import { ClientModal } from './components/ClientModal';
 import { QuoteModal } from './components/QuoteModal';
 import { PriceListManager } from './components/PriceListManager';
 import { QuotesHistoryModal } from './components/QuotesHistoryModal';
+import { fetchGoogleSheetsCatalog } from './utils/tsvExporter';
 
-import { ShoppingBag, ChevronRight, ChevronDown, Plus, Sparkles, User } from 'lucide-react';
+import { 
+  ShoppingBag, 
+  ChevronRight, 
+  ChevronDown, 
+  Plus, 
+  Sparkles, 
+  User
+} from 'lucide-react';
 
 export default function App() {
   // Language state (defaults to English 'en' as requested, with instant Spanish toggle)
@@ -128,6 +140,38 @@ export default function App() {
   const [isQuoteModalOpen, setIsQuoteModalOpen] = useState(false);
   const [isPriceManagerOpen, setIsPriceManagerOpen] = useState(false);
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
+
+  // Silent background auto-sync from Google Sheets on app load and window focus
+  useEffect(() => {
+    const syncQuietly = async () => {
+      const savedUrl = localStorage.getItem('qs_google_sheet_url');
+      const isAuto = localStorage.getItem('qs_google_sheet_autosync') !== 'false';
+      const tabName = localStorage.getItem('qs_google_sheet_tab_name') || undefined;
+      if (!savedUrl || !isAuto) return;
+
+      try {
+        const res = await fetchGoogleSheetsCatalog(savedUrl, products, tabName);
+        if (res && res.updatedProducts && res.updatedProducts.length > 0) {
+          setProducts(res.updatedProducts);
+          localStorage.setItem('qs_products_catalog', JSON.stringify(res.updatedProducts));
+          const now = new Date();
+          const nowStr = `${now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} • ${now.toLocaleDateString()}`;
+          localStorage.setItem('qs_google_sheet_last_sync', nowStr);
+        }
+      } catch (err) {
+        console.warn('Silent Google Sheet sync:', err);
+      }
+    };
+
+    syncQuietly();
+
+    const handleWindowFocus = () => {
+      syncQuietly();
+    };
+
+    window.addEventListener('focus', handleWindowFocus);
+    return () => window.removeEventListener('focus', handleWindowFocus);
+  }, []);
 
   // Sync to localStorage
   useEffect(() => {
@@ -223,6 +267,27 @@ export default function App() {
     setCartItems(prev => [...prev, item]);
   };
 
+  const handleAddWallPanel = (
+    product: Product,
+    pieceCount: number,
+    unitPrice: number,
+    color?: ProductColor,
+    notes?: string
+  ) => {
+    const item = createWallPanelCartItem(product, pieceCount, unitPrice, color, notes);
+    setCartItems(prev => [...prev, item]);
+  };
+
+  const handleAddUnderlayment = (
+    product: Product,
+    rollCount: number,
+    unitPrice: number,
+    notes?: string
+  ) => {
+    const item = createUnderlaymentCartItem(product, rollCount, unitPrice, notes);
+    setCartItems(prev => [...prev, item]);
+  };
+
   const handleAddCustomItem = (item: CartItem) => {
     setCartItems(prev => [...prev, item]);
   };
@@ -295,6 +360,35 @@ export default function App() {
             item.stepIncludesRiser || false,
             item.riserUnitPrice || 9.00,
             item.color,
+            item.notes
+          );
+        }
+        if (item.category === 'wall_panels') {
+          return createWallPanelCartItem(
+            {
+              id: item.productId,
+              name: item.productName,
+              category: 'wall_panels',
+              basePrice: item.unitPrice,
+              priceUnit: 'piece'
+            },
+            newQuantity,
+            item.unitPrice,
+            item.color,
+            item.notes
+          );
+        }
+        if (item.category === 'underlayment') {
+          return createUnderlaymentCartItem(
+            {
+              id: item.productId,
+              name: item.productName,
+              category: 'underlayment',
+              basePrice: item.unitPrice,
+              priceUnit: 'unit'
+            },
+            newQuantity,
+            item.unitPrice,
             item.notes
           );
         }
@@ -374,6 +468,35 @@ export default function App() {
             item.stepIncludesRiser || false,
             item.riserUnitPrice || 9.00,
             item.color,
+            item.notes
+          );
+        }
+        if (item.category === 'wall_panels') {
+          return createWallPanelCartItem(
+            {
+              id: item.productId,
+              name: item.productName,
+              category: 'wall_panels',
+              basePrice: newPrice,
+              priceUnit: 'piece'
+            },
+            item.userEnteredQuantity,
+            newPrice,
+            item.color,
+            item.notes
+          );
+        }
+        if (item.category === 'underlayment') {
+          return createUnderlaymentCartItem(
+            {
+              id: item.productId,
+              name: item.productName,
+              category: 'underlayment',
+              basePrice: newPrice,
+              priceUnit: 'unit'
+            },
+            item.userEnteredQuantity,
+            newPrice,
             item.notes
           );
         }
@@ -463,6 +586,8 @@ export default function App() {
     rodapie: cartItems.filter(i => i.category === 'rodapie').length,
     perfiles: cartItems.filter(i => i.category === 'perfiles').length,
     escalones: cartItems.filter(i => i.category === 'escalones').length,
+    wall_panels: cartItems.filter(i => i.category === 'wall_panels').length,
+    underlayment: cartItems.filter(i => i.category === 'underlayment').length,
     otros: cartItems.filter(i => i.category === 'otros').length
   };
 
@@ -578,6 +703,22 @@ export default function App() {
               <StairsCalculator
                 products={products}
                 onAddToCart={handleAddStairs}
+                language={language}
+              />
+            )}
+
+            {activeCategory === 'wall_panels' && (
+              <WallPanelsCalculator
+                products={products}
+                onAddToCart={handleAddWallPanel}
+                language={language}
+              />
+            )}
+
+            {activeCategory === 'underlayment' && (
+              <UnderlaymentCalculator
+                products={products}
+                onAddToCart={handleAddUnderlayment}
                 language={language}
               />
             )}
@@ -778,7 +919,7 @@ export default function App() {
         isOpen={isPriceManagerOpen}
         onClose={() => setIsPriceManagerOpen(false)}
         products={products}
-        onUpdateProducts={setProducts}
+        onUpdateProducts={(newProducts) => setProducts(newProducts)}
       />
 
       <QuotesHistoryModal

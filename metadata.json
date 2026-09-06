@@ -1,6 +1,6 @@
 {
   "name": "QuickQuote — Cotizador Quicksurfaces",
-  "description": "Herramienta interna de cotización ágil para vendedores de pisos, rodapiés, perfiles y escalones de Quicksurfaces.",
+  "description": "Herramienta de cotización ágil para vendedores de pisos SPC, rodapiés, perfiles, escalones, wall panels acústicos y aislantes underlayment.",
   "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }

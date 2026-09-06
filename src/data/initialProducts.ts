@@ -614,46 +614,115 @@ export const INITIAL_PRODUCTS: Product[] = [
     description: 'Tabla vertical de contrahuella blanca laminada para acabado en contraste.'
   },
 
-  // ==================== COMPLEMENTOS / OTROS PRODUCTOS REGULARES ====================
-  {
-    id: 'underlayment-vapor-barrier',
-    name: 'Plastic Vapor Barrier (Barrera de Vapor)',
-    category: 'otros',
-    subcategory: 'Underlayments',
-    size: 'Poly Plastic Sheeting 6 Mils | 1,000 sqft / rollo',
-    basePrice: 65.00,
-    priceUnit: 'unit',
-    description: 'Rollo de polietileno de 6 Mils para protección contra humedad en losas de concreto.'
-  },
-  {
-    id: 'underlayment-ixpe-padding',
-    name: 'Underlayment IXPE Padding Pat',
-    category: 'otros',
-    subcategory: 'Underlayments',
-    size: 'IXPE 100 sqft / rollo | 2mm | 68 STC - 72 IIC',
-    basePrice: 22.00,
-    priceUnit: 'unit',
-    description: 'Manta acústica de alta densidad IXPE para reducción de ruido de impacto.'
-  },
+  // ==================== WALL PANELS (PANELES DE PARED) ====================
   {
     id: 'wall-panels-indoor',
-    name: 'Wall Panels Indoor (Revestimiento Pared)',
-    category: 'otros',
-    subcategory: 'Wall Panels',
-    size: '1" x 6 5/8" x 113" (10 piezas por caja)',
+    name: 'WPC Fluted Wall Panel Indoor',
+    category: 'wall_panels',
+    subcategory: 'Fluted Panels',
+    size: '1" x 6 5/8" x 113" (aprox. 9.5 ft de alto)',
     basePrice: 17.00,
-    priceUnit: 'unit',
-    description: 'Paneles decorativos para pared interior acústico y moderno.'
+    priceUnit: 'piece',
+    badge: 'Popular',
+    description: 'Panel acanalado WPC para revestimiento de pared interior. Resistente a humedad, termitas y de fácil instalación macho-hembra.',
+    colors: [
+      { code: 'WP-01', name: 'Natural Oak', hex: '#C7A779' },
+      { code: 'WP-02', name: 'Walnut Dark', hex: '#5A3D28' },
+      { code: 'WP-03', name: 'Charcoal Black', hex: '#222222' },
+      { code: 'WP-04', name: 'Smoked Gray', hex: '#8C8C8C' },
+      { code: 'WP-05', name: 'Pure White', hex: '#F3F3F3' }
+    ]
   },
   {
     id: 'acoustic-wall-panel',
-    name: 'Acoustic Wall Panel Premium',
-    category: 'otros',
-    subcategory: 'Wall Panels',
-    size: '1" x 12" x 92"',
+    name: 'Acoustic Slat Wall Panel Wood',
+    category: 'wall_panels',
+    subcategory: 'Acoustic Wood Slats',
+    size: '1" x 12" x 92" (Panel Acústico)',
     basePrice: 35.00,
+    priceUnit: 'piece',
+    badge: 'Premium',
+    description: 'Panel acústico en listones de madera natural MDF enchapada con base de fieltro acústico negro de alta absorción de eco.',
+    colors: [
+      { code: 'AWP-01', name: 'Scandinavian Oak', hex: '#D2B58D' },
+      { code: 'AWP-02', name: 'American Walnut', hex: '#4B3621' },
+      { code: 'AWP-03', name: 'Smoked Ash', hex: '#63615E' },
+      { code: 'AWP-04', name: 'Midnight Black', hex: '#1C1C1C' }
+    ]
+  },
+  {
+    id: 'wall-panel-uv-marble',
+    name: 'UV Marble Wall Sheet (Lámina de Mármol)',
+    category: 'wall_panels',
+    subcategory: 'Marble Sheets',
+    size: '48" x 96" (4x8 ft) | Espesor 3mm',
+    basePrice: 55.00,
+    priceUnit: 'piece',
+    description: 'Lámina de PVC con acabado de mármol brillante UV de gran formato para paredes de salas, duchas y fondos de TV.',
+    colors: [
+      { code: 'MAR-01', name: 'Carrara White', hex: '#EBEAE8' },
+      { code: 'MAR-02', name: 'Nero Marquina', hex: '#1E1E1E' },
+      { code: 'MAR-03', name: 'Statuario Gold', hex: '#E5DFD3' }
+    ]
+  },
+  {
+    id: 'wall-panel-trim-metal',
+    name: 'Aluminum Edge & End Cap Trim for Panels',
+    category: 'wall_panels',
+    subcategory: 'Panel Accessories',
+    size: 'Tira de 9.5 ft (Remate perimetral)',
+    basePrice: 14.00,
+    priceUnit: 'piece',
+    description: 'Perfil de remate final en aluminio anodizado para bordes de paneles y esquinas exteriores.',
+    colors: [
+      { code: 'TRIM-BLK', name: 'Matte Black', hex: '#1C1C1C' },
+      { code: 'TRIM-GLD', name: 'Brushed Brass Gold', hex: '#C5A059' },
+      { code: 'TRIM-SLV', name: 'Anodized Silver', hex: '#BDBDBD' }
+    ]
+  },
+
+  // ==================== UNDERLAYMENTS & AISLANTES ====================
+  {
+    id: 'underlayment-ixpe-padding',
+    name: 'Underlayment IXPE Acoustic Foam (2mm)',
+    category: 'underlayment',
+    subcategory: 'Acoustic Underlayment',
+    size: '100 sqft / rollo | 2mm | 68 STC - 72 IIC',
+    basePrice: 22.00,
     priceUnit: 'unit',
-    description: 'Panel acústico en listones de madera con fieltro fonoabsorbente.'
+    badge: 'Standard',
+    description: 'Manta acústica de alta densidad IXPE con solapa autoadhesiva para reducción de sonido y amortiguación de pisada.'
+  },
+  {
+    id: 'underlayment-eva-gold',
+    name: 'EVA Foam Heavy Duty with Gold Moisture Barrier',
+    category: 'underlayment',
+    subcategory: 'Acoustic & Moisture',
+    size: '100 sqft / rollo | 3mm | Film de Aluminio Oro',
+    basePrice: 28.00,
+    priceUnit: 'unit',
+    badge: 'Recomendado',
+    description: 'Bajo piso EVA de 3mm con lámina de barrera de vapor integrada color oro para máxima protección y aislamiento térmico/acústico.'
+  },
+  {
+    id: 'underlayment-vapor-barrier',
+    name: 'Plastic Vapor Barrier 6 Mils (Barrera de Vapor)',
+    category: 'underlayment',
+    subcategory: 'Moisture Barrier',
+    size: 'Poly Plastic Sheeting 6 Mils | 1,000 sqft / rollo',
+    basePrice: 65.00,
+    priceUnit: 'unit',
+    description: 'Rollo de polietileno virgen de 6 Mils para protección estricta contra humedad ascendente en losas de concreto.'
+  },
+  {
+    id: 'underlayment-natural-cork',
+    name: 'Natural Cork Acoustic Roll Underlayment',
+    category: 'underlayment',
+    subcategory: 'Natural Cork',
+    size: '200 sqft / rollo | 1/4" espesor (6mm)',
+    basePrice: 85.00,
+    priceUnit: 'unit',
+    description: 'Rollo de corcho 100% natural, ideal para cumplimiento estricto de normativas acústicas de condominios y HOA en Florida.'
   }
 ];
 

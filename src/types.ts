@@ -1,4 +1,4 @@
-export type ProductCategory = 'piso' | 'rodapie' | 'perfiles' | 'escalones' | 'otros';
+export type ProductCategory = 'piso' | 'rodapie' | 'perfiles' | 'escalones' | 'wall_panels' | 'underlayment' | 'otros';
 
 export interface ProductColor {
   code: string;

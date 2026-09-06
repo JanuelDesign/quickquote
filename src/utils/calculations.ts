@@ -192,6 +192,68 @@ export function createStairsCartItem(
   };
 }
 
+export function createWallPanelCartItem(
+  product: Product,
+  pieceCount: number,
+  unitPrice: number,
+  color?: ProductColor,
+  notes?: string
+): CartItem {
+  const subtotal = Number((pieceCount * unitPrice).toFixed(2));
+
+  return {
+    id: `item-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
+    productId: product.id,
+    productName: product.name,
+    category: 'wall_panels',
+    subcategory: product.subcategory,
+    thickness: product.thickness,
+    size: product.size,
+    color,
+    userEnteredQuantity: pieceCount,
+    quantityUnitLabel: 'piezas / paneles',
+    calculatedUnits: pieceCount,
+    calculatedUnitsLabel: `${pieceCount} panel${pieceCount > 1 ? 'es' : ''}`,
+    unitPrice: unitPrice,
+    pricingMode: 'per_piece',
+    baseListPrice: product.basePrice,
+    subtotal,
+    isTaxable: true,
+    isLabor: false,
+    notes
+  };
+}
+
+export function createUnderlaymentCartItem(
+  product: Product,
+  rollCount: number,
+  unitPrice: number,
+  notes?: string
+): CartItem {
+  const subtotal = Number((rollCount * unitPrice).toFixed(2));
+
+  return {
+    id: `item-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
+    productId: product.id,
+    productName: product.name,
+    category: 'underlayment',
+    subcategory: product.subcategory,
+    thickness: product.thickness,
+    size: product.size,
+    userEnteredQuantity: rollCount,
+    quantityUnitLabel: 'rollos',
+    calculatedUnits: rollCount,
+    calculatedUnitsLabel: `${rollCount} rollo${rollCount > 1 ? 's' : ''}`,
+    unitPrice: unitPrice,
+    pricingMode: 'per_piece',
+    baseListPrice: product.basePrice,
+    subtotal,
+    isTaxable: true,
+    isLabor: false,
+    notes
+  };
+}
+
 export function createCustomCartItem(
   description: string,
   quantity: number,

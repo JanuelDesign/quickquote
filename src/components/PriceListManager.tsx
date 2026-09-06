@@ -14,10 +14,18 @@ import {
   Check, 
   X, 
   Copy, 
-  Info
+  Info,
+  RefreshCw,
+  Link as LinkIcon
 } from 'lucide-react';
 import { INITIAL_PRODUCTS } from '../data/initialProducts';
-import { generateProductsTSV, generateServicesTSV, copyTextToClipboard } from '../utils/tsvExporter';
+import { 
+  generateProductsTSV, 
+  generateServicesTSV, 
+  copyTextToClipboard,
+  fetchGoogleSheetsCatalog,
+  parseProductsFromText
+} from '../utils/tsvExporter';
 
 interface PriceListManagerProps {
   isOpen: boolean;
@@ -52,6 +60,16 @@ export const PriceListManager: React.FC<PriceListManagerProps> = ({
   const [previewTsvType, setPreviewTsvType] = useState<'tabla1' | 'tabla2' | null>(null);
   const [importSuccess, setImportSuccess] = useState(false);
   const [importError, setImportError] = useState<string | null>(null);
+
+  // Google Sheets live sync state
+  const [sheetUrl, setSheetUrl] = useState(() => localStorage.getItem('qs_google_sheet_url') || '');
+  const [sheetTabName, setSheetTabName] = useState(() => localStorage.getItem('qs_google_sheet_tab_name') || '');
+  const [autoSyncEnabled, setAutoSyncEnabled] = useState(() => localStorage.getItem('qs_google_sheet_autosync') !== 'false');
+  const [lastSyncTime, setLastSyncTime] = useState(() => localStorage.getItem('qs_google_sheet_last_sync') || '');
+  const [isSyncing, setIsSyncing] = useState(false);
+  const [syncFeedback, setSyncFeedback] = useState<{ success: boolean; message: string } | null>(null);
+  const [showPasteBox, setShowPasteBox] = useState(false);
+  const [pastedTsvText, setPastedTsvText] = useState('');
 
   // New product form
   const [isAddingNew, setIsAddingNew] = useState(false);
@@ -164,6 +182,62 @@ export const PriceListManager: React.FC<PriceListManagerProps> = ({
     setTimeout(() => setCopiedTabla2(false), 2500);
   };
 
+  const handleSyncGoogleSheet = async () => {
+    if (!sheetUrl.trim()) {
+      setSyncFeedback({
+        success: false,
+        message: 'Por favor escribe o pega el enlace de tu Google Sheet (ej. https://docs.google.com/spreadsheets/d/.../edit)'
+      });
+      return;
+    }
+    setIsSyncing(true);
+    setSyncFeedback(null);
+    try {
+      localStorage.setItem('qs_google_sheet_url', sheetUrl.trim());
+      localStorage.setItem('qs_google_sheet_tab_name', sheetTabName.trim());
+      localStorage.setItem('qs_google_sheet_autosync', autoSyncEnabled ? 'true' : 'false');
+
+      const res = await fetchGoogleSheetsCatalog(sheetUrl.trim(), products, sheetTabName.trim() || undefined);
+      onUpdateProducts(res.updatedProducts);
+
+      const now = new Date();
+      const nowStr = `${now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} • ${now.toLocaleDateString()}`;
+      localStorage.setItem('qs_google_sheet_last_sync', nowStr);
+      setLastSyncTime(nowStr);
+
+      setSyncFeedback({
+        success: true,
+        message: `¡Sincronización exitosa! Se actualizaron precios y datos de ${res.rowCount} filas desde tu Google Sheet.`
+      });
+    } catch (err: any) {
+      setSyncFeedback({
+        success: false,
+        message: err.message || 'No se pudo leer el archivo. Asegúrate de que el documento tenga acceso público ("Cualquier persona con el enlace puede ver") o esté publicado en la Web.'
+      });
+    } finally {
+      setIsSyncing(false);
+    }
+  };
+
+  const handleApplyPastedSheetData = () => {
+    if (!pastedTsvText.trim()) return;
+    try {
+      const res = parseProductsFromText(pastedTsvText, products);
+      onUpdateProducts(res.updatedProducts);
+      setSyncFeedback({
+        success: true,
+        message: `¡Actualizado con éxito! Se procesaron ${res.rowCount} filas copiadas desde tu hoja de cálculo.`
+      });
+      setPastedTsvText('');
+      setShowPasteBox(false);
+    } catch (err: any) {
+      setSyncFeedback({
+        success: false,
+        message: err.message || 'Error al procesar el texto pegado. Verifica que incluya la fila de encabezados.'
+      });
+    }
+  };
+
   return (
     <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-xs flex items-center justify-center p-2 sm:p-4 overflow-y-auto">
       <div 
@@ -271,6 +345,8 @@ export const PriceListManager: React.FC<PriceListManagerProps> = ({
                     <option value="rodapie">Rodapiés</option>
                     <option value="perfiles">Perfiles</option>
                     <option value="escalones">Escalones</option>
+                    <option value="wall_panels">Wall Panels</option>
+                    <option value="underlayment">Underlayments</option>
                     <option value="otros">Otros</option>
                   </select>
                 </div>
@@ -304,6 +380,8 @@ export const PriceListManager: React.FC<PriceListManagerProps> = ({
                         <option value="rodapie">Rodapié</option>
                         <option value="perfiles">Perfiles</option>
                         <option value="escalones">Escalones</option>
+                        <option value="wall_panels">Wall Panels</option>
+                        <option value="underlayment">Underlayments</option>
                         <option value="otros">Otros</option>
                       </select>
                     </div>
@@ -526,12 +604,153 @@ export const PriceListManager: React.FC<PriceListManagerProps> = ({
                 </div>
                 <div>
                   <h3 className="text-sm font-bold text-white tracking-wide">
-                    Estructura Recomendada para Google Sheets
+                    Estructura y Sincronización con Google Sheets
                   </h3>
                   <p className="text-xs text-[#8C8C8C] mt-0.5 leading-relaxed">
-                    Para armar tu catálogo en Google Sheets y sincronizarlo con tu lista de precios de fábrica, utiliza las siguientes columnas en la Fila 1:
+                    Sincroniza tus precios en tiempo real conectando el enlace de tu Google Sheet o exporta los datos iniciales para tu hoja.
                   </p>
                 </div>
+              </div>
+
+              {/* LIVE SYNC MODULE */}
+              <div className="p-4 rounded-xl border border-zinc-200 bg-zinc-50 space-y-3">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1">
+                  <div>
+                    <h4 className="text-xs font-bold uppercase tracking-wider text-black flex items-center gap-1.5">
+                      <RefreshCw className={`w-4 h-4 text-[#FF8407] ${isSyncing ? 'animate-spin' : ''}`} />
+                      Sincronización en Vivo y Automática desde Google Sheets
+                    </h4>
+                    <p className="text-[11px] text-zinc-600">
+                      Conecta el enlace de tu hoja de Google para que tus precios se actualicen automáticamente sin tener que cambiarlos a mano.
+                    </p>
+                  </div>
+                  {lastSyncTime && (
+                    <div className="flex items-center gap-1.5 text-[11px] font-mono bg-emerald-100/70 text-emerald-800 px-2 py-0.5 rounded border border-emerald-300 shrink-0">
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                      <span>Sincronizado: {lastSyncTime}</span>
+                    </div>
+                  )}
+                </div>
+
+                {/* Input URL and Tab Name */}
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                  <div className="sm:col-span-2 relative">
+                    <LinkIcon className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" />
+                    <input
+                      type="url"
+                      value={sheetUrl}
+                      onChange={(e) => setSheetUrl(e.target.value)}
+                      placeholder="https://docs.google.com/spreadsheets/d/.../edit"
+                      className="w-full text-xs pl-8 pr-3 py-2 bg-white border border-zinc-300 rounded-lg outline-none focus:ring-2 focus:ring-[#FF8407]"
+                    />
+                  </div>
+
+                  <div className="relative">
+                    <input
+                      type="text"
+                      value={sheetTabName}
+                      onChange={(e) => setSheetTabName(e.target.value)}
+                      placeholder="Pestaña (ej. Hoja 1, opcional)"
+                      className="w-full text-xs px-3 py-2 bg-white border border-zinc-300 rounded-lg outline-none focus:ring-2 focus:ring-[#FF8407]"
+                      title="Nombre de la pestaña o déjalo vacío para usar la primera pestaña"
+                    />
+                  </div>
+                </div>
+
+                {/* Auto-sync Switch & Action Buttons */}
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pt-1">
+                  <label className="flex items-center gap-2 cursor-pointer select-none">
+                    <input
+                      type="checkbox"
+                      checked={autoSyncEnabled}
+                      onChange={(e) => {
+                        const checked = e.target.checked;
+                        setAutoSyncEnabled(checked);
+                        localStorage.setItem('qs_google_sheet_autosync', checked ? 'true' : 'false');
+                      }}
+                      className="w-4 h-4 text-[#FF8407] rounded border-zinc-300 focus:ring-[#FF8407] cursor-pointer"
+                    />
+                    <span className="text-xs font-semibold text-zinc-700">
+                      Actualizar automáticamente al abrir o usar la app
+                    </span>
+                  </label>
+
+                  <button
+                    type="button"
+                    onClick={handleSyncGoogleSheet}
+                    disabled={isSyncing}
+                    className="px-4 py-2 bg-[#FF8407] hover:bg-[#E07300] disabled:bg-zinc-400 text-white font-bold text-xs rounded-lg uppercase tracking-wider flex items-center justify-center gap-1.5 cursor-pointer shadow-xs transition-colors shrink-0"
+                  >
+                    <RefreshCw className={`w-3.5 h-3.5 ${isSyncing ? 'animate-spin' : ''}`} />
+                    <span>{isSyncing ? 'Sincronizando...' : 'Sincronizar Ahora'}</span>
+                  </button>
+                </div>
+
+                {/* Feedback Message */}
+                {syncFeedback && (
+                  <div className={`p-3 rounded-lg text-xs font-medium flex items-start gap-2.5 ${
+                    syncFeedback.success ? 'bg-emerald-50 text-emerald-800 border border-emerald-200' : 'bg-red-50 text-red-800 border border-red-200'
+                  }`}>
+                    {syncFeedback.success ? <Check className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" /> : <X className="w-4 h-4 text-red-600 shrink-0 mt-0.5" />}
+                    <div className="space-y-1">
+                      <p className="leading-relaxed font-semibold">{syncFeedback.message}</p>
+                      {!syncFeedback.success && (
+                        <div className="text-[11px] text-red-700 bg-white/70 p-2 rounded border border-red-200 space-y-1 mt-1">
+                          <p className="font-bold">👉 Cómo solucionar el acceso en Google Sheets:</p>
+                          <ol className="list-decimal list-inside space-y-0.5 text-zinc-800">
+                            <li>Abre tu hoja en Google Sheets.</li>
+                            <li>Haz clic en el botón <strong>"Compartir"</strong> (arriba a la derecha).</li>
+                            <li>En <em>Acceso general</em>, cámbialo de <strong>"Restringido"</strong> a <strong>"Cualquier persona con el enlace"</strong> (Rol: <strong>Lector</strong>).</li>
+                            <li>Haz clic en <strong>"Copiar enlace"</strong> y pégalo aquí arriba.</li>
+                          </ol>
+                          <p className="pt-1 text-[10px] text-zinc-600">
+                            O también: En tu hoja ve a <strong>Archivo &gt; Compartir &gt; Publicar en la Web &gt; Publicar</strong>.
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {/* Quick note on permissions & manual paste toggle */}
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between text-[11px] text-zinc-500 pt-1 border-t border-zinc-200/80 gap-1">
+                  <span>
+                    💡 Consejo: No necesitas recargar la página. Al cambiar los precios en Google Sheets se reflejan de inmediato.
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setShowPasteBox(!showPasteBox)}
+                    className="text-[#FF8407] hover:underline font-semibold cursor-pointer shrink-0"
+                  >
+                    {showPasteBox ? 'Ocultar importación manual' : '¿Prefieres copiar y pegar celdas directamente?'}
+                  </button>
+                </div>
+
+                {/* Manual paste toggleable area */}
+                {showPasteBox && (
+                  <div className="p-3 bg-white border border-zinc-200 rounded-lg space-y-2 pt-2">
+                    <label className="text-[11px] font-bold text-black uppercase tracking-wider block">
+                      Pegar celdas copiadas desde Google Sheets:
+                    </label>
+                    <textarea
+                      value={pastedTsvText}
+                      onChange={(e) => setPastedTsvText(e.target.value)}
+                      placeholder="Copia las filas desde Google Sheets (con la fila de encabezados) y pégalas aquí..."
+                      rows={4}
+                      className="w-full text-xs font-mono p-2.5 border border-zinc-300 rounded-md outline-none focus:ring-1 focus:ring-[#FF8407] resize-none"
+                    />
+                    <div className="flex justify-end">
+                      <button
+                        type="button"
+                        onClick={handleApplyPastedSheetData}
+                        disabled={!pastedTsvText.trim()}
+                        className="px-3 py-1.5 bg-black hover:bg-zinc-800 disabled:bg-zinc-300 text-white font-bold text-xs rounded uppercase tracking-wider cursor-pointer"
+                      >
+                        Actualizar desde texto pegado
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* TSV Direct Export for Google Sheets */}

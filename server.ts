@@ -118,6 +118,117 @@ Debes responder ÚNICAMENTE con un objeto JSON válido con la siguiente estructu
   }
 });
 
+// Proxy endpoint to fetch Google Sheets without CORS restrictions and with multiple fallbacks
+app.post('/api/sheets-sync', async (req, res) => {
+  try {
+    const { url, sheetName } = req.body;
+    if (!url || typeof url !== 'string' || !url.trim()) {
+      res.status(400).json({ success: false, error: 'URL de Google Sheets requerida' });
+      return;
+    }
+
+    const cleanUrl = url.trim();
+
+    // Extract doc ID and any gid (sheet tab) if present
+    const idMatch = cleanUrl.match(/\/spreadsheets\/d\/([a-zA-Z0-9-_]+)/);
+    const gidMatch = cleanUrl.match(/[#?&]gid=([0-9]+)/);
+    const docId = idMatch ? idMatch[1] : null;
+    const gid = gidMatch ? gidMatch[1] : null;
+
+    const candidateUrls: string[] = [];
+
+    // 1. If already an export or published link
+    if (cleanUrl.includes('output=csv') || cleanUrl.includes('/pub?') || cleanUrl.includes('format=csv')) {
+      candidateUrls.push(cleanUrl);
+    }
+
+    if (docId) {
+      // 2. Google Visualization API (CSV format)
+      // If user passed sheetName, try that; otherwise if gid exists, pass gid; otherwise try default sheet
+      if (sheetName && sheetName.trim()) {
+        candidateUrls.push(`https://docs.google.com/spreadsheets/d/${docId}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(sheetName.trim())}`);
+      }
+      if (gid) {
+        candidateUrls.push(`https://docs.google.com/spreadsheets/d/${docId}/gviz/tq?tqx=out:csv&gid=${gid}`);
+        candidateUrls.push(`https://docs.google.com/spreadsheets/d/${docId}/export?format=csv&gid=${gid}`);
+      }
+      // 3. Fallback: GViz without sheet parameter (defaults to the first tab)
+      candidateUrls.push(`https://docs.google.com/spreadsheets/d/${docId}/gviz/tq?tqx=out:csv`);
+      // 4. Fallback: Export CSV (first tab)
+      candidateUrls.push(`https://docs.google.com/spreadsheets/d/${docId}/export?format=csv`);
+    } else {
+      candidateUrls.push(cleanUrl);
+    }
+
+    let lastError = '';
+    let fetchedText = '';
+
+    for (const fetchUrl of candidateUrls) {
+      try {
+        const response = await fetch(fetchUrl, {
+          headers: {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+            'Accept': 'text/csv,text/plain,*/*'
+          },
+          redirect: 'follow'
+        });
+
+        if (!response.ok) {
+          lastError = `HTTP ${response.status} ${response.statusText}`;
+          continue;
+        }
+
+        const text = await response.text();
+
+        // Check if Google redirected to sign-in HTML
+        if (text.includes('<!DOCTYPE') && (text.includes('accounts.google.com') || text.includes('ServiceLogin') || text.includes('Sign in') || text.includes('Inicia sesión'))) {
+          lastError = 'El documento de Google Sheets es privado y requiere inicio de sesión en Google.';
+          continue;
+        }
+
+        // Check if Google returned an authorization/permission error
+        if (text.includes('google.visualization.Query.setResponse') && text.includes('error')) {
+          if (text.includes('ACCESS_DENIED') || text.includes('denied') || text.includes('unauthorized')) {
+            lastError = 'Acceso denegado por Google. Cambia la opción de compartir a "Cualquier persona con el enlace puede ver".';
+            continue;
+          }
+        }
+
+        // Check if content looks like CSV/TSV table (has commas or tabs or line breaks)
+        if (text && text.length > 15 && (text.includes(',') || text.includes('\t') || text.includes('\n'))) {
+          fetchedText = text;
+          break;
+        }
+      } catch (err: any) {
+        lastError = err.message || 'Error de conexión';
+      }
+    }
+
+    if (!fetchedText) {
+      res.status(400).json({
+        success: false,
+        error: lastError || 'No se pudo leer la hoja de cálculo.',
+        isPrivate: lastError.includes('privado') || lastError.includes('denegado') || lastError.includes('sesión'),
+        hint: 'En tu Google Sheet: 1. Haz clic en "Compartir" (arriba a la derecha) > 2. En "Acceso general" cambia de "Restringido" a "Cualquier persona con el enlace" (Rol: Lector) > 3. Copia el enlace. O en "Archivo > Compartir > Publicar en la Web".'
+      });
+      return;
+    }
+
+    res.json({
+      success: true,
+      data: fetchedText,
+      docId,
+      gid
+    });
+  } catch (error: any) {
+    console.error('Error in /api/sheets-sync:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message || 'Error interno del servidor al sincronizar'
+    });
+  }
+});
+
 async function startServer() {
   // Vite middleware in development
   if (process.env.NODE_ENV !== 'production') {
