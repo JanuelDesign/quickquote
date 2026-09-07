@@ -63,8 +63,8 @@ export default function App() {
   // Persistence state
   const [products, setProducts] = useState<Product[]>(() => {
     const savedVersion = localStorage.getItem('qs_catalog_version');
-    if (savedVersion !== 'v2_januel_sync_2026_09_07') {
-      localStorage.setItem('qs_catalog_version', 'v2_januel_sync_2026_09_07');
+    if (savedVersion !== 'v3_januel_csv_updated_2026_09_07') {
+      localStorage.setItem('qs_catalog_version', 'v3_januel_csv_updated_2026_09_07');
       localStorage.setItem('qs_products_catalog', JSON.stringify(INITIAL_PRODUCTS));
       return INITIAL_PRODUCTS;
     }

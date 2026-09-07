@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Client, Quotation, Language } from '../types';
+import { Client, Quotation, Language, ClientCategory, CLIENT_CATEGORIES } from '../types';
 import { 
   Users, 
   UserPlus, 
@@ -8,7 +8,9 @@ import {
   Mail, 
   Check, 
   X, 
-  Trash2
+  Trash2,
+  Tag,
+  ChevronDown
 } from 'lucide-react';
 import { translations } from '../utils/translations';
 
@@ -40,19 +42,27 @@ export const ClientModal: React.FC<ClientModalProps> = ({
 
   const [activeTab, setActiveTab] = useState<'list' | 'create'>('list');
   const [searchTerm, setSearchTerm] = useState('');
+  const [selectedTypeFilter, setSelectedTypeFilter] = useState<string>('all');
 
   // New Client Form state
   const [name, setName] = useState('');
+  const [clientType, setClientType] = useState<ClientCategory>('Contractor');
   const [phone, setPhone] = useState('');
   const [email, setEmail] = useState('');
   const [address, setAddress] = useState('');
   const [notes, setNotes] = useState('');
 
-  const filteredClients = clients.filter(c => 
-    c.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    (c.phone && c.phone.includes(searchTerm)) ||
-    (c.email && c.email.toLowerCase().includes(searchTerm.toLowerCase()))
-  );
+  const filteredClients = clients.filter(c => {
+    const matchesSearch = 
+      c.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (c.clientType && c.clientType.toLowerCase().includes(searchTerm.toLowerCase())) ||
+      (c.phone && c.phone.includes(searchTerm)) ||
+      (c.email && c.email.toLowerCase().includes(searchTerm.toLowerCase()));
+
+    const matchesType = selectedTypeFilter === 'all' || c.clientType === selectedTypeFilter;
+
+    return matchesSearch && matchesType;
+  });
 
   const handleCreateSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -61,6 +71,7 @@ export const ClientModal: React.FC<ClientModalProps> = ({
     const newClient: Client = {
       id: `client-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
       name: name.trim(),
+      clientType: clientType,
       phone: phone.trim(),
       email: email.trim() || undefined,
       address: address.trim() || undefined,
@@ -74,6 +85,7 @@ export const ClientModal: React.FC<ClientModalProps> = ({
 
     // Reset fields
     setName('');
+    setClientType('Contractor');
     setPhone('');
     setEmail('');
     setAddress('');
@@ -147,16 +159,52 @@ export const ClientModal: React.FC<ClientModalProps> = ({
         {/* Tab 1: Client List & Search */}
         {activeTab === 'list' ? (
           <div className="p-5 space-y-4">
-            {/* Search bar */}
-            <div className="relative">
-              <Search className="w-4 h-4 text-[#8C8C8C] absolute left-3 top-1/2 -translate-y-1/2" />
-              <input
-                type="text"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                placeholder={t.searchClientPlaceholder}
-                className="w-full text-xs sm:text-sm bg-[#FAFAFA] border border-[#E5E5E5] focus:border-black rounded-lg pl-9 pr-4 py-2 outline-none font-medium"
-              />
+            {/* Search bar & Type filter */}
+            <div className="space-y-2">
+              <div className="relative">
+                <Search className="w-4 h-4 text-[#8C8C8C] absolute left-3 top-1/2 -translate-y-1/2" />
+                <input
+                  type="text"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  placeholder={t.searchClientPlaceholder}
+                  className="w-full text-xs sm:text-sm bg-[#FAFAFA] border border-[#E5E5E5] focus:border-black rounded-lg pl-9 pr-4 py-2 outline-none font-medium"
+                />
+              </div>
+
+              {/* Quick filter pills by client type */}
+              <div className="flex items-center gap-1.5 overflow-x-auto pb-1 no-scrollbar text-[11px]">
+                <button
+                  type="button"
+                  onClick={() => setSelectedTypeFilter('all')}
+                  className={`px-2.5 py-1 rounded-full font-bold whitespace-nowrap transition-colors cursor-pointer text-[10px] uppercase tracking-wider ${
+                    selectedTypeFilter === 'all'
+                      ? 'bg-black text-white'
+                      : 'bg-[#F2F1EC] text-zinc-600 hover:text-black hover:bg-zinc-200'
+                  }`}
+                >
+                  {language === 'en' ? 'All' : 'Todos'} ({clients.length})
+                </button>
+                {CLIENT_CATEGORIES.map((cat) => {
+                  const count = clients.filter(c => c.clientType === cat).length;
+                  if (count === 0 && selectedTypeFilter !== cat) return null;
+                  return (
+                    <button
+                      key={cat}
+                      type="button"
+                      onClick={() => setSelectedTypeFilter(selectedTypeFilter === cat ? 'all' : cat)}
+                      className={`px-2.5 py-1 rounded-full font-bold whitespace-nowrap transition-colors cursor-pointer text-[10px] flex items-center gap-1 ${
+                        selectedTypeFilter === cat
+                          ? 'bg-[#FF8407] text-white'
+                          : 'bg-[#F2F1EC] text-zinc-700 hover:text-black hover:bg-zinc-200'
+                      }`}
+                    >
+                      <span>{cat}</span>
+                      <span className="opacity-75">({count})</span>
+                    </button>
+                  );
+                })}
+              </div>
             </div>
 
             {/* Clients scroll area */}
@@ -193,9 +241,16 @@ export const ClientModal: React.FC<ClientModalProps> = ({
                         </div>
 
                         <div className="truncate">
-                          <h4 className="text-xs sm:text-sm font-bold text-black truncate">
-                            {client.name}
-                          </h4>
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <h4 className="text-xs sm:text-sm font-bold text-black truncate">
+                              {client.name}
+                            </h4>
+                            {client.clientType && (
+                              <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-[#F2F1EC] text-[#181818] border border-[#E4E2DA]">
+                                {client.clientType}
+                              </span>
+                            )}
+                          </div>
 
                           <div className="flex flex-wrap gap-x-3 gap-y-0.5 text-[11px] text-[#8C8C8C] mt-0.5">
                             {client.phone && (
@@ -272,6 +327,35 @@ export const ClientModal: React.FC<ClientModalProps> = ({
                 placeholder={language === 'en' ? 'e.g. Robert Smith / Miami Construction LLC' : 'Ej. Roberto Gómez / Constructora Miami LLC'}
                 className="w-full text-xs sm:text-sm bg-white border border-[#E5E5E5] focus:border-black rounded-lg px-3 py-2 outline-none font-medium"
               />
+            </div>
+
+            {/* Client Category / Segment Dropdown */}
+            <div>
+              <label 
+                htmlFor="client-category-select" 
+                className="text-[11px] font-bold uppercase tracking-[1px] text-[#8C8C8C] flex items-center gap-1.5 mb-1"
+              >
+                <Tag className="w-3.5 h-3.5 text-[#FF8407]" />
+                <span>{t.clientTypeLabel} *</span>
+              </label>
+
+              <div className="relative">
+                <select
+                  id="client-category-select"
+                  value={clientType}
+                  onChange={(e) => setClientType(e.target.value as ClientCategory)}
+                  className="w-full text-xs sm:text-sm bg-white border border-[#E5E5E5] focus:border-black rounded-lg px-3 py-2.5 outline-none font-semibold text-[#181818] appearance-none cursor-pointer pr-10 shadow-2xs transition-colors hover:border-[#CCCCCC]"
+                >
+                  {CLIENT_CATEGORIES.map((cat) => (
+                    <option key={cat} value={cat} className="font-medium text-black py-1">
+                      {cat}
+                    </option>
+                  ))}
+                </select>
+                <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-zinc-500">
+                  <ChevronDown className="w-4 h-4" />
+                </div>
+              </div>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">

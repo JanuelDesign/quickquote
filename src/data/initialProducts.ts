@@ -5,25 +5,18 @@ export const INITIAL_PRODUCTS: Product[] = [
     "id": "spc-5.5mm-pulse-select",
     "name": "Pulse Select Collection",
     "category": "piso",
-    "subcategory": "Luxury SPC",
+    "subcategory": "Pulse Select",
+    "badge": "BEST SELLER",
     "thickness": "5.5 mm",
-    "wearLayer": "20 Mil",
     "size": "7\" x 48\"",
     "sqftPerBox": 24.26,
-    "planksPerBox": 9,
     "basePrice": 1.49,
     "priceUnit": "sqft",
-    "description": "SPC Vinyl 5.5 mm con manta acústica integrada. Alta resistencia para hogar y oficina.",
+    "description": "Capa de uso: 20 Mil. 9 tablas/caja. SPC Vinyl 5.5 mm con manta acústica integrada. Alta resistencia para hogar y oficina.",
     "colors": [
       {
-        "name": "oody Gray",
-        "code": "Q-01",
-        "hex": "#30302C",
-        "plankPhotoUrl": "https://raw.githubusercontent.com/JanuelDesign/quicksurfacesplanks/refs/heads/main/public/images/products/pulse-select/plank_1_moody_gray.webp"
-      },
-      {
-        "name": "hola gray",
-        "code": "Q-20",
+        "name": "Moody Gray",
+        "code": "Q-0115",
         "hex": "#30302C",
         "plankPhotoUrl": "https://raw.githubusercontent.com/JanuelDesign/quicksurfacesplanks/refs/heads/main/public/images/products/pulse-select/plank_1_moody_gray.webp"
       },
@@ -81,22 +74,20 @@ export const INITIAL_PRODUCTS: Product[] = [
         "hex": "#615B4F",
         "plankPhotoUrl": "https://raw.githubusercontent.com/JanuelDesign/quicksurfacesplanks/refs/heads/main/public/images/products/pulse-select/plank_13_harmony_gray.webp"
       }
-    ],
-    "badge": "BEST SELLER"
+    ]
   },
   {
     "id": "spc-5.7mm-pulse-shield",
     "name": "Pulse Shield Collection",
     "category": "piso",
-    "subcategory": "Luxury SPC",
+    "subcategory": "Pulse Shield",
+    "badge": "PREMIUM",
     "thickness": "5.7 mm",
-    "wearLayer": "20 Mil",
     "size": "9\" x 48\"",
     "sqftPerBox": 27.49,
-    "planksPerBox": 9,
     "basePrice": 1.69,
     "priceUnit": "sqft",
-    "description": "Planchas anchas 9x48 formato Premium con capa de uso de 20 Mils.",
+    "description": "Capa de uso: 20 Mil. 9 tablas/caja. Planchas anchas 9x48 formato Premium con capa de uso de 20 Mils.",
     "colors": [
       {
         "name": "Almond Beige",
@@ -118,22 +109,19 @@ export const INITIAL_PRODUCTS: Product[] = [
         "code": "PS-04",
         "hex": "#D7C4A5"
       }
-    ],
-    "badge": "PREMIUM"
+    ]
   },
   {
     "id": "spc-6.0mm-pulse-shield-xl",
     "name": "Pulse Shield XL Collection",
     "category": "piso",
-    "subcategory": "Luxury SPC",
+    "subcategory": "Pulse Shield XL",
     "thickness": "6.0 mm",
-    "wearLayer": "20 Mil",
     "size": "9\" x 60\" XL",
     "sqftPerBox": 22.5,
-    "planksPerBox": 6,
     "basePrice": 1.89,
     "priceUnit": "sqft",
-    "description": "Formato extra largo 9\"x60\" para espacios amplios y elegantes.",
+    "description": "Capa de uso: 20 Mil. 6 tablas/caja. Formato extra largo 9\"x60\" para espacios amplios y elegantes.",
     "colors": [
       {
         "name": "Golden Honey",
@@ -171,15 +159,13 @@ export const INITIAL_PRODUCTS: Product[] = [
     "id": "spc-8.0mm-pulse-elegance",
     "name": "Pulse Elegance Collection",
     "category": "piso",
-    "subcategory": "Luxury SPC",
+    "subcategory": "Pulse Elegance",
     "thickness": "8.0 mm",
-    "wearLayer": "22 Mil",
     "size": "7\" x 48\"",
     "sqftPerBox": 16.83,
-    "planksPerBox": 7,
     "basePrice": 1.99,
     "priceUnit": "sqft",
-    "description": "Máximo espesor 8mm con capa comercial de 22 Mils.",
+    "description": "Capa de uso: 22 Mil. 7 tablas/caja. Máximo espesor 8mm con capa comercial de 22 Mils.",
     "colors": [
       {
         "name": "Manhattan Oak",
@@ -202,15 +188,13 @@ export const INITIAL_PRODUCTS: Product[] = [
     "id": "spc-8.0mm-xl-pulse",
     "name": "XL Pulse Collection",
     "category": "piso",
-    "subcategory": "Luxury SPC",
+    "subcategory": "XL Pulse",
     "thickness": "8.0 mm",
-    "wearLayer": "22 Mil",
     "size": "9\" x 60\" XL",
     "sqftPerBox": 19.29,
-    "planksPerBox": 5,
     "basePrice": 2.04,
     "priceUnit": "sqft",
-    "description": "SPC Premium 8mm en formato Gran Formato 9\"x60\" con 22 Mils.",
+    "description": "Capa de uso: 22 Mil. 5 tablas/caja. SPC Premium 8mm en formato Gran Formato 9\"x60\" con 22 Mils.",
     "colors": [
       {
         "name": "Liv Oak",
@@ -278,15 +262,13 @@ export const INITIAL_PRODUCTS: Product[] = [
     "id": "spc-8.0mm-pulse-pro",
     "name": "Pulse PRO Collection",
     "category": "piso",
-    "subcategory": "Luxury SPC",
+    "subcategory": "Pulse PRO",
     "thickness": "8.0 mm",
-    "wearLayer": "22 Mil",
     "size": "9\" x 54\"",
     "sqftPerBox": 20.37,
-    "planksPerBox": 6,
     "basePrice": 2.19,
     "priceUnit": "sqft",
-    "description": "Línea PRO de alta gama para proyectos comerciales y residenciales exigentes.",
+    "description": "Capa de uso: 22 Mil. 6 tablas/caja. Línea PRO de alta gama para proyectos comerciales y residenciales exigentes.",
     "colors": [
       {
         "name": "Estate Oak",
@@ -309,15 +291,13 @@ export const INITIAL_PRODUCTS: Product[] = [
     "id": "spc-10mm-ultrapulse",
     "name": "UltraPulse Collection",
     "category": "piso",
-    "subcategory": "Luxury SPC",
+    "subcategory": "UltraPulse",
     "thickness": "10.0 mm",
-    "wearLayer": "AC5 Heavy Commercial",
     "size": "9\" x 48\"",
     "sqftPerBox": 14.82,
-    "planksPerBox": 5,
     "basePrice": 2.29,
     "priceUnit": "sqft",
-    "description": "Máxima solidez y aislamiento acústico con 10mm de espesor y AC5.",
+    "description": "Capa de uso: AC5 Heavy Commercial. 5 tablas/caja. Máxima solidez y aislamiento acústico con 10mm de espesor y AC5.",
     "colors": [
       {
         "name": "Titanium Oak",
@@ -337,13 +317,11 @@ export const INITIAL_PRODUCTS: Product[] = [
     "category": "piso",
     "subcategory": "Waterproof Laminate",
     "thickness": "8.0 mm",
-    "wearLayer": "AC6 | Eco Label",
     "size": "9\" x 51\"",
     "sqftPerBox": 20.3,
-    "planksPerBox": 8,
     "basePrice": 1.79,
     "priceUnit": "sqft",
-    "description": "Piso laminado resistente al agua de origen español con certificación AC6.",
+    "description": "Capa de uso: AC6 | Eco Label. 8 tablas/caja. Piso laminado resistente al agua de origen español con certificación AC6.",
     "colors": [
       {
         "name": "Barcelona Oak",
@@ -363,13 +341,11 @@ export const INITIAL_PRODUCTS: Product[] = [
     "category": "piso",
     "subcategory": "Waterproof Laminate",
     "thickness": "8.0 mm",
-    "wearLayer": "AC6 | Eco Label",
     "size": "7\" x 52\"",
     "sqftPerBox": 22.24,
-    "planksPerBox": 8,
     "basePrice": 1.79,
     "priceUnit": "sqft",
-    "description": "Laminado español hidrófugo formato 7\"x52\" de alta durabilidad.",
+    "description": "Capa de uso: AC6 | Eco Label. 8 tablas/caja. Laminado español hidrófugo formato 7\"x52\" de alta durabilidad.",
     "colors": [
       {
         "name": "Sevilla Natural",
@@ -389,13 +365,11 @@ export const INITIAL_PRODUCTS: Product[] = [
     "category": "piso",
     "subcategory": "Waterproof Laminate",
     "thickness": "7.0 mm",
-    "wearLayer": "AC5 | Free PVC Black",
     "size": "8\" x 48\"",
     "sqftPerBox": 36.43,
-    "planksPerBox": 14,
     "basePrice": 1.79,
     "priceUnit": "sqft",
-    "description": "Núcleo de alta densidad HD Core con 36.43 sqft por caja.",
+    "description": "Capa de uso: AC5 | Free PVC Black. 14 tablas/caja. Núcleo de alta densidad HD Core con 36.43 sqft por caja.",
     "colors": [
       {
         "name": "Alpine Ash",
@@ -415,13 +389,11 @@ export const INITIAL_PRODUCTS: Product[] = [
     "category": "piso",
     "subcategory": "Porcelane Tile",
     "thickness": "9.0 mm",
-    "wearLayer": "PEI 3 Stain & Glossy",
     "size": "24\" x 48\"",
     "sqftPerBox": 15.5,
-    "planksPerBox": 2,
     "basePrice": 1.79,
     "priceUnit": "sqft",
-    "description": "Porcelanato rectificado 24x48 para acabados pulidos y mate de lujo.",
+    "description": "Capa de uso: PEI 3 Stain & Glossy. 2 tablas/caja. Porcelanato rectificado 24x48 para acabados pulidos y mate de lujo.",
     "colors": [
       {
         "name": "Calacatta White",
@@ -769,174 +741,47 @@ export const INITIAL_PRODUCTS: Product[] = [
     "colors": []
   },
   {
-    "id": "wall-panels-indoor",
-    "name": "Wall Panels Indoor (Revestimiento Pared)",
-    "category": "wall_panels",
-    "subcategory": "Fluted Panels",
-    "size": "1\" x 6 5/8\" x 113\" (10 piezas por caja)",
-    "basePrice": 17,
-    "priceUnit": "piece",
-    "badge": "Popular",
-    "description": "Panel acanalado WPC para revestimiento de pared interior. Resistente a humedad, termitas y de fácil instalación macho-hembra.",
-    "colors": [
-      {
-        "code": "WP-01",
-        "name": "Natural Oak",
-        "hex": "#C7A779"
-      },
-      {
-        "code": "WP-02",
-        "name": "Walnut Dark",
-        "hex": "#5A3D28"
-      },
-      {
-        "code": "WP-03",
-        "name": "Charcoal Black",
-        "hex": "#222222"
-      },
-      {
-        "code": "WP-04",
-        "name": "Smoked Gray",
-        "hex": "#8C8C8C"
-      },
-      {
-        "code": "WP-05",
-        "name": "Pure White",
-        "hex": "#F3F3F3"
-      }
-    ]
-  },
-  {
-    "id": "acoustic-wall-panel",
-    "name": "Acoustic Wall Panel Premium",
-    "category": "wall_panels",
-    "subcategory": "Acoustic Wood Slats",
-    "size": "1\" x 12\" x 92\"",
-    "basePrice": 35,
-    "priceUnit": "piece",
-    "badge": "Premium",
-    "description": "Panel acústico en listones de madera natural MDF enchapada con base de fieltro acústico negro de alta absorción de eco.",
-    "colors": [
-      {
-        "code": "AWP-01",
-        "name": "Scandinavian Oak",
-        "hex": "#D2B58D"
-      },
-      {
-        "code": "AWP-02",
-        "name": "American Walnut",
-        "hex": "#4B3621"
-      },
-      {
-        "code": "AWP-03",
-        "name": "Smoked Ash",
-        "hex": "#63615E"
-      },
-      {
-        "code": "AWP-04",
-        "name": "Midnight Black",
-        "hex": "#1C1C1C"
-      }
-    ]
-  },
-  {
-    "id": "wall-panel-uv-marble",
-    "name": "UV Marble Wall Sheet (Lámina de Mármol)",
-    "category": "wall_panels",
-    "subcategory": "Marble Sheets",
-    "size": "48\" x 96\" (4x8 ft) | Espesor 3mm",
-    "basePrice": 55,
-    "priceUnit": "piece",
-    "description": "Lámina de PVC con acabado de mármol brillante UV de gran formato para paredes de salas, duchas y fondos de TV.",
-    "colors": [
-      {
-        "code": "MAR-01",
-        "name": "Carrara White",
-        "hex": "#EBEAE8"
-      },
-      {
-        "code": "MAR-02",
-        "name": "Nero Marquina",
-        "hex": "#1E1E1E"
-      },
-      {
-        "code": "MAR-03",
-        "name": "Statuario Gold",
-        "hex": "#E5DFD3"
-      }
-    ]
-  },
-  {
-    "id": "wall-panel-trim-metal",
-    "name": "Aluminum Edge & End Cap Trim for Panels",
-    "category": "wall_panels",
-    "subcategory": "Panel Accessories",
-    "size": "Tira de 9.5 ft (Remate perimetral)",
-    "basePrice": 14,
-    "priceUnit": "piece",
-    "description": "Perfil de remate final en aluminio anodizado para bordes de paneles y esquinas exteriores.",
-    "colors": [
-      {
-        "code": "TRIM-BLK",
-        "name": "Matte Black",
-        "hex": "#1C1C1C"
-      },
-      {
-        "code": "TRIM-GLD",
-        "name": "Brushed Brass Gold",
-        "hex": "#C5A059"
-      },
-      {
-        "code": "TRIM-SLV",
-        "name": "Anodized Silver",
-        "hex": "#BDBDBD"
-      }
-    ]
+    "id": "underlayment-vapor-barrier",
+    "name": "Plastic Vapor Barrier (Barrera de Vapor)",
+    "category": "otros",
+    "subcategory": "Underlayments",
+    "size": "Poly Plastic Sheeting 6 Mils | 1,000 sqft / rollo",
+    "basePrice": 65,
+    "priceUnit": "unit",
+    "description": "Rollo de polietileno de 6 Mils para protección contra humedad en losas de concreto.",
+    "colors": []
   },
   {
     "id": "underlayment-ixpe-padding",
     "name": "Underlayment IXPE Padding Pat",
-    "category": "underlayment",
-    "subcategory": "Acoustic Underlayment",
+    "category": "otros",
+    "subcategory": "Underlayments",
     "size": "IXPE 100 sqft / rollo | 2mm | 68 STC - 72 IIC",
     "basePrice": 22,
     "priceUnit": "unit",
-    "badge": "Standard",
-    "description": "Manta acústica de alta densidad IXPE con solapa autoadhesiva para reducción de sonido y amortiguación de pisada.",
+    "description": "Manta acústica de alta densidad IXPE para reducción de ruido de impacto.",
     "colors": []
   },
   {
-    "id": "underlayment-eva-gold",
-    "name": "EVA Foam Heavy Duty with Gold Moisture Barrier",
-    "category": "underlayment",
-    "subcategory": "Acoustic & Moisture",
-    "size": "100 sqft / rollo | 3mm | Film de Aluminio Oro",
-    "basePrice": 28,
+    "id": "wall-panels-indoor",
+    "name": "Wall Panels Indoor (Revestimiento Pared)",
+    "category": "otros",
+    "subcategory": "Wall Panels",
+    "size": "1\" x 6 5/8\" x 113\" (10 piezas por caja)",
+    "basePrice": 17,
     "priceUnit": "unit",
-    "badge": "Recomendado",
-    "description": "Bajo piso EVA de 3mm con lámina de barrera de vapor integrada color oro para máxima protección y aislamiento térmico/acústico.",
+    "description": "Paneles decorativos para pared interior acústico y moderno.",
     "colors": []
   },
   {
-    "id": "underlayment-vapor-barrier",
-    "name": "Plastic Vapor Barrier (Barrera de Vapor)",
-    "category": "underlayment",
-    "subcategory": "Moisture Barrier",
-    "size": "Poly Plastic Sheeting 6 Mils | 1,000 sqft / rollo",
-    "basePrice": 65,
+    "id": "acoustic-wall-panel",
+    "name": "Acoustic Wall Panel Premium",
+    "category": "otros",
+    "subcategory": "Wall Panels",
+    "size": "1\" x 12\" x 92\"",
+    "basePrice": 35,
     "priceUnit": "unit",
-    "description": "Rollo de polietileno virgen de 6 Mils para protección estricta contra humedad ascendente en losas de concreto.",
-    "colors": []
-  },
-  {
-    "id": "underlayment-natural-cork",
-    "name": "Natural Cork Acoustic Roll Underlayment",
-    "category": "underlayment",
-    "subcategory": "Natural Cork",
-    "size": "200 sqft / rollo | 1/4\" espesor (6mm)",
-    "basePrice": 85,
-    "priceUnit": "unit",
-    "description": "Rollo de corcho 100% natural, ideal para cumplimiento estricto de normativas acústicas de condominios y HOA en Florida.",
+    "description": "Panel acústico en listones de madera con fieltro fonoabsorbente.",
     "colors": []
   }
 ];
@@ -957,6 +802,7 @@ export const INITIAL_CLIENTS: Client[] = [
   {
     "id": "client-sample-1",
     "name": "Roberto Gómez (Contratista Doral)",
+    "clientType": "Contractor",
     "phone": "(305) 777-3829",
     "email": "rgomez@flcontractor.com",
     "address": "8400 NW 36th St, Doral, FL 33166",
@@ -966,6 +812,7 @@ export const INITIAL_CLIENTS: Client[] = [
   {
     "id": "client-sample-2",
     "name": "Carolina Méndez (Residencial Coral Gables)",
+    "clientType": "Homeowner",
     "phone": "(786) 443-9912",
     "email": "carolina.m@gmail.com",
     "address": "1240 Ponce de Leon Blvd, Coral Gables, FL",

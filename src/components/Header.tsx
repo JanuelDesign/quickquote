@@ -8,8 +8,7 @@ import {
   Check, 
   UserCheck,
   FileText,
-  Globe,
-  FileSpreadsheet
+  Globe
 } from 'lucide-react';
 import { Client, Language } from '../types';
 import { translations } from '../utils/translations';
@@ -151,21 +150,6 @@ export const Header: React.FC<HeaderProps> = ({
             <span className="truncate font-medium min-w-0">
               {activeClientName || (language === 'en' ? 'Client' : 'Cliente')}
             </span>
-          </button>
-
-          {/* Direct Google Sheets & Price List Button */}
-          <button
-            id="btn-header-sheets"
-            type="button"
-            onClick={() => {
-              if (onOpenPriceListModal) onOpenPriceListModal();
-              else if (onOpenPriceManager) onOpenPriceManager();
-            }}
-            className="h-9 px-2.5 sm:px-3 rounded-full border border-[#E4E2DA] bg-white hover:bg-[#F2F1EC] text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer text-[#181818]"
-            title="Sincronizar Google Sheets & Precios"
-          >
-            <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
-            <span className="hidden sm:inline font-medium">Google Sheets</span>
           </button>
 
           {/* More options (···) icon button */}

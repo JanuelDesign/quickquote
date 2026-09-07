@@ -136,6 +136,8 @@ export const translations = {
     emailLabel: 'Email (Optional)',
     addressLabel: 'Project / Delivery Address (Optional)',
     internalNotesLabel: 'Internal Notes (Optional)',
+    clientTypeLabel: 'Client Category / Segment',
+    selectClientType: 'Select client category...',
     saveAndAssignBtn: 'Save & Assign to Quote',
 
     // Price List & DB Manager
@@ -298,6 +300,8 @@ export const translations = {
     emailLabel: 'Email (opcional)',
     addressLabel: 'Dirección del Proyecto / Entrega (opcional)',
     internalNotesLabel: 'Notas internas del cliente (opcional)',
+    clientTypeLabel: 'Tipo de Cliente / Segmento',
+    selectClientType: 'Seleccionar tipo de cliente...',
     saveAndAssignBtn: 'Guardar y Asignar a Cotización',
 
     // Price List & DB Manager

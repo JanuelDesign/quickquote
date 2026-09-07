@@ -65,9 +65,31 @@ export interface CartItem {
   notes?: string;
 }
 
+export type ClientCategory = 
+  | 'Contractor'
+  | 'Installer'
+  | 'Handymen'
+  | 'Architech'
+  | 'Designer'
+  | 'Property Manager'
+  | 'Flip & Flix'
+  | 'Homeowner';
+
+export const CLIENT_CATEGORIES: ClientCategory[] = [
+  'Contractor',
+  'Installer',
+  'Handymen',
+  'Architech',
+  'Designer',
+  'Property Manager',
+  'Flip & Flix',
+  'Homeowner'
+];
+
 export interface Client {
   id: string;
   name: string;
+  clientType?: ClientCategory | string;
   phone: string;
   email?: string;
   address?: string;

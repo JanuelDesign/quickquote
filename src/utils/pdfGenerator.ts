@@ -106,7 +106,9 @@ export function generateQuotePDF(quote: Quotation, settings: AppSettings, lang: 
 
   doc.setFontSize(10);
   doc.setTextColor(26, 26, 26);
-  doc.text(quote.client.name || (isEn ? 'Private Client' : 'Cliente Particular'), margin + 4, 54);
+  const clientDisplayName = (quote.client.name || (isEn ? 'Private Client' : 'Cliente Particular')) + 
+    (quote.client.clientType ? ` [${quote.client.clientType}]` : '');
+  doc.text(clientDisplayName, margin + 4, 54);
 
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(8.5);

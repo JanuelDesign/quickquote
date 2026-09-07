@@ -172,9 +172,16 @@ export const QuoteModal: React.FC<QuoteModalProps> = ({
                 <span className="text-[10px] font-bold text-[#9C9A90] uppercase tracking-wider block">
                   {currentLang === 'en' ? 'Quoted For (Billing):' : 'Cotizado para (Facturación):'}
                 </span>
-                <h3 className="text-sm font-bold text-[#181818]">
-                  {quote.client.name}
-                </h3>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <h3 className="text-sm font-bold text-[#181818]">
+                    {quote.client.name}
+                  </h3>
+                  {quote.client.clientType && (
+                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-[#F2F1EC] text-[#181818] border border-[#E4E2DA]">
+                      {quote.client.clientType}
+                    </span>
+                  )}
+                </div>
                 {quote.client.phone && (
                   <p className="text-[11px] text-[#6B6A63]">{quote.client.phone}</p>
                 )}

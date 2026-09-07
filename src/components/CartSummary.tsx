@@ -124,9 +124,16 @@ export const CartSummary: React.FC<CartSummaryProps> = ({
                 {client ? client.name.charAt(0).toUpperCase() : <User className="w-4 h-4 text-[#FF8407]" />}
               </div>
               <div className="truncate">
-                <span className="text-xs font-bold text-black block truncate">
-                  {client ? client.name : t.unassignedClient}
-                </span>
+                <div className="flex items-center gap-1.5 truncate">
+                  <span className="text-xs font-bold text-black block truncate">
+                    {client ? client.name : t.unassignedClient}
+                  </span>
+                  {client?.clientType && (
+                    <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-[#F2F1EC] text-[#181818] border border-[#E4E2DA] shrink-0">
+                      {client.clientType}
+                    </span>
+                  )}
+                </div>
                 <span className="text-[10px] text-[#8C8C8C] truncate block">
                   {client?.phone || client?.email || (language === 'en' ? 'Click to select or register client' : 'Click para seleccionar o registrar')}
                 </span>
