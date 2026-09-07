@@ -39,6 +39,7 @@ import { QuoteModal } from './components/QuoteModal';
 import { PriceListManager } from './components/PriceListManager';
 import { QuotesHistoryModal } from './components/QuotesHistoryModal';
 import { fetchGoogleSheetsCatalog } from './utils/tsvExporter';
+import { getAccessToken } from './services/googleAuth';
 
 import { 
   ShoppingBag, 
@@ -61,6 +62,12 @@ export default function App() {
 
   // Persistence state
   const [products, setProducts] = useState<Product[]>(() => {
+    const savedVersion = localStorage.getItem('qs_catalog_version');
+    if (savedVersion !== 'v2_januel_sync_2026_09_07') {
+      localStorage.setItem('qs_catalog_version', 'v2_januel_sync_2026_09_07');
+      localStorage.setItem('qs_products_catalog', JSON.stringify(INITIAL_PRODUCTS));
+      return INITIAL_PRODUCTS;
+    }
     const saved = localStorage.getItem('qs_products_catalog');
     if (saved) {
       try {
@@ -150,7 +157,8 @@ export default function App() {
       if (!savedUrl || !isAuto) return;
 
       try {
-        const res = await fetchGoogleSheetsCatalog(savedUrl, products, tabName);
+        const token = await getAccessToken();
+        const res = await fetchGoogleSheetsCatalog(savedUrl, products, tabName, token || undefined);
         if (res && res.updatedProducts && res.updatedProducts.length > 0) {
           setProducts(res.updatedProducts);
           localStorage.setItem('qs_products_catalog', JSON.stringify(res.updatedProducts));

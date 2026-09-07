@@ -121,7 +121,10 @@ Debes responder ÚNICAMENTE con un objeto JSON válido con la siguiente estructu
 // Proxy endpoint to fetch Google Sheets without CORS restrictions and with multiple fallbacks
 app.post('/api/sheets-sync', async (req, res) => {
   try {
-    const { url, sheetName } = req.body;
+    const { url, sheetName, token } = req.body;
+    const authHeader = req.headers.authorization;
+    const authToken = token || (authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : null);
+
     if (!url || typeof url !== 'string' || !url.trim()) {
       res.status(400).json({ success: false, error: 'URL de Google Sheets requerida' });
       return;
@@ -134,6 +137,49 @@ app.post('/api/sheets-sync', async (req, res) => {
     const gidMatch = cleanUrl.match(/[#?&]gid=([0-9]+)/);
     const docId = idMatch ? idMatch[1] : null;
     const gid = gidMatch ? gidMatch[1] : null;
+
+    // 0. If user provided an OAuth token and we have docId, query official Google Sheets API v4
+    if (authToken && docId) {
+      try {
+        const range = sheetName && sheetName.trim() ? encodeURIComponent(sheetName.trim()) : 'A1:ZZ500';
+        const sheetsApiUrl = `https://sheets.googleapis.com/v4/spreadsheets/${docId}/values/${range}`;
+        const apiRes = await fetch(sheetsApiUrl, {
+          headers: {
+            'Authorization': `Bearer ${authToken}`,
+            'Accept': 'application/json'
+          }
+        });
+
+        if (apiRes.ok) {
+          const apiData = await apiRes.json();
+          if (apiData.values && Array.isArray(apiData.values)) {
+            // Convert values matrix to CSV
+            const csvRows = apiData.values.map((row: any[]) =>
+              row.map((cell: any) => {
+                const str = String(cell ?? '');
+                if (str.includes(',') || str.includes('"') || str.includes('\n')) {
+                  return `"${str.replace(/"/g, '""')}"`;
+                }
+                return str;
+              }).join(',')
+            );
+            const csvText = csvRows.join('\n');
+            if (csvText.length > 10) {
+              res.json({
+                success: true,
+                data: csvText,
+                docId,
+                gid,
+                source: 'sheets_api_v4'
+              });
+              return;
+            }
+          }
+        }
+      } catch (authFetchErr) {
+        console.warn('Google Sheets API v4 attempt failed, falling back to export links:', authFetchErr);
+      }
+    }
 
     const candidateUrls: string[] = [];
 

@@ -268,6 +268,7 @@ export const parseProductsFromText = (
 
   const idIdx = getColIdx('id', 'codigo', 'sku', 'ref');
   const catIdx = getColIdx('categoria', 'category', 'tipo', 'rubro');
+  const subcatIdx = getColIdx('coleccion', 'collection', 'subcategoria', 'subcategory', 'linea');
   const nameIdx = getColIdx('nombre', 'name', 'producto', 'modelo', 'articulo', 'descripcion');
   const priceIdx = getColIdx('precio_base', 'precio', 'price', 'preciocliente', 'baseprice', 'precioventa', 'pvp', 'costo');
   const sqftIdx = getColIdx('cobertura_caja', 'sqft_box', 'sqftcaja', 'cobertura', 'sqftbox', 'sqft');
@@ -316,6 +317,7 @@ export const parseProductsFromText = (
         id: finalId,
         name: name || finalId,
         category: ['piso', 'rodapie', 'perfiles', 'escalones', 'wall_panels', 'underlayment', 'otros', 'moldura', 'escalera', 'accesorio'].includes(category) ? category : 'piso',
+        subcategory: subcatIdx !== -1 ? cols[subcatIdx] || undefined : undefined,
         basePrice: !isNaN(cleanPrice) && cleanPrice > 0 ? cleanPrice : 1.99,
         priceUnit: unitIdx !== -1 && cols[unitIdx] ? cols[unitIdx] as any : 'sqft',
         thickness: thickIdx !== -1 ? cols[thickIdx] || undefined : undefined,
@@ -330,6 +332,7 @@ export const parseProductsFromText = (
     } else {
       if (!isNaN(cleanPrice) && cleanPrice > 0) prod.basePrice = cleanPrice;
       if (name) prod.name = name;
+      if (subcatIdx !== -1 && cols[subcatIdx]) prod.subcategory = cols[subcatIdx];
       if (sqft !== undefined && !isNaN(sqft)) prod.sqftPerBox = sqft;
       if (strip !== undefined && !isNaN(strip)) prod.stripLengthFeet = strip;
       if (thickIdx !== -1 && cols[thickIdx]) prod.thickness = cols[thickIdx];
@@ -349,11 +352,16 @@ export const parseProductsFromText = (
       const existingColors = colorAccumulator.get(finalId)!;
       const alreadyHas = existingColors.some(c => c.name === cName || (cCode && c.code === cCode));
       if (!alreadyHas) {
+        const existingColorMatch = prod.colors?.find(c => 
+          c.name.toLowerCase() === cName.toLowerCase() || 
+          (cCode && c.code.toLowerCase() === cCode.toLowerCase())
+        );
         existingColors.push({
           name: cName || cCode,
           code: cCode || cName,
-          hex: cHex || '#A09D99',
-          plankPhotoUrl: cImg || undefined
+          hex: cHex || existingColorMatch?.hex || '#A09D99',
+          plankPhotoUrl: cImg || existingColorMatch?.plankPhotoUrl || undefined,
+          roomPhotoUrl: existingColorMatch?.roomPhotoUrl || undefined
         });
       }
     }
@@ -412,7 +420,8 @@ export const buildGoogleSheetsExportUrl = (inputUrl: string, sheetName?: string)
 export const fetchGoogleSheetsCatalog = async (
   sheetUrl: string,
   currentProducts: Product[],
-  sheetName?: string
+  sheetName?: string,
+  token?: string
 ): Promise<{ updatedProducts: Product[]; rowCount: number }> => {
   let fetchedCsvText = '';
 
@@ -420,8 +429,11 @@ export const fetchGoogleSheetsCatalog = async (
   try {
     const serverRes = await fetch('/api/sheets-sync', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ url: sheetUrl, sheetName: sheetName || undefined })
+      headers: { 
+        'Content-Type': 'application/json',
+        ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+      },
+      body: JSON.stringify({ url: sheetUrl, sheetName: sheetName || undefined, token: token || undefined })
     });
 
     if (serverRes.ok) {
