@@ -188,20 +188,21 @@ app.post('/api/sheets-sync', async (req, res) => {
       candidateUrls.push(cleanUrl);
     }
 
+    const timestamp = Date.now();
     if (docId) {
       // 2. Google Visualization API (CSV format)
       // If user passed sheetName, try that; otherwise if gid exists, pass gid; otherwise try default sheet
       if (sheetName && sheetName.trim()) {
-        candidateUrls.push(`https://docs.google.com/spreadsheets/d/${docId}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(sheetName.trim())}`);
+        candidateUrls.push(`https://docs.google.com/spreadsheets/d/${docId}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(sheetName.trim())}&t=${timestamp}`);
       }
       if (gid) {
-        candidateUrls.push(`https://docs.google.com/spreadsheets/d/${docId}/gviz/tq?tqx=out:csv&gid=${gid}`);
-        candidateUrls.push(`https://docs.google.com/spreadsheets/d/${docId}/export?format=csv&gid=${gid}`);
+        candidateUrls.push(`https://docs.google.com/spreadsheets/d/${docId}/gviz/tq?tqx=out:csv&gid=${gid}&t=${timestamp}`);
+        candidateUrls.push(`https://docs.google.com/spreadsheets/d/${docId}/export?format=csv&gid=${gid}&t=${timestamp}`);
       }
       // 3. Fallback: GViz without sheet parameter (defaults to the first tab)
-      candidateUrls.push(`https://docs.google.com/spreadsheets/d/${docId}/gviz/tq?tqx=out:csv`);
+      candidateUrls.push(`https://docs.google.com/spreadsheets/d/${docId}/gviz/tq?tqx=out:csv&t=${timestamp}`);
       // 4. Fallback: Export CSV (first tab)
-      candidateUrls.push(`https://docs.google.com/spreadsheets/d/${docId}/export?format=csv`);
+      candidateUrls.push(`https://docs.google.com/spreadsheets/d/${docId}/export?format=csv&t=${timestamp}`);
     } else {
       candidateUrls.push(cleanUrl);
     }
@@ -214,7 +215,9 @@ app.post('/api/sheets-sync', async (req, res) => {
         const response = await fetch(fetchUrl, {
           headers: {
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-            'Accept': 'text/csv,text/plain,*/*'
+            'Accept': 'text/csv,text/plain,*/*',
+            'Cache-Control': 'no-cache, no-store, must-revalidate',
+            'Pragma': 'no-cache'
           },
           redirect: 'follow'
         });

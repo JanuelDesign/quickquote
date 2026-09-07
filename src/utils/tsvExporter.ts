@@ -302,7 +302,6 @@ export const parseProductsFromText = (
     const name = nameIdx !== -1 ? cols[nameIdx] : '';
     if (!id && !name) continue;
 
-    const finalId = id || `imported-${name.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`;
     const priceStr = priceIdx !== -1 ? cols[priceIdx] : '';
     const cleanPrice = parseFloat(priceStr.replace(/[^0-9.]/g, ''));
     const sqftStr = sqftIdx !== -1 ? cols[sqftIdx] : '';
@@ -311,7 +310,25 @@ export const parseProductsFromText = (
     const strip = stripStr ? parseFloat(stripStr) : undefined;
     const category = (catIdx !== -1 ? cols[catIdx] : 'piso') as any;
 
-    let prod = existingMap.get(finalId);
+    let prod: Product | undefined;
+    if (id && existingMap.has(id)) {
+      prod = existingMap.get(id);
+    } else if (name) {
+      const cleanName = name.trim().toLowerCase();
+      for (const existing of existingMap.values()) {
+        if (
+          existing.name.trim().toLowerCase() === cleanName ||
+          existing.id.toLowerCase() === cleanName ||
+          cleanName.includes(existing.name.trim().toLowerCase())
+        ) {
+          prod = existing;
+          break;
+        }
+      }
+    }
+
+    const finalId = prod ? prod.id : (id || `imported-${name.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`);
+
     if (!prod) {
       prod = {
         id: finalId,
@@ -401,13 +418,14 @@ export const buildGoogleSheetsExportUrl = (inputUrl: string, sheetName?: string)
   const gid = gidMatch ? gidMatch[1] : null;
 
   if (docId) {
+    const t = Date.now();
     if (gid) {
-      return `https://docs.google.com/spreadsheets/d/${docId}/gviz/tq?tqx=out:csv&gid=${gid}`;
+      return `https://docs.google.com/spreadsheets/d/${docId}/gviz/tq?tqx=out:csv&gid=${gid}&t=${t}`;
     }
     if (sheetName && sheetName.trim()) {
-      return `https://docs.google.com/spreadsheets/d/${docId}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(sheetName.trim())}`;
+      return `https://docs.google.com/spreadsheets/d/${docId}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(sheetName.trim())}&t=${t}`;
     }
-    return `https://docs.google.com/spreadsheets/d/${docId}/gviz/tq?tqx=out:csv`;
+    return `https://docs.google.com/spreadsheets/d/${docId}/gviz/tq?tqx=out:csv&t=${t}`;
   }
 
   return cleanUrl;

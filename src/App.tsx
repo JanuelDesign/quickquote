@@ -178,7 +178,12 @@ export default function App() {
     };
 
     window.addEventListener('focus', handleWindowFocus);
-    return () => window.removeEventListener('focus', handleWindowFocus);
+    const intervalId = window.setInterval(syncQuietly, 60000);
+
+    return () => {
+      window.removeEventListener('focus', handleWindowFocus);
+      window.clearInterval(intervalId);
+    };
   }, []);
 
   // Sync to localStorage
