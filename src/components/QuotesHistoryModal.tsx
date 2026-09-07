@@ -36,7 +36,6 @@ export const QuotesHistoryModal: React.FC<QuotesHistoryModalProps> = ({
   onClearHistory,
   language = 'en'
 }) => {
-  if (!isOpen) return null;
   const currentLang: Language = language === 'es' ? 'es' : 'en';
   const t = translations[currentLang];
 
@@ -47,6 +46,8 @@ export const QuotesHistoryModal: React.FC<QuotesHistoryModalProps> = ({
     q.client.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     (q.client.phone && q.client.phone.includes(searchTerm))
   );
+
+  if (!isOpen) return null;
 
   return (
     <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-xs flex items-center justify-center p-2 sm:p-4 overflow-y-auto">

@@ -190,19 +190,22 @@ app.post('/api/sheets-sync', async (req, res) => {
 
     const timestamp = Date.now();
     if (docId) {
-      // 2. Google Visualization API (CSV format)
-      // If user passed sheetName, try that; otherwise if gid exists, pass gid; otherwise try default sheet
+      // 1. Primary: Direct Google Sheets CSV Exporter (Guarantees clean column separation)
+      if (gid) {
+        candidateUrls.push(`https://docs.google.com/spreadsheets/d/${docId}/export?format=csv&gid=${gid}&t=${timestamp}`);
+      }
+      candidateUrls.push(`https://docs.google.com/spreadsheets/d/${docId}/export?format=csv&t=${timestamp}`);
+
+      // 2. If user passed a specific sheetName tab, try GViz with sheet parameter
       if (sheetName && sheetName.trim()) {
         candidateUrls.push(`https://docs.google.com/spreadsheets/d/${docId}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(sheetName.trim())}&t=${timestamp}`);
       }
+
+      // 3. Fallbacks with gid / default
       if (gid) {
         candidateUrls.push(`https://docs.google.com/spreadsheets/d/${docId}/gviz/tq?tqx=out:csv&gid=${gid}&t=${timestamp}`);
-        candidateUrls.push(`https://docs.google.com/spreadsheets/d/${docId}/export?format=csv&gid=${gid}&t=${timestamp}`);
       }
-      // 3. Fallback: GViz without sheet parameter (defaults to the first tab)
       candidateUrls.push(`https://docs.google.com/spreadsheets/d/${docId}/gviz/tq?tqx=out:csv&t=${timestamp}`);
-      // 4. Fallback: Export CSV (first tab)
-      candidateUrls.push(`https://docs.google.com/spreadsheets/d/${docId}/export?format=csv&t=${timestamp}`);
     } else {
       candidateUrls.push(cleanUrl);
     }
@@ -245,6 +248,11 @@ app.post('/api/sheets-sync', async (req, res) => {
 
         // Check if content looks like CSV/TSV table (has commas or tabs or line breaks)
         if (text && text.length > 15 && (text.includes(',') || text.includes('\t') || text.includes('\n'))) {
+          // Guard against GViz collapsing columns into space-separated string within quotes
+          if (text.startsWith('"id ') || text.includes('id spc-5.5mm') || text.startsWith('"categoria ')) {
+            console.warn('Detected squashed GViz table, falling back to clean CSV export candidate');
+            continue;
+          }
           fetchedText = text;
           break;
         }

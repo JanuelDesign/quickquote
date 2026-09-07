@@ -38,7 +38,7 @@ import { ClientModal } from './components/ClientModal';
 import { QuoteModal } from './components/QuoteModal';
 import { PriceListManager } from './components/PriceListManager';
 import { QuotesHistoryModal } from './components/QuotesHistoryModal';
-import { fetchGoogleSheetsCatalog } from './utils/tsvExporter';
+import { fetchGoogleSheetsCatalog, DEFAULT_GOOGLE_SHEET_URL } from './utils/tsvExporter';
 import { getAccessToken } from './services/googleAuth';
 
 import { 
@@ -63,9 +63,12 @@ export default function App() {
   // Persistence state
   const [products, setProducts] = useState<Product[]>(() => {
     const savedVersion = localStorage.getItem('qs_catalog_version');
-    if (savedVersion !== 'v3_januel_csv_updated_2026_09_07') {
-      localStorage.setItem('qs_catalog_version', 'v3_januel_csv_updated_2026_09_07');
+    if (savedVersion !== 'v4_gsheet_synced_2026_09_07') {
+      localStorage.setItem('qs_catalog_version', 'v4_gsheet_synced_2026_09_07');
       localStorage.setItem('qs_products_catalog', JSON.stringify(INITIAL_PRODUCTS));
+      if (!localStorage.getItem('qs_google_sheet_url')) {
+        localStorage.setItem('qs_google_sheet_url', DEFAULT_GOOGLE_SHEET_URL);
+      }
       return INITIAL_PRODUCTS;
     }
     const saved = localStorage.getItem('qs_products_catalog');
@@ -151,7 +154,7 @@ export default function App() {
   // Silent background auto-sync from Google Sheets on app load and window focus
   useEffect(() => {
     const syncQuietly = async () => {
-      const savedUrl = localStorage.getItem('qs_google_sheet_url');
+      const savedUrl = localStorage.getItem('qs_google_sheet_url') || DEFAULT_GOOGLE_SHEET_URL;
       const isAuto = localStorage.getItem('qs_google_sheet_autosync') !== 'false';
       const tabName = localStorage.getItem('qs_google_sheet_tab_name') || undefined;
       if (!savedUrl || !isAuto) return;
@@ -894,57 +897,67 @@ export default function App() {
       )}
 
       {/* Modals */}
-      <CustomProductModal
-        isOpen={isCustomModalOpen}
-        onClose={() => setIsCustomModalOpen(false)}
-        onAddItem={handleAddCustomItem}
-        language={language}
-      />
+      {isCustomModalOpen && (
+        <CustomProductModal
+          isOpen={isCustomModalOpen}
+          onClose={() => setIsCustomModalOpen(false)}
+          onAddItem={handleAddCustomItem}
+          language={language}
+        />
+      )}
 
-      <ClientModal
-        isOpen={isClientModalOpen}
-        onClose={() => setIsClientModalOpen(false)}
-        clients={clients}
-        currentClient={currentClient}
-        onSelectClient={setCurrentClient}
-        onSaveClient={handleSaveClient}
-        onDeleteClient={handleDeleteClient}
-        quotesHistory={quotesHistory}
-        language={language}
-      />
+      {isClientModalOpen && (
+        <ClientModal
+          isOpen={isClientModalOpen}
+          onClose={() => setIsClientModalOpen(false)}
+          clients={clients}
+          currentClient={currentClient}
+          onSelectClient={setCurrentClient}
+          onSaveClient={handleSaveClient}
+          onDeleteClient={handleDeleteClient}
+          quotesHistory={quotesHistory}
+          language={language}
+        />
+      )}
 
-      <QuoteModal
-        isOpen={isQuoteModalOpen}
-        onClose={() => setIsQuoteModalOpen(false)}
-        quote={activeQuote}
-        settings={settings}
-        shippingAddress={shippingAddress}
-        onUpdateShippingAddress={setShippingAddress}
-        sameAsBillingAddress={sameAsBillingAddress}
-        onToggleSameAsBilling={setSameAsBillingAddress}
-        onUpdateQuoteDays={setQuoteValidDays}
-        onToggleDelivery={setIncludeDelivery}
-        onSaveToHistory={handleSaveQuoteToHistory}
-        language={language}
-      />
+      {isQuoteModalOpen && (
+        <QuoteModal
+          isOpen={isQuoteModalOpen}
+          onClose={() => setIsQuoteModalOpen(false)}
+          quote={activeQuote}
+          settings={settings}
+          shippingAddress={shippingAddress}
+          onUpdateShippingAddress={setShippingAddress}
+          sameAsBillingAddress={sameAsBillingAddress}
+          onToggleSameAsBilling={setSameAsBillingAddress}
+          onUpdateQuoteDays={setQuoteValidDays}
+          onToggleDelivery={setIncludeDelivery}
+          onSaveToHistory={handleSaveQuoteToHistory}
+          language={language}
+        />
+      )}
 
-      <PriceListManager
-        isOpen={isPriceManagerOpen}
-        onClose={() => setIsPriceManagerOpen(false)}
-        products={products}
-        onUpdateProducts={(newProducts) => setProducts(newProducts)}
-      />
+      {isPriceManagerOpen && (
+        <PriceListManager
+          isOpen={isPriceManagerOpen}
+          onClose={() => setIsPriceManagerOpen(false)}
+          products={products}
+          onUpdateProducts={(newProducts) => setProducts(newProducts)}
+        />
+      )}
 
-      <QuotesHistoryModal
-        isOpen={isHistoryOpen}
-        onClose={() => setIsHistoryOpen(false)}
-        history={quotesHistory}
-        settings={settings}
-        onLoadQuote={handleLoadQuoteFromHistory}
-        onDeleteQuote={(id) => setQuotesHistory(prev => prev.filter(q => q.id !== id))}
-        onClearHistory={() => setQuotesHistory([])}
-        language={language}
-      />
+      {isHistoryOpen && (
+        <QuotesHistoryModal
+          isOpen={isHistoryOpen}
+          onClose={() => setIsHistoryOpen(false)}
+          history={quotesHistory}
+          settings={settings}
+          onLoadQuote={handleLoadQuoteFromHistory}
+          onDeleteQuote={(id) => setQuotesHistory(prev => prev.filter(q => q.id !== id))}
+          onClearHistory={() => setQuotesHistory([])}
+          language={language}
+        />
+      )}
     </div>
   );
 }

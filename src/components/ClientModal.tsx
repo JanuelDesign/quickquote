@@ -37,7 +37,6 @@ export const ClientModal: React.FC<ClientModalProps> = ({
   quotesHistory,
   language = 'en'
 }) => {
-  if (!isOpen) return null;
   const t = translations[language];
 
   const [activeTab, setActiveTab] = useState<'list' | 'create'>('list');
@@ -96,6 +95,8 @@ export const ClientModal: React.FC<ClientModalProps> = ({
   const getClientQuoteCount = (clientId: string) => {
     return quotesHistory.filter(q => q.client.id === clientId).length;
   };
+
+  if (!isOpen) return null;
 
   return (
     <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 overflow-y-auto">

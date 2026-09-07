@@ -308,7 +308,30 @@ export const parseProductsFromText = (
     const sqft = sqftStr ? parseFloat(sqftStr) : undefined;
     const stripStr = stripIdx !== -1 ? cols[stripIdx] : '';
     const strip = stripStr ? parseFloat(stripStr) : undefined;
-    const category = (catIdx !== -1 ? cols[catIdx] : 'piso') as any;
+    const rawCategory = (catIdx !== -1 ? cols[catIdx] : 'piso').toLowerCase().trim();
+    const lowerId = (id || '').toLowerCase();
+    const lowerSubcat = (subcatIdx !== -1 ? cols[subcatIdx] || '' : '').toLowerCase();
+    const lowerName = (name || '').toLowerCase();
+
+    let resolvedCategory: any = 'piso';
+    if (['piso', 'rodapie', 'perfiles', 'escalones', 'wall_panels', 'underlayment', 'otros'].includes(rawCategory)) {
+      resolvedCategory = rawCategory;
+    }
+    
+    // Automatic category inference if marked as 'otros' or ambiguous
+    if (resolvedCategory === 'otros' || !resolvedCategory) {
+      if (lowerId.includes('underlayment') || lowerSubcat.includes('underlayment') || lowerName.includes('vapor barrier') || lowerName.includes('manta') || lowerName.includes('padding')) {
+        resolvedCategory = 'underlayment';
+      } else if (lowerId.includes('wall-panel') || lowerSubcat.includes('wall panel') || lowerName.includes('wall panel') || lowerName.includes('revestimiento') || lowerName.includes('acoustic')) {
+        resolvedCategory = 'wall_panels';
+      } else if (lowerId.includes('rodapie') || lowerId.includes('baseboard') || lowerName.includes('baseboard') || lowerName.includes('rodapie')) {
+        resolvedCategory = 'rodapie';
+      } else if (lowerId.includes('perfil') || lowerName.includes('profile') || lowerName.includes('transicion') || lowerName.includes('t-profile') || lowerName.includes('reducer')) {
+        resolvedCategory = 'perfiles';
+      } else if (lowerId.includes('stair') || lowerId.includes('escalon') || lowerName.includes('escalera') || lowerName.includes('stair') || lowerName.includes('nose')) {
+        resolvedCategory = 'escalones';
+      }
+    }
 
     let prod: Product | undefined;
     if (id && existingMap.has(id)) {
@@ -333,7 +356,7 @@ export const parseProductsFromText = (
       prod = {
         id: finalId,
         name: name || finalId,
-        category: ['piso', 'rodapie', 'perfiles', 'escalones', 'wall_panels', 'underlayment', 'otros', 'moldura', 'escalera', 'accesorio'].includes(category) ? category : 'piso',
+        category: resolvedCategory,
         subcategory: subcatIdx !== -1 ? cols[subcatIdx] || undefined : undefined,
         basePrice: !isNaN(cleanPrice) && cleanPrice > 0 ? cleanPrice : 1.99,
         priceUnit: unitIdx !== -1 && cols[unitIdx] ? cols[unitIdx] as any : 'sqft',
@@ -349,6 +372,7 @@ export const parseProductsFromText = (
     } else {
       if (!isNaN(cleanPrice) && cleanPrice > 0) prod.basePrice = cleanPrice;
       if (name) prod.name = name;
+      if (resolvedCategory && resolvedCategory !== 'otros') prod.category = resolvedCategory;
       if (subcatIdx !== -1 && cols[subcatIdx]) prod.subcategory = cols[subcatIdx];
       if (sqft !== undefined && !isNaN(sqft)) prod.sqftPerBox = sqft;
       if (strip !== undefined && !isNaN(strip)) prod.stripLengthFeet = strip;
@@ -400,11 +424,13 @@ export const parseProductsFromText = (
   };
 };
 
+export const DEFAULT_GOOGLE_SHEET_URL = 'https://docs.google.com/spreadsheets/d/1-6EJzXXUhZTc9bgNUYYRUVyTLHtuHFnTk24OFYZ6h5g/edit?usp=sharing';
+
 /**
  * Builds a direct CSV export URL from any Google Sheets shareable link
  */
 export const buildGoogleSheetsExportUrl = (inputUrl: string, sheetName?: string): string => {
-  const cleanUrl = inputUrl.trim();
+  const cleanUrl = (inputUrl || DEFAULT_GOOGLE_SHEET_URL).trim();
   
   // Check if it's already a published export link
   if (cleanUrl.includes('output=csv') || cleanUrl.includes('output=tsv') || cleanUrl.includes('/pub?')) {
@@ -420,12 +446,12 @@ export const buildGoogleSheetsExportUrl = (inputUrl: string, sheetName?: string)
   if (docId) {
     const t = Date.now();
     if (gid) {
-      return `https://docs.google.com/spreadsheets/d/${docId}/gviz/tq?tqx=out:csv&gid=${gid}&t=${t}`;
+      return `https://docs.google.com/spreadsheets/d/${docId}/export?format=csv&gid=${gid}&t=${t}`;
     }
     if (sheetName && sheetName.trim()) {
       return `https://docs.google.com/spreadsheets/d/${docId}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(sheetName.trim())}&t=${t}`;
     }
-    return `https://docs.google.com/spreadsheets/d/${docId}/gviz/tq?tqx=out:csv&t=${t}`;
+    return `https://docs.google.com/spreadsheets/d/${docId}/export?format=csv&t=${t}`;
   }
 
   return cleanUrl;

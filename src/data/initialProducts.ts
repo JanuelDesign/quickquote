@@ -1,4 +1,4 @@
-import { Product, AppSettings, Client } from '../types';
+import { Product, AppSettings, Client } from "../types";
 
 export const INITIAL_PRODUCTS: Product[] = [
   {
@@ -22,7 +22,7 @@ export const INITIAL_PRODUCTS: Product[] = [
       },
       {
         "name": "Fearless Gray",
-        "code": "Q-02",
+        "code": "Q-02546",
         "hex": "#A09D99",
         "plankPhotoUrl": "https://raw.githubusercontent.com/JanuelDesign/quicksurfacesplanks/refs/heads/main/public/images/products/pulse-select/plank_2_fearless_gray.webp"
       },
@@ -743,7 +743,7 @@ export const INITIAL_PRODUCTS: Product[] = [
   {
     "id": "underlayment-vapor-barrier",
     "name": "Plastic Vapor Barrier (Barrera de Vapor)",
-    "category": "otros",
+    "category": "underlayment",
     "subcategory": "Underlayments",
     "size": "Poly Plastic Sheeting 6 Mils | 1,000 sqft / rollo",
     "basePrice": 65,
@@ -754,7 +754,7 @@ export const INITIAL_PRODUCTS: Product[] = [
   {
     "id": "underlayment-ixpe-padding",
     "name": "Underlayment IXPE Padding Pat",
-    "category": "otros",
+    "category": "underlayment",
     "subcategory": "Underlayments",
     "size": "IXPE 100 sqft / rollo | 2mm | 68 STC - 72 IIC",
     "basePrice": 22,
@@ -765,7 +765,7 @@ export const INITIAL_PRODUCTS: Product[] = [
   {
     "id": "wall-panels-indoor",
     "name": "Wall Panels Indoor (Revestimiento Pared)",
-    "category": "otros",
+    "category": "wall_panels",
     "subcategory": "Wall Panels",
     "size": "1\" x 6 5/8\" x 113\" (10 piezas por caja)",
     "basePrice": 17,
@@ -776,7 +776,7 @@ export const INITIAL_PRODUCTS: Product[] = [
   {
     "id": "acoustic-wall-panel",
     "name": "Acoustic Wall Panel Premium",
-    "category": "otros",
+    "category": "wall_panels",
     "subcategory": "Wall Panels",
     "size": "1\" x 12\" x 92\"",
     "basePrice": 35,
@@ -787,36 +787,49 @@ export const INITIAL_PRODUCTS: Product[] = [
 ];
 
 export const DEFAULT_SETTINGS: AppSettings = {
-  "salespersonName": "Asesor Quicksurfaces",
-  "salespersonPhone": "(305) 555-0199",
-  "defaultValidDays": 3,
-  "companyAddress": "13405 SW 128th St, Unit 208B, Miami, FL 33186",
-  "companyPhone": "(305) 555-0199",
-  "companyEmail": "sales@quicksurfaces.com",
-  "companyLogoUrl": "",
-  "taxRate": 0.07,
-  "deliveryFee": 60
+  salespersonName: 'Januel Design',
+  salespersonPhone: '+1 (786) 555-0199',
+  defaultValidDays: 15,
+  companyAddress: 'Miami, FL',
+  companyPhone: '+1 (786) 555-0100',
+  companyEmail: 'sales@quicksurfaces.com',
+  companyLogoUrl: 'https://raw.githubusercontent.com/JanuelDesign/quicksurfacesplanks/refs/heads/main/public/images/logo.png',
+  taxRate: 0.07,
+  deliveryFee: 60.00
 };
 
 export const INITIAL_CLIENTS: Client[] = [
   {
-    "id": "client-sample-1",
-    "name": "Roberto Gómez (Contratista Doral)",
-    "clientType": "Contractor",
-    "phone": "(305) 777-3829",
-    "email": "rgomez@flcontractor.com",
-    "address": "8400 NW 36th St, Doral, FL 33166",
-    "notes": "Cliente recurrente instalador",
-    "createdAt": "2026-09-07T15:33:37.722Z"
+    id: 'cli-001',
+    name: 'Constructora Horizon LLC',
+    clientType: 'Contractor',
+    phone: '+1 (786) 450-9921',
+    email: 'contacto@constructorahorizon.com',
+    company: 'Horizon Contractors',
+    address: '742 Evergreen Terrace, Miami FL',
+    notes: 'Cliente frecuente de colecciones SPC y molduras',
+    createdAt: '2026-01-10T10:00:00.000Z'
   },
   {
-    "id": "client-sample-2",
-    "name": "Carolina Méndez (Residencial Coral Gables)",
-    "clientType": "Homeowner",
-    "phone": "(786) 443-9912",
-    "email": "carolina.m@gmail.com",
-    "address": "1240 Ponce de Leon Blvd, Coral Gables, FL",
-    "notes": "Proyecto renovación piso planta alta",
-    "createdAt": "2026-09-07T15:33:37.722Z"
+    id: 'cli-002',
+    name: 'Artisan Floor Installations',
+    clientType: 'Installer',
+    phone: '+1 (305) 882-1433',
+    email: 'artisan.floors@gmail.com',
+    company: 'Artisan Floors',
+    address: '1200 Brickell Ave, Miami FL',
+    notes: 'Instalador certificado de QuickSurfaces',
+    createdAt: '2026-02-14T14:30:00.000Z'
+  },
+  {
+    id: 'cli-003',
+    name: 'Valeria Mendoza',
+    clientType: 'Designer',
+    phone: '+1 (954) 731-5088',
+    email: 'valeria@mendozainteriors.com',
+    company: 'Mendoza Interior Design',
+    address: '880 Ocean Drive, Miami Beach FL',
+    notes: 'Diseñadora de interiores residencial y comercial',
+    createdAt: '2026-02-28T09:15:00.000Z'
   }
 ];

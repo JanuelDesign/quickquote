@@ -24,7 +24,8 @@ import {
   generateServicesTSV, 
   copyTextToClipboard,
   fetchGoogleSheetsCatalog,
-  parseProductsFromText
+  parseProductsFromText,
+  DEFAULT_GOOGLE_SHEET_URL
 } from '../utils/tsvExporter';
 import { googleSignIn, logoutGoogle, getAccessToken, auth } from '../services/googleAuth';
 import { User, onAuthStateChanged } from 'firebase/auth';
@@ -42,8 +43,6 @@ export const PriceListManager: React.FC<PriceListManagerProps> = ({
   products,
   onUpdateProducts
 }) => {
-  if (!isOpen) return null;
-
   const [activeTab, setActiveTab] = useState<'table' | 'sheets-guide' | 'json-csv'>('table');
   const [searchTerm, setSearchTerm] = useState('');
   const [filterCategory, setFilterCategory] = useState<string>('all');
@@ -64,7 +63,7 @@ export const PriceListManager: React.FC<PriceListManagerProps> = ({
   const [importError, setImportError] = useState<string | null>(null);
 
   // Google Sheets live sync state
-  const [sheetUrl, setSheetUrl] = useState(() => localStorage.getItem('qs_google_sheet_url') || '');
+  const [sheetUrl, setSheetUrl] = useState(() => localStorage.getItem('qs_google_sheet_url') || DEFAULT_GOOGLE_SHEET_URL);
   const [sheetTabName, setSheetTabName] = useState(() => localStorage.getItem('qs_google_sheet_tab_name') || '');
   const [autoSyncEnabled, setAutoSyncEnabled] = useState(() => localStorage.getItem('qs_google_sheet_autosync') !== 'false');
   const [lastSyncTime, setLastSyncTime] = useState(() => localStorage.getItem('qs_google_sheet_last_sync') || '');
@@ -74,6 +73,31 @@ export const PriceListManager: React.FC<PriceListManagerProps> = ({
   const [pastedTsvText, setPastedTsvText] = useState('');
   const [currentUser, setCurrentUser] = useState<User | null>(() => auth.currentUser);
   const [isAuthLoading, setIsAuthLoading] = useState(false);
+
+  const handlePasteUrl = async () => {
+    try {
+      if (navigator.clipboard && navigator.clipboard.readText) {
+        const text = await navigator.clipboard.readText();
+        if (text && text.trim()) {
+          setSheetUrl(text.trim());
+          localStorage.setItem('qs_google_sheet_url', text.trim());
+          return;
+        }
+      }
+    } catch (e) {
+      console.warn('Clipboard read error:', e);
+    }
+    const manual = window.prompt('Pega aquí el enlace de Google Sheets:', sheetUrl || DEFAULT_GOOGLE_SHEET_URL);
+    if (manual && manual.trim()) {
+      setSheetUrl(manual.trim());
+      localStorage.setItem('qs_google_sheet_url', manual.trim());
+    }
+  };
+
+  const handleResetToDefaultUrl = () => {
+    setSheetUrl(DEFAULT_GOOGLE_SHEET_URL);
+    localStorage.setItem('qs_google_sheet_url', DEFAULT_GOOGLE_SHEET_URL);
+  };
 
   React.useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
@@ -282,6 +306,8 @@ export const PriceListManager: React.FC<PriceListManagerProps> = ({
       });
     }
   };
+
+  if (!isOpen) return null;
 
   return (
     <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-xs flex items-center justify-center p-2 sm:p-4 overflow-y-auto">
@@ -716,28 +742,58 @@ export const PriceListManager: React.FC<PriceListManagerProps> = ({
                 )}
 
                 {/* Input URL and Tab Name */}
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-                  <div className="sm:col-span-2 relative">
-                    <LinkIcon className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" />
-                    <input
-                      type="url"
-                      value={sheetUrl}
-                      onChange={(e) => setSheetUrl(e.target.value)}
-                      placeholder="https://docs.google.com/spreadsheets/d/.../edit"
-                      className="w-full text-xs pl-8 pr-3 py-2 bg-white border border-zinc-300 rounded-lg outline-none focus:ring-2 focus:ring-[#FF8407]"
-                    />
+                <div className="space-y-1.5">
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                    <div className="sm:col-span-2 relative flex items-center">
+                      <LinkIcon className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" />
+                      <input
+                        type="text"
+                        value={sheetUrl}
+                        onChange={(e) => {
+                          setSheetUrl(e.target.value);
+                          localStorage.setItem('qs_google_sheet_url', e.target.value.trim());
+                        }}
+                        placeholder="https://docs.google.com/spreadsheets/d/.../edit"
+                        className="w-full text-xs pl-8 pr-20 py-2 bg-white border border-zinc-300 rounded-lg outline-none focus:ring-2 focus:ring-[#FF8407]"
+                      />
+                      <button
+                        type="button"
+                        onClick={handlePasteUrl}
+                        title="Pegar enlace desde el portapapeles"
+                        className="absolute right-1.5 top-1/2 -translate-y-1/2 px-2 py-1 bg-zinc-100 hover:bg-zinc-200 text-zinc-700 text-[10px] font-bold rounded flex items-center gap-1 border border-zinc-200 cursor-pointer transition-colors"
+                      >
+                        <Copy className="w-3 h-3 text-zinc-500" />
+                        <span>Pegar</span>
+                      </button>
+                    </div>
+
+                    <div className="relative">
+                      <input
+                        type="text"
+                        value={sheetTabName}
+                        onChange={(e) => {
+                          setSheetTabName(e.target.value);
+                          localStorage.setItem('qs_google_sheet_tab_name', e.target.value.trim());
+                        }}
+                        placeholder="Pestaña (opcional)"
+                        className="w-full text-xs px-3 py-2 bg-white border border-zinc-300 rounded-lg outline-none focus:ring-2 focus:ring-[#FF8407]"
+                        title="Nombre de la pestaña o déjalo vacío para usar la primera pestaña"
+                      />
+                    </div>
                   </div>
 
-                  <div className="relative">
-                    <input
-                      type="text"
-                      value={sheetTabName}
-                      onChange={(e) => setSheetTabName(e.target.value)}
-                      placeholder="Pestaña (ej. Hoja 1, opcional)"
-                      className="w-full text-xs px-3 py-2 bg-white border border-zinc-300 rounded-lg outline-none focus:ring-2 focus:ring-[#FF8407]"
-                      title="Nombre de la pestaña o déjalo vacío para usar la primera pestaña"
-                    />
-                  </div>
+                  {sheetUrl !== DEFAULT_GOOGLE_SHEET_URL && (
+                    <div className="flex items-center justify-between text-[11px] text-zinc-500 px-1">
+                      <span>¿Quieres usar la base de datos oficial de Quicksurfaces?</span>
+                      <button
+                        type="button"
+                        onClick={handleResetToDefaultUrl}
+                        className="text-[#FF8407] hover:underline font-semibold cursor-pointer"
+                      >
+                        Restaurar enlace oficial
+                      </button>
+                    </div>
+                  )}
                 </div>
 
                 {/* Auto-sync Switch & Action Buttons */}

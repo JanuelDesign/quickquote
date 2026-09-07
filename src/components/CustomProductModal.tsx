@@ -17,7 +17,6 @@ export const CustomProductModal: React.FC<CustomProductModalProps> = ({
   onAddItem,
   language = 'en'
 }) => {
-  if (!isOpen) return null;
   const t = translations[language];
 
   const [description, setDescription] = useState('');
@@ -161,6 +160,8 @@ export const CustomProductModal: React.FC<CustomProductModalProps> = ({
     setUnitPrice(150);
     setNotes('');
   };
+
+  if (!isOpen) return null;
 
   return (
     <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 overflow-y-auto">

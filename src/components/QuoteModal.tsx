@@ -45,7 +45,6 @@ export const QuoteModal: React.FC<QuoteModalProps> = ({
   onSaveToHistory,
   language = 'en'
 }) => {
-  if (!isOpen) return null;
   const currentLang: Language = language === 'es' ? 'es' : 'en';
   const t = translations[currentLang];
 
@@ -91,6 +90,8 @@ export const QuoteModal: React.FC<QuoteModalProps> = ({
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
+
+  if (!isOpen) return null;
 
   return (
     <div className="fixed inset-0 z-50 bg-black/75 backdrop-blur-xs flex items-center justify-center p-2 sm:p-4 overflow-y-auto">
