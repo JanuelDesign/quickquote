@@ -12,7 +12,8 @@ import {
   Copy, 
   Clock, 
   AlertTriangle,
-  Truck
+  Truck,
+  CreditCard
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 
@@ -49,6 +50,7 @@ export const QuoteModal: React.FC<QuoteModalProps> = ({
   const t = translations[currentLang];
 
   const [copied, setCopied] = useState(false);
+  const [copiedZelle, setCopiedZelle] = useState(false);
   const [downloading, setDownloading] = useState(false);
   const salespersonName = quote.salespersonName || settings.salespersonName;
   const salespersonPhone = quote.salespersonPhone || settings.salespersonPhone;
@@ -91,12 +93,18 @@ export const QuoteModal: React.FC<QuoteModalProps> = ({
     setTimeout(() => setCopied(false), 2000);
   };
 
+  const handleCopyZelle = () => {
+    navigator.clipboard.writeText('quickzelle@gmail.com');
+    setCopiedZelle(true);
+    setTimeout(() => setCopiedZelle(false), 2000);
+  };
+
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/75 backdrop-blur-xs flex items-center justify-center p-2 sm:p-4 overflow-y-auto">
+    <div className="fixed inset-0 z-50 bg-black/75 backdrop-blur-xs flex items-start sm:items-center justify-center p-2 sm:p-4 overflow-y-auto pt-2 sm:pt-4">
       <div 
-        className="bg-white rounded-2xl w-full max-w-2xl shadow-2xl border border-[#E4E2DA] overflow-hidden my-auto max-h-[92vh] flex flex-col"
+        className="bg-white rounded-2xl w-full max-w-2xl shadow-2xl border border-[#E4E2DA] overflow-hidden my-0 sm:my-auto max-h-[94vh] flex flex-col"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Modal Top Header */}
@@ -347,6 +355,58 @@ export const QuoteModal: React.FC<QuoteModalProps> = ({
                     {formatCurrency(quote.total)}
                   </span>
                 </div>
+              </div>
+
+              {/* Payment Methods Section (Zelle, Cash, Point of Sale) */}
+              <div className="bg-[#FFFBF5] border border-[#F0D5BA] rounded-xl p-3.5 space-y-2.5">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <CreditCard className="w-4 h-4 text-[#FF8407]" />
+                    <span className="text-xs font-bold uppercase tracking-wider text-[#181818]">
+                      {t.paymentMethodsTitle || (currentLang === 'en' ? 'Accepted Payment Methods' : 'Métodos de Pago Aceptados')}
+                    </span>
+                  </div>
+                  <span className="text-[10px] font-bold uppercase px-2 py-0.5 rounded bg-[#181818] text-[#FF8407]">
+                    ZELLE • CASH • POS
+                  </span>
+                </div>
+
+                {/* Zelle details row */}
+                <div className="bg-white p-2.5 rounded-lg border border-[#E8D0B8] flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                  <div>
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      <span className="text-[10px] font-black text-purple-700 bg-purple-50 px-1.5 py-0.5 rounded border border-purple-200">
+                        ZELLE
+                      </span>
+                      <span className="text-xs font-mono font-bold text-[#181818] select-all">
+                        quickzelle@gmail.com
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-[#6B6A63] mt-0.5">
+                      {currentLang === 'en' ? 'Account Name / Entity:' : 'Titular / Empresa:'} <strong className="text-[#181818]">Brugge International</strong>
+                    </p>
+                  </div>
+
+                  <button
+                    type="button"
+                    id="btn-copy-zelle-checkout"
+                    onClick={handleCopyZelle}
+                    className="px-2.5 py-1.5 rounded-md bg-[#F2F1EC] hover:bg-[#E4E2DA] text-[#181818] text-[11px] font-bold flex items-center justify-center gap-1.5 transition-colors cursor-pointer border border-[#E4E2DA] shrink-0 active:scale-95"
+                  >
+                    {copiedZelle ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5 text-[#6B6A63]" />}
+                    <span>{copiedZelle ? (currentLang === 'en' ? 'Copied!' : '¡Copiado!') : (currentLang === 'en' ? 'Copy Zelle' : 'Copiar Zelle')}</span>
+                  </button>
+                </div>
+
+                {/* Cash & POS Accepted description */}
+                <p className="text-[11px] text-[#555] flex items-center gap-1.5 font-medium px-0.5">
+                  <Check className="w-3.5 h-3.5 text-[#FF8407] shrink-0" />
+                  <span>
+                    {currentLang === 'en'
+                      ? 'We also accept Cash and POS / Card (Point of Sale) payments.'
+                      : 'Aceptamos también Efectivo y Punto de Venta (POS / Tarjeta).'}
+                  </span>
+                </p>
               </div>
 
               {/* Clean Legal Note */}

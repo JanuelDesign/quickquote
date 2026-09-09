@@ -677,7 +677,7 @@ export default function App() {
         </div>
 
         {/* 4 Category Tabs */}
-        <div>
+        <div id="category-tabs-container">
           <CategoryTabs
             activeCategory={activeCategory}
             onSelectCategory={setActiveCategory}
@@ -690,7 +690,7 @@ export default function App() {
         {/* Two-Column Grid: Calculators on Left, Cart Summary on Right (Desktop) */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
           {/* Calculators Column */}
-          <div className="lg:col-span-8 space-y-6">
+          <div id="active-calculator-container" className="lg:col-span-8 space-y-6 scroll-mt-4">
             {activeCategory === 'piso' && (
               <FloorCalculator
                 products={products}

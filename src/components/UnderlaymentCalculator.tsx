@@ -52,10 +52,22 @@ export const UnderlaymentCalculator: React.FC<UnderlaymentCalculatorProps> = ({
 
   const rollCoverage = getCoveragePerRoll(selectedProduct);
 
+  const scrollToCalculatorTop = () => {
+    setTimeout(() => {
+      const target = document.getElementById('active-calculator-container') || document.getElementById('category-tabs-container');
+      if (target) {
+        target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      } else {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      }
+    }, 40);
+  };
+
   const handleProductSelect = (prod: Product) => {
     setSelectedProduct(prod);
     setUnitPrice(prod.basePrice);
     setCurrentStep(2);
+    scrollToCalculatorTop();
   };
 
   const handleCalcFromArea = (sqft: number) => {

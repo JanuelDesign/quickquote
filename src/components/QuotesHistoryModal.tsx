@@ -50,9 +50,9 @@ export const QuotesHistoryModal: React.FC<QuotesHistoryModalProps> = ({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-xs flex items-center justify-center p-2 sm:p-4 overflow-y-auto">
+    <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-xs flex items-start sm:items-center justify-center p-2 sm:p-4 overflow-y-auto pt-3 sm:pt-4">
       <div 
-        className="bg-white rounded-xl w-full max-w-2xl shadow-2xl border border-[#E5E5E5] overflow-hidden my-auto max-h-[90vh] flex flex-col"
+        className="bg-white rounded-xl w-full max-w-2xl shadow-2xl border border-[#E5E5E5] overflow-hidden my-0 sm:my-auto max-h-[92vh] flex flex-col"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}

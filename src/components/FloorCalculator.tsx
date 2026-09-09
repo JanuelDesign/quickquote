@@ -41,16 +41,26 @@ export const FloorCalculator: React.FC<FloorCalculatorProps> = ({
   const [notes, setNotes] = useState<string>('');
   const [addedSuccess, setAddedSuccess] = useState(false);
 
-  // Update selection when product changes
-  const handleProductSelect = (prod: Product) => {
+  // Helper to scroll smoothly to active calculator top on mobile/desktop
+  const scrollToCalculatorTop = () => {
+    setTimeout(() => {
+      const target = document.getElementById('active-calculator-container') || document.getElementById('category-tabs-container');
+      if (target) {
+        target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      } else {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      }
+    }, 40);
+  };
+
+  // Update selection when product changes - jump directly to Step 3 for immediate quantity entry!
+  const handleProductSelect = (prod: Product, chosenColor?: ProductColor) => {
     setSelectedProduct(prod);
-    setSelectedColor(prod.colors?.[0] || undefined);
+    const colorToSet = chosenColor || prod.colors?.[0] || undefined;
+    setSelectedColor(colorToSet);
     setPricePerSqft(prod.basePrice);
-    if (prod.colors && prod.colors.length > 0) {
-      setCurrentStep(2);
-    } else {
-      setCurrentStep(3);
-    }
+    setCurrentStep(3);
+    scrollToCalculatorTop();
   };
 
   const handleColorSelect = (color: ProductColor) => {
@@ -186,17 +196,22 @@ export const FloorCalculator: React.FC<FloorCalculatorProps> = ({
                   </p>
                 </div>
 
-                {/* Color swatches preview */}
+                {/* Color swatches preview - interactive to select color directly */}
                 {product.colors && product.colors.length > 0 && (
                   <div className="my-3 pt-2.5 border-t border-[#E4E2DA] flex items-center justify-between">
                     <div className="flex items-center gap-1.5">
                       <div className="flex items-center -space-x-1.5">
                         {product.colors.slice(0, 6).map((c, i) => (
-                          <div
+                          <button
                             key={i}
-                            className="w-5 h-5 rounded-full border-2 border-white shadow-xs shrink-0"
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleProductSelect(product, c);
+                            }}
+                            className="w-5 h-5 rounded-full border-2 border-white shadow-xs shrink-0 cursor-pointer hover:scale-125 transition-transform"
                             style={{ backgroundColor: c.hex }}
-                            title={`${c.code} - ${c.name}`}
+                            title={`${c.code} - ${c.name} (${language === 'en' ? 'Click to select' : 'Clic para seleccionar'})`}
                           />
                         ))}
                       </div>
@@ -327,12 +342,54 @@ export const FloorCalculator: React.FC<FloorCalculatorProps> = ({
             </div>
             <button
               type="button"
-              onClick={() => setCurrentStep(selectedProduct.colors?.length ? 2 : 1)}
+              onClick={() => setCurrentStep(1)}
               className="text-[11px] font-bold text-[#FF8407] hover:underline cursor-pointer"
             >
-              {language === 'en' ? 'Change' : 'Cambiar'}
+              {language === 'en' ? 'Change Model' : 'Cambiar Modelo'}
             </button>
           </div>
+
+          {/* Quick Color Selector directly inside Step 3 for 1-tap switching */}
+          {selectedProduct.colors && selectedProduct.colors.length > 0 && (
+            <div className="bg-white border border-[#E4E2DA] rounded-xl p-3 space-y-1.5 shadow-xs">
+              <div className="flex items-center justify-between text-[11px]">
+                <span className="font-bold text-[#181818] flex items-center gap-1.5">
+                  <span>{language === 'en' ? 'Color / Finish:' : 'Color / Acabado:'}</span>
+                  {selectedColor && (
+                    <span className="text-[#FF8407] font-semibold">
+                      {selectedColor.code} • {selectedColor.name}
+                    </span>
+                  )}
+                </span>
+                <span className="text-[10px] text-[#9C9A90]">
+                  {selectedProduct.colors.length} {language === 'en' ? 'available' : 'disponibles'}
+                </span>
+              </div>
+              <div className="flex items-center gap-1.5 overflow-x-auto pb-1 pt-0.5 scrollbar-thin">
+                {selectedProduct.colors.map((c) => {
+                  const isCur = selectedColor?.code === c.code;
+                  return (
+                    <button
+                      key={c.code}
+                      type="button"
+                      onClick={() => handleColorSelect(c)}
+                      className={`h-8 px-2.5 rounded-lg border text-xs font-medium flex items-center gap-1.5 shrink-0 transition-all cursor-pointer ${
+                        isCur
+                          ? 'border-[#FF8407] bg-amber-50/50 text-[#181818] ring-1 ring-[#FF8407] font-bold shadow-2xs'
+                          : 'border-[#E4E2DA] bg-[#FAFAFA] text-[#6B6A63] hover:border-[#181818]'
+                      }`}
+                    >
+                      <span
+                        className="w-3.5 h-3.5 rounded-full border border-black/15 shrink-0"
+                        style={{ backgroundColor: c.hex }}
+                      />
+                      <span className="truncate max-w-[120px]">{c.name}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
 
           {/* Unified Cards Grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

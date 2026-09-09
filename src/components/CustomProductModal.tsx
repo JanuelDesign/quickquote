@@ -164,9 +164,9 @@ export const CustomProductModal: React.FC<CustomProductModalProps> = ({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
+    <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-xs flex items-start sm:items-center justify-center p-2 sm:p-4 overflow-y-auto pt-3 sm:pt-4">
       <div 
-        className="bg-white rounded-xl w-full max-w-lg shadow-2xl border border-[#E5E5E5] overflow-hidden my-auto"
+        className="bg-white rounded-xl w-full max-w-lg shadow-2xl border border-[#E5E5E5] overflow-hidden my-0 sm:my-auto"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}

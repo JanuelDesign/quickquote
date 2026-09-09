@@ -294,27 +294,67 @@ export function generateQuotePDF(quote: Quotation, settings: AppSettings, lang: 
   doc.setTextColor(26, 26, 26);
   doc.text(formatCurrency(quote.total), pageWidth - margin - 4, currentTotalY + 3, { align: 'right' });
 
-  // Left Side Notes & Legal Warning Box
+  // Left Side Payment Methods & Legal Warning Box
   const leftBoxWidth = summaryX - margin - 6;
-  doc.setFillColor(255, 244, 230); // Soft orange tint
-  doc.setDrawColor(255, 200, 140);
-  doc.roundedRect(margin, finalY, leftBoxWidth, quote.installationTotal > 0 || quote.includeDelivery ? 48 : 38, 2, 2, 'FD');
+  const bottomBoxHeight = quote.installationTotal > 0 || quote.includeDelivery ? 52 : 46;
 
+  doc.setFillColor(255, 248, 240); // Soft orange/warm cream tint
+  doc.setDrawColor(255, 180, 100);
+  doc.roundedRect(margin, finalY, leftBoxWidth, bottomBoxHeight, 2, 2, 'FD');
+
+  let leftY = finalY + 5;
+
+  // 1. Payment Methods Section
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(8);
   doc.setTextColor(224, 115, 0); // Dark orange
-  doc.text(isEn ? 'TERMS & CONDITIONS' : 'TÉRMINOS Y CONDICIONES DEL ESTIMADO', margin + 4, finalY + 6);
+  doc.text(isEn ? 'PAYMENT METHODS' : 'MÉTODOS DE PAGO', margin + 4, leftY);
 
-  doc.setFont('helvetica', 'normal');
+  leftY += 4.5;
+  doc.setFont('helvetica', 'bold');
   doc.setFontSize(7.5);
-  doc.setTextColor(70, 70, 70);
+  doc.setTextColor(24, 24, 24);
+  doc.text('Zelle: quickzelle@gmail.com', margin + 4, leftY);
+
+  leftY += 4;
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(7);
+  doc.setTextColor(80, 80, 80);
+  doc.text(`${isEn ? 'Account Name:' : 'Titular:'} Brugge International`, margin + 4, leftY);
+
+  leftY += 3.8;
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(7);
+  doc.setTextColor(60, 60, 60);
+  const otherPayText = isEn
+    ? 'Also accepted: Cash & Card / POS (Point of Sale).'
+    : 'Aceptamos también Efectivo y Punto de Venta (POS / Tarjeta).';
+  doc.text(otherPayText, margin + 4, leftY);
+
+  // Subtle separator line
+  leftY += 3;
+  doc.setDrawColor(240, 210, 180);
+  doc.setLineWidth(0.3);
+  doc.line(margin + 4, leftY, margin + leftBoxWidth - 4, leftY);
+
+  // 2. Terms & Conditions Section
+  leftY += 4;
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(7);
+  doc.setTextColor(100, 100, 100);
+  doc.text(isEn ? 'TERMS & CONDITIONS' : 'TÉRMINOS Y CONDICIONES', margin + 4, leftY);
+
+  leftY += 3.5;
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(6.5);
+  doc.setTextColor(90, 90, 90);
   
   const legalText = isEn
-    ? `This is a reference estimate. Prices and inventory are subject to change without prior notice. Valid for ${quote.validDays} days from date of issue (${quote.validUntil}).\n\nBox and strip calculations include standard yield adjustments. Demolition, leveling and installation are excluded unless itemized.`
-    : `Este es un estimado referencial. Los precios están sujetos a cambio sin previo aviso. Válido por ${quote.validDays} días a partir de la fecha de emisión (${quote.validUntil}).\n\nEl cálculo de cajas y tiras incluye el ajuste por rendimiento estándar. No incluye desinstalación o nivelación de piso a menos que se especifique expresamente.`;
+    ? `Reference estimate valid for ${quote.validDays} days (until ${quote.validUntil}). Prices & inventory subject to change. Demolition, leveling and labor excluded unless itemized.`
+    : `Estimado referencial válido por ${quote.validDays} días (hasta ${quote.validUntil}). Precios e inventario sujetos a cambio. No incluye demolición o nivelación salvo especificado.`;
   
   const splitLegal = doc.splitTextToSize(legalText, leftBoxWidth - 8);
-  doc.text(splitLegal, margin + 4, finalY + 11);
+  doc.text(splitLegal, margin + 4, leftY);
 
   // Footer on bottom of page
   const footerY = doc.internal.pageSize.getHeight() - 10;
@@ -351,6 +391,12 @@ export function generateWhatsAppMessage(quote: Quotation, lang: Language = 'en')
     message += `▫️ ${isEn ? 'Labor / Services' : 'Instalación/Servicios'}: ${formatCurrency(quote.installationTotal)}\n`;
   }
   message += `\n💰 *TOTAL: ${formatCurrency(quote.total)}*\n\n`;
+
+  // Payment Methods Section
+  message += `💳 *${isEn ? 'PAYMENT METHODS:' : 'MÉTODOS DE PAGO:'}*\n`;
+  message += `▫️ *Zelle:* quickzelle@gmail.com\n   ${isEn ? 'Account Name' : 'Titular'}: *Brugge International*\n`;
+  message += `▫️ ${isEn ? 'We also accept Cash and POS / Card (Point of Sale).' : 'También aceptamos Efectivo y Punto de Venta (POS / Tarjeta).'}\n\n`;
+
   message += `⚠️ _${isEn ? `Reference estimate valid until ${quote.validUntil}.` : `Estimado referencial sujeto a cambio sin previo aviso. Válido hasta ${quote.validUntil}.`}_\n`;
   message += isEn ? `Thank you for choosing QuickSurfaces!` : `¡Gracias por preferir QuickSurfaces!`;
 
