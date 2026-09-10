@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Quotation, AppSettings, Language } from '../types';
 import { generateQuotePDF, openWhatsAppShare, generateWhatsAppMessage } from '../utils/pdfGenerator';
-import { formatCurrency } from '../utils/calculations';
+import { formatCurrency, getItemUnitPriceDetail } from '../utils/calculations';
 import { translations } from '../utils/translations';
 import { QuickSurfacesLogo } from './QuickSurfacesLogo';
 import { 
@@ -28,6 +28,7 @@ interface QuoteModalProps {
   onToggleSameAsBilling?: (same: boolean) => void;
   onUpdateQuoteDays: (days: number) => void;
   onToggleDelivery?: (include: boolean) => void;
+  onTogglePayWithCard?: (payWithCard: boolean) => void;
   onSaveToHistory: () => void;
   language?: Language;
 }
@@ -43,6 +44,7 @@ export const QuoteModal: React.FC<QuoteModalProps> = ({
   onToggleSameAsBilling,
   onUpdateQuoteDays,
   onToggleDelivery,
+  onTogglePayWithCard,
   onSaveToHistory,
   language = 'en'
 }) => {
@@ -248,16 +250,19 @@ export const QuoteModal: React.FC<QuoteModalProps> = ({
             </div>
 
             {/* Itemized Table */}
-            <div className="border border-[#E4E2DA] rounded-lg overflow-hidden">
-              <table className="w-full text-left border-collapse text-xs">
+            <div className="border border-[#E4E2DA] rounded-lg overflow-x-auto">
+              <table className="w-full min-w-[520px] text-left border-collapse text-xs">
                 <thead className="bg-[#181818] text-white">
                   <tr>
-                    <th className="p-2.5 font-bold uppercase text-[10px] tracking-wider">#</th>
+                    <th className="p-2.5 font-bold uppercase text-[10px] tracking-wider w-8 text-center">#</th>
                     <th className="p-2.5 font-bold uppercase text-[10px] tracking-wider">
                       {currentLang === 'en' ? 'Item / Finish' : 'Producto / Acabado'}
                     </th>
                     <th className="p-2.5 font-bold uppercase text-[10px] tracking-wider">
-                      {currentLang === 'en' ? 'Qty' : 'Cant.'}
+                      {currentLang === 'en' ? 'Qty & Dispatch' : 'Cantidad & Despacho'}
+                    </th>
+                    <th className="p-2.5 font-bold uppercase text-[10px] tracking-wider text-right">
+                      {currentLang === 'en' ? 'Unit Price' : 'Precio Unit.'}
                     </th>
                     <th className="p-2.5 font-bold uppercase text-[10px] tracking-wider text-right">
                       {currentLang === 'en' ? 'Subtotal' : 'Subtotal'}
@@ -265,61 +270,117 @@ export const QuoteModal: React.FC<QuoteModalProps> = ({
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-[#E4E2DA]">
-                  {quote.items.map((item, idx) => (
-                    <tr key={item.id} className={idx % 2 === 0 ? 'bg-white' : 'bg-[#FAFAFA]'}>
-                      <td className="p-2.5 text-[#9C9A90] font-mono">{idx + 1}</td>
-                      <td className="p-2.5">
-                        <p className="font-bold text-[#181818]">{item.productName}</p>
-                        {item.color && (
-                          <p className="text-[11px] text-[#FF8407] font-medium">
-                            {item.color.name} ({item.color.code})
-                          </p>
-                        )}
-                        {item.notes && (
-                          <p className="text-[10px] text-[#6B6A63] italic">{item.notes}</p>
-                        )}
-                      </td>
-                      <td className="p-2.5 text-[#181818]">
-                        <span className="font-bold">{item.userEnteredQuantity} {item.quantityUnitLabel}</span>
-                        <span className="block text-[10px] text-[#9C9A90]">{item.calculatedUnitsLabel}</span>
-                      </td>
-                      <td className="p-2.5 text-right font-mono font-bold text-[#181818]">
-                        {formatCurrency(item.subtotal)}
-                      </td>
-                    </tr>
-                  ))}
+                  {quote.items.map((item, idx) => {
+                    const priceDetail = getItemUnitPriceDetail(item, currentLang);
+                    return (
+                      <tr key={item.id} className={idx % 2 === 0 ? 'bg-white' : 'bg-[#FAFAFA]'}>
+                        <td className="p-2.5 text-[#9C9A90] font-mono text-center">{idx + 1}</td>
+                        <td className="p-2.5">
+                          <p className="font-bold text-[#181818]">{item.productName}</p>
+                          {item.color && (
+                            <p className="text-[11px] text-[#FF8407] font-semibold">
+                              {item.color.name} ({item.color.code})
+                            </p>
+                          )}
+                          {item.thickness && (
+                            <span className="text-[10px] text-[#6B6A63] block">{item.thickness}</span>
+                          )}
+                          {item.notes && (
+                            <p className="text-[10px] text-[#6B6A63] italic">{item.notes}</p>
+                          )}
+                        </td>
+                        <td className="p-2.5 text-[#181818]">
+                          <span className="font-bold block">{item.userEnteredQuantity} {item.quantityUnitLabel}</span>
+                          <span className="block text-[10px] text-[#9C9A90] font-medium">{item.calculatedUnitsLabel}</span>
+                        </td>
+                        <td className="p-2.5 text-right font-mono text-[#181818]">
+                          <span className="font-bold text-[#FF8407] block text-xs">
+                            {priceDetail.primaryRate}
+                          </span>
+                          {priceDetail.packagingRate && (
+                            <span className="block text-[10px] text-[#6B6A63]">
+                              {priceDetail.packagingRate}
+                            </span>
+                          )}
+                        </td>
+                        <td className="p-2.5 text-right font-mono font-bold text-[#181818]">
+                          {formatCurrency(item.subtotal)}
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
 
-            {/* Delivery Toggle & Totals Breakdown */}
+            {/* Delivery Toggle, Card Payment Toggle & Totals Breakdown */}
             <div className="space-y-3 pt-2">
-              {/* Delivery row with quick toggle */}
-              {onToggleDelivery && (
-                <div className="flex items-center justify-between p-2.5 bg-[#F2F1EC] rounded-lg border border-[#E4E2DA]">
-                  <div className="flex items-center gap-2">
-                    <Truck className="w-4 h-4 text-[#FF8407]" />
-                    <div>
-                      <span className="font-bold text-xs text-[#181818]">
-                        {currentLang === 'en' ? 'Flat Delivery Fee' : 'Servicio de Delivery Fijo'}
-                      </span>
-                      <span className="text-[10px] text-[#6B6A63] block">
-                        {currentLang === 'en' ? '$60 fixed rate (no tax)' : '$60 tarifa plana (sin impuesto)'}
-                      </span>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                {/* Delivery row with quick toggle */}
+                {onToggleDelivery && (
+                  <div className="flex items-center justify-between p-3 bg-[#F2F1EC] rounded-lg border border-[#E4E2DA]">
+                    <div className="flex items-center gap-2">
+                      <Truck className="w-4 h-4 text-[#FF8407] shrink-0" />
+                      <div>
+                        <span className="font-bold text-xs text-[#181818] block">
+                          {currentLang === 'en' ? 'Flat Delivery Fee' : 'Servicio de Delivery'}
+                        </span>
+                        <span className="text-[10px] text-[#6B6A63] block">
+                          {currentLang === 'en' ? '$60 fixed rate (no tax)' : '$60 tarifa plana (sin tax)'}
+                        </span>
+                      </div>
                     </div>
-                  </div>
 
-                  <label className="relative inline-flex items-center cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={quote.includeDelivery}
-                      onChange={(e) => onToggleDelivery(e.target.checked)}
-                      className="sr-only peer"
-                    />
-                    <div className="w-9 h-5 bg-zinc-300 peer-focus:outline-hidden rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-[#FF8407]"></div>
-                  </label>
-                </div>
-              )}
+                    <label className="relative inline-flex items-center cursor-pointer shrink-0">
+                      <input
+                        type="checkbox"
+                        id="chk-delivery-checkout"
+                        checked={quote.includeDelivery}
+                        onChange={(e) => onToggleDelivery(e.target.checked)}
+                        className="sr-only peer"
+                      />
+                      <div className="w-9 h-5 bg-zinc-300 peer-focus:outline-hidden rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-[#FF8407]"></div>
+                    </label>
+                  </div>
+                )}
+
+                {/* Card Payment Toggle (+3% surcharge for debit/credit card) */}
+                {onTogglePayWithCard && (
+                  <div className={`flex items-center justify-between p-3 rounded-lg border transition-colors ${
+                    quote.payWithCard 
+                      ? 'bg-[#FFF6EC] border-[#FF8407]/50 shadow-2xs' 
+                      : 'bg-[#F9F9F9] border-[#E4E2DA]'
+                  }`}>
+                    <div className="flex items-center gap-2">
+                      <CreditCard className={`w-4 h-4 shrink-0 ${quote.payWithCard ? 'text-[#FF8407]' : 'text-zinc-500'}`} />
+                      <div>
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <span className="font-bold text-xs text-[#181818]">
+                            {currentLang === 'en' ? 'Card Payment' : 'Pago con Tarjeta'}
+                          </span>
+                          <span className="text-[9px] font-black px-1.5 py-0.2 rounded bg-[#FF8407] text-white">
+                            +3%
+                          </span>
+                        </div>
+                        <span className="text-[10px] text-[#6B6A63] block">
+                          {currentLang === 'en' ? 'Debit / Credit processing fee' : 'Recargo tarjeta débito o crédito'}
+                        </span>
+                      </div>
+                    </div>
+
+                    <label className="relative inline-flex items-center cursor-pointer shrink-0">
+                      <input
+                        type="checkbox"
+                        id="chk-card-payment-checkout"
+                        checked={quote.payWithCard || false}
+                        onChange={(e) => onTogglePayWithCard(e.target.checked)}
+                        className="sr-only peer"
+                      />
+                      <div className="w-9 h-5 bg-zinc-300 peer-focus:outline-hidden rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-[#FF8407]"></div>
+                    </label>
+                  </div>
+                )}
+              </div>
 
               {/* Totals Box */}
               <div className="bg-[#181818] text-white p-4 rounded-xl space-y-2">
@@ -344,6 +405,16 @@ export const QuoteModal: React.FC<QuoteModalProps> = ({
                   <div className="flex justify-between text-zinc-400">
                     <span>{currentLang === 'en' ? 'Installation / Labor (Tax Exempt):' : 'Instalación / Mano de obra:'}</span>
                     <span className="font-mono font-bold text-white">{formatCurrency(quote.installationTotal)}</span>
+                  </div>
+                )}
+
+                {quote.payWithCard && (quote.cardFeeAmount ?? 0) > 0 && (
+                  <div className="flex justify-between text-[#FF8407] bg-black/40 px-2.5 py-1.5 rounded-lg border border-[#FF8407]/30">
+                    <span className="flex items-center gap-1.5 font-semibold text-xs">
+                      <CreditCard className="w-3.5 h-3.5 text-[#FF8407]" />
+                      {currentLang === 'en' ? 'Card Surcharge (3% Debit/Credit):' : 'Recargo Tarjeta Débito/Crédito (3%):'}
+                    </span>
+                    <span className="font-mono font-bold text-[#FF8407]">+{formatCurrency(quote.cardFeeAmount)}</span>
                   </div>
                 )}
 
@@ -399,14 +470,23 @@ export const QuoteModal: React.FC<QuoteModalProps> = ({
                 </div>
 
                 {/* Cash & POS Accepted description */}
-                <p className="text-[11px] text-[#555] flex items-center gap-1.5 font-medium px-0.5">
-                  <Check className="w-3.5 h-3.5 text-[#FF8407] shrink-0" />
-                  <span>
-                    {currentLang === 'en'
-                      ? 'We also accept Cash and POS / Card (Point of Sale) payments.'
-                      : 'Aceptamos también Efectivo y Punto de Venta (POS / Tarjeta).'}
-                  </span>
-                </p>
+                <div className="text-[11px] text-[#555] space-y-1 font-medium px-0.5">
+                  <div className="flex items-center gap-1.5">
+                    <Check className="w-3.5 h-3.5 text-[#FF8407] shrink-0" />
+                    <span>
+                      {currentLang === 'en'
+                        ? 'We accept Cash and POS / Card (Point of Sale).'
+                        : 'Aceptamos Efectivo y Punto de Venta (POS / Tarjeta).'}
+                    </span>
+                  </div>
+                  {quote.payWithCard && (
+                    <p className="text-[10px] text-[#FF8407] font-bold pl-5">
+                      {currentLang === 'en'
+                        ? '✓ 3% card processing surcharge is currently applied to this estimate.'
+                        : '✓ Recargo del 3% por cobro con tarjeta aplicado a esta cotización.'}
+                    </p>
+                  )}
+                </div>
               </div>
 
               {/* Clean Legal Note */}

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { CartItem, Client, Language } from '../types';
-import { formatCurrency } from '../utils/calculations';
+import { formatCurrency, getItemUnitPriceDetail } from '../utils/calculations';
 import { translations } from '../utils/translations';
 import { 
   ShoppingBag, 
@@ -10,7 +10,8 @@ import {
   Edit2,
   Check,
   User,
-  Truck
+  Truck,
+  CreditCard
 } from 'lucide-react';
 
 interface CartSummaryProps {
@@ -18,6 +19,9 @@ interface CartSummaryProps {
   client?: Client | null;
   includeDelivery: boolean;
   onToggleDelivery: (include: boolean) => void;
+  payWithCard?: boolean;
+  onTogglePayWithCard?: (include: boolean) => void;
+  cardFeeAmount?: number;
   onDeleteItem: (itemId: string) => void;
   onUpdateItemQuantity: (itemId: string, newQty: number) => void;
   onUpdateItemPrice: (itemId: string, newPrice: number) => void;
@@ -40,7 +44,11 @@ export const CartSummary: React.FC<CartSummaryProps> = ({
   client,
   includeDelivery,
   onToggleDelivery,
+  payWithCard = false,
+  onTogglePayWithCard,
+  cardFeeAmount = 0,
   onDeleteItem,
+  onUpdateItemQuantity,
   onUpdateItemPrice,
   onClearCart,
   onGenerateQuote,
@@ -232,12 +240,24 @@ export const CartSummary: React.FC<CartSummaryProps> = ({
                         </button>
                       </div>
                     ) : (
-                      <div className="flex items-center gap-1">
-                        <span>Unit: <strong className="text-black font-mono">{formatCurrency(item.unitPrice)}</strong></span>
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        {(() => {
+                          const currentLang: 'en' | 'es' = language === 'es' ? 'es' : 'en';
+                          const priceDetail = getItemUnitPriceDetail(item, currentLang);
+                          return (
+                            <span className="text-[11px] text-[#6B6A63]">
+                              {currentLang === 'en' ? 'Unit:' : 'Unitario:'}{' '}
+                              <strong className="text-black font-mono font-bold text-xs">{priceDetail.primaryRate}</strong>
+                              {priceDetail.packagingRate && (
+                                <span className="text-[#8C8C8C] ml-1">({priceDetail.packagingRate})</span>
+                              )}
+                            </span>
+                          );
+                        })()}
                         <button
                           type="button"
                           onClick={() => handleStartEditPrice(item)}
-                          className="text-[#8C8C8C] hover:text-[#FF8407] cursor-pointer"
+                          className="text-[#8C8C8C] hover:text-[#FF8407] cursor-pointer p-0.5"
                           title="Edit unit price"
                         >
                           <Edit2 className="w-2.5 h-2.5" />
@@ -252,24 +272,53 @@ export const CartSummary: React.FC<CartSummaryProps> = ({
         </div>
 
         {/* Financial Calculation & Checkout Area */}
-        <div className="bg-white border-t border-[#E5E5E5] p-5 lg:rounded-b-xl space-y-4">
-          {/* Delivery Checkbox */}
-          <div className="flex items-center justify-between bg-[#F9F9F9] border border-[#E5E5E5] p-3 rounded-lg">
-            <div className="flex items-center gap-2">
-              <input 
-                type="checkbox" 
-                id="checkbox-delivery-elegant"
-                checked={includeDelivery}
-                onChange={(e) => onToggleDelivery(e.target.checked)}
-                className="w-4 h-4 accent-[#FF8407] cursor-pointer rounded"
-              />
-              <label htmlFor="checkbox-delivery-elegant" className="text-xs font-bold text-black cursor-pointer">
-                {t.includeDelivery}
-              </label>
+        <div className="bg-white border-t border-[#E5E5E5] p-5 lg:rounded-b-xl space-y-3.5">
+          <div className="space-y-2">
+            {/* Delivery Checkbox */}
+            <div className="flex items-center justify-between bg-[#F9F9F9] border border-[#E5E5E5] p-2.5 rounded-lg">
+              <div className="flex items-center gap-2">
+                <input 
+                  type="checkbox" 
+                  id="checkbox-delivery-elegant"
+                  checked={includeDelivery}
+                  onChange={(e) => onToggleDelivery(e.target.checked)}
+                  className="w-4 h-4 accent-[#FF8407] cursor-pointer rounded"
+                />
+                <label htmlFor="checkbox-delivery-elegant" className="text-xs font-bold text-black cursor-pointer">
+                  {t.includeDelivery}
+                </label>
+              </div>
+              <span className="text-[10px] uppercase font-bold text-[#8C8C8C]">
+                {t.deliverySubtext}
+              </span>
             </div>
-            <span className="text-[10px] uppercase font-bold text-[#8C8C8C]">
-              {t.deliverySubtext}
-            </span>
+
+            {/* Card Payment Checkbox (+3%) */}
+            {onTogglePayWithCard && (
+              <div className={`flex items-center justify-between border p-2.5 rounded-lg transition-colors ${
+                payWithCard ? 'bg-[#FFF6EC] border-[#FF8407]/40' : 'bg-[#F9F9F9] border-[#E5E5E5]'
+              }`}>
+                <div className="flex items-center gap-2">
+                  <input 
+                    type="checkbox" 
+                    id="checkbox-card-pay-cart"
+                    checked={payWithCard}
+                    onChange={(e) => onTogglePayWithCard(e.target.checked)}
+                    className="w-4 h-4 accent-[#FF8407] cursor-pointer rounded"
+                  />
+                  <label htmlFor="checkbox-card-pay-cart" className="text-xs font-bold text-black cursor-pointer flex items-center gap-1.5">
+                    <CreditCard className={`w-3.5 h-3.5 ${payWithCard ? 'text-[#FF8407]' : 'text-zinc-500'}`} />
+                    <span>{language === 'en' ? 'Pay with Card' : 'Pagar con Tarjeta'}</span>
+                    <span className="text-[9px] font-black uppercase px-1.5 py-0.2 rounded bg-[#FF8407] text-white">
+                      +3%
+                    </span>
+                  </label>
+                </div>
+                <span className="text-[10px] text-[#8C8C8C]">
+                  {language === 'en' ? 'Debit / Credit' : 'Débito / Crédito'}
+                </span>
+              </div>
+            )}
           </div>
 
           {/* Breakdown Items */}
@@ -297,6 +346,16 @@ export const CartSummary: React.FC<CartSummaryProps> = ({
               <div className="flex justify-between items-center">
                 <span className="text-[#8C8C8C]">{t.installationServices}</span>
                 <span className="font-semibold text-black font-mono">{formatCurrency(installationTotal)}</span>
+              </div>
+            )}
+
+            {payWithCard && cardFeeAmount > 0 && (
+              <div className="flex justify-between items-center text-[#FF8407] bg-[#FFF6EC] px-2 py-1 rounded border border-[#FF8407]/20">
+                <span className="flex items-center gap-1 font-semibold">
+                  <CreditCard className="w-3 h-3 text-[#FF8407]" />
+                  {language === 'en' ? 'Card Surcharge (3%):' : 'Recargo Tarjeta (3%):'}
+                </span>
+                <span className="font-bold font-mono">+{formatCurrency(cardFeeAmount)}</span>
               </div>
             )}
 

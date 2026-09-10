@@ -160,8 +160,38 @@ export function createStairsCartItem(
   color?: ProductColor,
   notes?: string
 ): CartItem {
+  if (!includeRiser) {
+    const subtotal = Number((stepCount * stepUnitPrice).toFixed(2));
+    const cleanName = product.name.includes('Huella') || product.name.includes('Tread') 
+      ? product.name 
+      : `${product.name} (Huella / Tread)`;
+
+    return {
+      id: `item-${Date.now()}-step-${Math.random().toString(36).substring(2, 7)}`,
+      productId: product.id,
+      productName: cleanName,
+      category: 'escalones',
+      subcategory: 'Stair Treads',
+      thickness: product.thickness,
+      size: product.size || '12" x 48"',
+      color: color || product.colors?.[0],
+      userEnteredQuantity: stepCount,
+      quantityUnitLabel: 'escalones',
+      calculatedUnits: stepCount,
+      calculatedUnitsLabel: `${stepCount} peldaños (12" x 48")`,
+      unitPrice: stepUnitPrice,
+      pricingMode: 'per_piece',
+      baseListPrice: product.basePrice,
+      subtotal,
+      isTaxable: true,
+      isLabor: false,
+      notes
+    };
+  }
+
+  // Legacy composite calculation if both are kept in a single item
   const stepsTotal = stepCount * stepUnitPrice;
-  const risersTotal = includeRiser ? stepCount * riserUnitPrice : 0;
+  const risersTotal = stepCount * riserUnitPrice;
   const subtotal = Number((stepsTotal + risersTotal).toFixed(2));
 
   return {
@@ -176,19 +206,56 @@ export function createStairsCartItem(
     userEnteredQuantity: stepCount,
     quantityUnitLabel: 'escalones',
     calculatedUnits: stepCount,
-    calculatedUnitsLabel: includeRiser 
-      ? `${stepCount} peldaños + ${stepCount} contrahuellas` 
-      : `${stepCount} peldaños`,
-    unitPrice: includeRiser ? stepUnitPrice + riserUnitPrice : stepUnitPrice,
+    calculatedUnitsLabel: `${stepCount} peldaños + ${stepCount} contrahuellas`,
+    unitPrice: stepUnitPrice + riserUnitPrice,
     pricingMode: 'per_piece',
     baseListPrice: product.basePrice,
     subtotal,
     isTaxable: true,
     isLabor: false,
-    stepIncludesRiser: includeRiser,
-    riserCount: includeRiser ? stepCount : 0,
-    riserUnitPrice: includeRiser ? riserUnitPrice : 0,
+    stepIncludesRiser: true,
+    riserCount: stepCount,
+    riserUnitPrice: riserUnitPrice,
     notes
+  };
+}
+
+export function createRiserCartItem(
+  stepCount: number,
+  riserUnitPrice: number = 9.00,
+  style: 'white' | 'match' = 'white',
+  matchingColor?: ProductColor,
+  thickness?: string,
+  notes?: string
+): CartItem {
+  const subtotal = Number((stepCount * riserUnitPrice).toFixed(2));
+  const isWhite = style !== 'match';
+  const color: ProductColor = isWhite 
+    ? { name: 'White Laminate', code: 'WHITE', hex: '#FFFFFF' }
+    : (matchingColor || { name: 'Al tono del peldaño', code: 'MATCH', hex: '#C7B28E' });
+
+  return {
+    id: `item-${Date.now()}-riser-${Math.random().toString(36).substring(2, 7)}`,
+    productId: 'steps-riser-plank',
+    productName: isWhite 
+      ? 'Contrahuella (Riser Plank White Laminate)' 
+      : 'Contrahuella SPC (Al tono de la huella)',
+    category: 'escalones',
+    subcategory: 'Stair Risers',
+    thickness: thickness || '4.0 mm / 5.5 mm',
+    size: 'Largo 48" (Matching step)',
+    color,
+    userEnteredQuantity: stepCount,
+    quantityUnitLabel: 'contrahuellas',
+    calculatedUnits: stepCount,
+    calculatedUnitsLabel: `${stepCount} contrahuellas / risers`,
+    unitPrice: riserUnitPrice,
+    pricingMode: 'per_piece',
+    baseListPrice: 9.00,
+    subtotal,
+    isTaxable: true,
+    isLabor: false,
+    notes: notes ? `Riser: ${notes}` : undefined
   };
 }
 
@@ -289,13 +356,17 @@ export function calculateQuoteTotals(
   items: CartItem[],
   includeDelivery: boolean,
   deliveryFee: number = 60.00,
-  taxRate: number = 0.07
+  taxRate: number = 0.07,
+  payWithCard: boolean = false,
+  cardFeeRate: number = 0.03
 ): {
   subtotalProducts: number;
   deliveryTotal: number;
   taxableBase: number;
   taxAmount: number;
   installationTotal: number;
+  baseTotal: number;
+  cardFeeAmount: number;
   total: number;
 } {
   let subtotalProducts = 0;
@@ -317,8 +388,14 @@ export function calculateQuoteTotals(
   const taxableBase = subtotalProducts;
   const taxAmount = Number((taxableBase * taxRate).toFixed(2));
 
-  // Formula: Total = Subtotal Products + Delivery ($60 if enabled, tax-free) + Tax (7% only on products) + Installation (tax-free)
-  const total = Number((subtotalProducts + deliveryTotal + taxAmount + installationTotal).toFixed(2));
+  // Base Total before card fee = Products + Delivery + Tax + Installation
+  const baseTotal = Number((subtotalProducts + deliveryTotal + taxAmount + installationTotal).toFixed(2));
+
+  // 3% debit/credit card convenience fee if customer chooses card payment
+  const cardFeeAmount = payWithCard ? Number((baseTotal * cardFeeRate).toFixed(2)) : 0;
+
+  // Final Total
+  const total = Number((baseTotal + cardFeeAmount).toFixed(2));
 
   return {
     subtotalProducts,
@@ -326,7 +403,108 @@ export function calculateQuoteTotals(
     taxableBase,
     taxAmount,
     installationTotal,
+    baseTotal,
+    cardFeeAmount,
     total
+  };
+}
+
+export interface ItemPriceBreakdown {
+  primaryRate: string;         // e.g. "$2.50 / sqft" or "$1.50 / LF" or "$45.00 / escalón"
+  packagingRate?: string;      // e.g. "$60.65 / caja" or "$24.00 / tira"
+  displayUnit: string;         // e.g. "sqft", "LF", "escalones", "piezas"
+  unitPriceValue: number;      // raw rate
+}
+
+export function getItemUnitPriceDetail(item: CartItem, lang: 'en' | 'es' = 'es'): ItemPriceBreakdown {
+  const isEn = lang === 'en';
+
+  if (item.category === 'piso') {
+    const sqftRate = item.pricePerSqft || (item.baseListPrice > 0 ? item.baseListPrice : 2.50);
+    const boxRate = item.unitPrice;
+    return {
+      primaryRate: `${formatCurrency(sqftRate)} / sqft`,
+      packagingRate: `${formatCurrency(boxRate)} / ${isEn ? 'box' : 'caja'}`,
+      displayUnit: 'sqft',
+      unitPriceValue: sqftRate
+    };
+  }
+
+  if (item.category === 'rodapie') {
+    const lfRate = item.pricePerLinearFt || (item.baseListPrice > 0 ? item.baseListPrice : 1.50);
+    const stripRate = item.unitPrice;
+    return {
+      primaryRate: `${formatCurrency(lfRate)} / LF`,
+      packagingRate: `${formatCurrency(stripRate)} / ${isEn ? 'strip' : 'tira'}`,
+      displayUnit: 'LF',
+      unitPriceValue: lfRate
+    };
+  }
+
+  if (item.category === 'escalones') {
+    const isRiser = item.subcategory === 'Stair Risers' || 
+                    item.productId === 'steps-riser-plank' || 
+                    item.productName.toLowerCase().includes('contrahuella') ||
+                    item.productName.toLowerCase().includes('riser');
+
+    if (isRiser) {
+      return {
+        primaryRate: `${formatCurrency(item.unitPrice)} / ${isEn ? 'riser' : 'contrahuella'}`,
+        packagingRate: isEn ? 'Vertical Riser Plank' : 'Contrahuella Vertical 48"',
+        displayUnit: isEn ? 'riser' : 'contrahuella',
+        unitPriceValue: item.unitPrice
+      };
+    }
+
+    if (item.stepIncludesRiser && item.riserUnitPrice) {
+      const stepRate = item.unitPrice - item.riserUnitPrice;
+      return {
+        primaryRate: `${formatCurrency(stepRate > 0 ? stepRate : item.unitPrice)} / ${isEn ? 'step' : 'escalón'}`,
+        packagingRate: `+ ${formatCurrency(item.riserUnitPrice)} / ${isEn ? 'riser' : 'contrahuella'}`,
+        displayUnit: isEn ? 'step' : 'escalón',
+        unitPriceValue: item.unitPrice
+      };
+    }
+
+    return {
+      primaryRate: `${formatCurrency(item.unitPrice)} / ${isEn ? 'step' : 'escalón'}`,
+      packagingRate: isEn ? 'Tread 12" x 48"' : 'Huella 12" x 48"',
+      displayUnit: isEn ? 'step' : 'escalón',
+      unitPriceValue: item.unitPrice
+    };
+  }
+
+  if (item.category === 'perfiles') {
+    return {
+      primaryRate: `${formatCurrency(item.unitPrice)} / ${isEn ? 'piece' : 'pieza'}`,
+      packagingRate: item.size ? `${isEn ? 'Length' : 'Largo'}: ${item.size}` : undefined,
+      displayUnit: isEn ? 'piece' : 'pieza',
+      unitPriceValue: item.unitPrice
+    };
+  }
+
+  if (item.category === 'wall_panels') {
+    return {
+      primaryRate: `${formatCurrency(item.unitPrice)} / panel`,
+      displayUnit: 'panel',
+      unitPriceValue: item.unitPrice
+    };
+  }
+
+  if (item.category === 'underlayment') {
+    return {
+      primaryRate: `${formatCurrency(item.unitPrice)} / ${isEn ? 'roll' : 'rollo'}`,
+      displayUnit: isEn ? 'roll' : 'rollo',
+      unitPriceValue: item.unitPrice
+    };
+  }
+
+  // Custom / Other
+  const unit = item.quantityUnitLabel || (isEn ? 'unit' : 'unidad');
+  return {
+    primaryRate: `${formatCurrency(item.unitPrice)} / ${unit}`,
+    displayUnit: unit,
+    unitPriceValue: item.unitPrice
   };
 }
 

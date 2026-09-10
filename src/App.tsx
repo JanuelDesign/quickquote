@@ -15,6 +15,7 @@ import {
   createBaseboardCartItem, 
   createProfileCartItem, 
   createStairsCartItem,
+  createRiserCartItem,
   createWallPanelCartItem,
   createUnderlaymentCartItem,
   calculateQuoteTotals, 
@@ -130,6 +131,7 @@ export default function App() {
   // Current Quotation Working State
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const [includeDelivery, setIncludeDelivery] = useState<boolean>(false);
+  const [payWithCard, setPayWithCard] = useState<boolean>(false);
   const [activeCategory, setActiveCategory] = useState<ProductCategory>('piso');
   const [quoteValidDays, setQuoteValidDays] = useState<number>(settings.defaultValidDays || 3);
   const [salespersonName, setSalespersonName] = useState<string>(() => {
@@ -220,12 +222,14 @@ export default function App() {
     setLanguage(prev => (prev === 'en' ? 'es' : 'en'));
   };
 
-  // Financial calculations (with 7% tax calculated on Subtotal Products + Delivery)
-  const { subtotalProducts, taxableBase, taxAmount, installationTotal, deliveryTotal, total } = calculateQuoteTotals(
+  // Financial calculations (with 7% tax calculated on Subtotal Products and optional 3% card fee)
+  const { subtotalProducts, taxableBase, taxAmount, installationTotal, deliveryTotal, baseTotal, cardFeeAmount, total } = calculateQuoteTotals(
     cartItems,
     includeDelivery,
     settings.deliveryFee,
-    settings.taxRate
+    settings.taxRate,
+    payWithCard,
+    0.03
   );
 
   // Handlers for adding items
@@ -269,18 +273,34 @@ export default function App() {
     includeRiser: boolean,
     riserUnitPrice: number,
     color?: ProductColor,
-    notes?: string
+    notes?: string,
+    riserStyle?: 'white' | 'match'
   ) => {
-    const item = createStairsCartItem(
+    // 1. Huella o peldaño como ítem individual
+    const stepItem = createStairsCartItem(
       product,
       stepCount,
       stepUnitPrice,
-      includeRiser,
-      riserUnitPrice,
+      false,
+      0,
       color,
       notes
     );
-    setCartItems(prev => [...prev, item]);
+
+    // 2. Contrahuella (Riser) como ítem individual para que el cliente vea ambos precios por separado
+    if (includeRiser) {
+      const riserItem = createRiserCartItem(
+        stepCount,
+        riserUnitPrice,
+        riserStyle || 'white',
+        color,
+        product.thickness,
+        notes
+      );
+      setCartItems(prev => [...prev, stepItem, riserItem]);
+    } else {
+      setCartItems(prev => [...prev, stepItem]);
+    }
   };
 
   const handleAddWallPanel = (
@@ -363,21 +383,46 @@ export default function App() {
           );
         }
         if (item.category === 'escalones') {
-          return createStairsCartItem(
-            {
-              id: item.productId,
-              name: item.productName,
-              category: 'escalones',
-              basePrice: item.unitPrice,
-              priceUnit: 'piece'
-            },
-            newQuantity,
-            item.unitPrice,
-            item.stepIncludesRiser || false,
-            item.riserUnitPrice || 9.00,
-            item.color,
-            item.notes
-          );
+          const isRiser = item.subcategory === 'Stair Risers' || 
+                          item.productId === 'steps-riser-plank' || 
+                          item.productName.toLowerCase().includes('contrahuella') ||
+                          item.productName.toLowerCase().includes('riser');
+          
+          if (isRiser) {
+            return {
+              ...item,
+              userEnteredQuantity: newQuantity,
+              calculatedUnits: newQuantity,
+              calculatedUnitsLabel: `${newQuantity} contrahuellas / risers`,
+              subtotal: Number((newQuantity * item.unitPrice).toFixed(2))
+            };
+          }
+
+          if (item.stepIncludesRiser) {
+            return createStairsCartItem(
+              {
+                id: item.productId,
+                name: item.productName,
+                category: 'escalones',
+                basePrice: item.unitPrice,
+                priceUnit: 'piece'
+              },
+              newQuantity,
+              item.unitPrice - (item.riserUnitPrice || 9.00),
+              true,
+              item.riserUnitPrice || 9.00,
+              item.color,
+              item.notes
+            );
+          }
+
+          return {
+            ...item,
+            userEnteredQuantity: newQuantity,
+            calculatedUnits: newQuantity,
+            calculatedUnitsLabel: `${newQuantity} peldaños (12" x 48")`,
+            subtotal: Number((newQuantity * item.unitPrice).toFixed(2))
+          };
         }
         if (item.category === 'wall_panels') {
           return createWallPanelCartItem(
@@ -471,21 +516,44 @@ export default function App() {
           );
         }
         if (item.category === 'escalones') {
-          return createStairsCartItem(
-            {
-              id: item.productId,
-              name: item.productName,
-              category: 'escalones',
-              basePrice: newPrice,
-              priceUnit: 'piece'
-            },
-            item.userEnteredQuantity,
-            newPrice,
-            item.stepIncludesRiser || false,
-            item.riserUnitPrice || 9.00,
-            item.color,
-            item.notes
-          );
+          const isRiser = item.subcategory === 'Stair Risers' || 
+                          item.productId === 'steps-riser-plank' || 
+                          item.productName.toLowerCase().includes('contrahuella') ||
+                          item.productName.toLowerCase().includes('riser');
+          
+          if (isRiser) {
+            return {
+              ...item,
+              unitPrice: newPrice,
+              baseListPrice: newPrice,
+              subtotal: Number((item.userEnteredQuantity * newPrice).toFixed(2))
+            };
+          }
+
+          if (item.stepIncludesRiser) {
+            return createStairsCartItem(
+              {
+                id: item.productId,
+                name: item.productName,
+                category: 'escalones',
+                basePrice: newPrice,
+                priceUnit: 'piece'
+              },
+              item.userEnteredQuantity,
+              newPrice,
+              true,
+              item.riserUnitPrice || 9.00,
+              item.color,
+              item.notes
+            );
+          }
+
+          return {
+            ...item,
+            unitPrice: newPrice,
+            baseListPrice: newPrice,
+            subtotal: Number((item.userEnteredQuantity * newPrice).toFixed(2))
+          };
         }
         if (item.category === 'wall_panels') {
           return createWallPanelCartItem(
@@ -555,6 +623,10 @@ export default function App() {
     includeDelivery,
     deliveryCost: deliveryTotal,
     deliveryTotal,
+    payWithCard,
+    cardProcessingFeeRate: 0.03,
+    cardFeeAmount,
+    baseTotal,
     total,
     status: 'draft',
     shippingAddress: sameAsBillingAddress ? (currentClient?.address || '') : shippingAddress,
@@ -569,6 +641,9 @@ export default function App() {
   const handleLoadQuoteFromHistory = (quote: Quotation) => {
     setCartItems(quote.items);
     setIncludeDelivery(quote.includeDelivery);
+    if (quote.payWithCard !== undefined) {
+      setPayWithCard(quote.payWithCard);
+    }
     setCurrentClient(quote.client);
     setQuoteValidDays(quote.validDays);
     if (quote.shippingAddress) {
@@ -769,6 +844,9 @@ export default function App() {
               client={currentClient}
               includeDelivery={includeDelivery}
               onToggleDelivery={setIncludeDelivery}
+              payWithCard={payWithCard}
+              onTogglePayWithCard={setPayWithCard}
+              cardFeeAmount={cardFeeAmount}
               onDeleteItem={handleDeleteCartItem}
               onUpdateItemQuantity={handleUpdateItemQuantity}
               onUpdateItemPrice={handleUpdateItemPrice}
@@ -872,6 +950,9 @@ export default function App() {
           client={currentClient}
           includeDelivery={includeDelivery}
           onToggleDelivery={setIncludeDelivery}
+          payWithCard={payWithCard}
+          onTogglePayWithCard={setPayWithCard}
+          cardFeeAmount={cardFeeAmount}
           onDeleteItem={handleDeleteCartItem}
           onUpdateItemQuantity={handleUpdateItemQuantity}
           onUpdateItemPrice={handleUpdateItemPrice}
@@ -932,6 +1013,7 @@ export default function App() {
           onToggleSameAsBilling={setSameAsBillingAddress}
           onUpdateQuoteDays={setQuoteValidDays}
           onToggleDelivery={setIncludeDelivery}
+          onTogglePayWithCard={setPayWithCard}
           onSaveToHistory={handleSaveQuoteToHistory}
           language={language}
         />

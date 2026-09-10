@@ -123,7 +123,11 @@ export interface Quotation {
   taxAmount: number;           // (subtotalProducts + deliveryCost) * 0.07
   installationTotal: number;   // Non-taxable services
   deliveryTotal: number;       // $60 (taxable with products)
-  total: number;               // subtotalProducts + deliveryTotal + taxAmount + installationTotal
+  payWithCard?: boolean;       // Selectable 3% surcharge for debit/credit card
+  cardProcessingFeeRate?: number; // 0.03 (3%)
+  cardFeeAmount?: number;      // 3% surcharge amount
+  baseTotal?: number;          // Total before card fee
+  total: number;               // Final total including delivery, taxes, installation and card fee (if selected)
   
   status: QuoteStatus;
   shippingAddress?: string;

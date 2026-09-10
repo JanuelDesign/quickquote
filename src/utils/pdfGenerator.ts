@@ -1,7 +1,7 @@
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { Quotation, AppSettings, Language } from '../types';
-import { formatCurrency } from './calculations';
+import { formatCurrency, getItemUnitPriceDetail } from './calculations';
 
 // Create a high-res QuickSurfaces vector logo Data URI on canvas for PDF embedding
 export function generateLogoDataUrl(): string {
@@ -183,7 +183,12 @@ export function generateQuotePDF(quote: Quotation, settings: AppSettings, lang: 
       qtyText += `\n➔ ${item.calculatedUnitsLabel}`;
     }
 
-    const priceText = formatCurrency(item.unitPrice);
+    const priceDetail = getItemUnitPriceDetail(item, isEn ? 'en' : 'es');
+    let priceText = priceDetail.primaryRate;
+    if (priceDetail.packagingRate) {
+      priceText += `\n(${priceDetail.packagingRate})`;
+    }
+
     const subtotalText = formatCurrency(item.subtotal);
 
     return [
@@ -214,9 +219,9 @@ export function generateQuotePDF(quote: Quotation, settings: AppSettings, lang: 
     columnStyles: {
       0: { cellWidth: 8, halign: 'center' },
       1: { cellWidth: 'auto' },
-      2: { cellWidth: 55 },
-      3: { cellWidth: 26, halign: 'right' },
-      4: { cellWidth: 28, halign: 'right', fontStyle: 'bold' }
+      2: { cellWidth: 50 },
+      3: { cellWidth: 32, halign: 'right' },
+      4: { cellWidth: 26, halign: 'right', fontStyle: 'bold' }
     },
     styles: {
       fontSize: 8,
@@ -234,18 +239,25 @@ export function generateQuotePDF(quote: Quotation, settings: AppSettings, lang: 
   // @ts-expect-error autoTable adds lastAutoTable to jsPDF instance
   let finalY = doc.lastAutoTable.finalY + 6;
 
-  if (finalY > 230) {
+  if (finalY > 220) {
     doc.addPage();
     finalY = 20;
   }
 
   // Summary Totals Card on the right
-  const summaryWidth = 95;
+  const summaryWidth = 98;
   const summaryX = pageWidth - margin - summaryWidth;
+
+  let summaryRowCount = 2; // Subtotal Products + Tax
+  if (quote.includeDelivery) summaryRowCount += 1;
+  if (quote.installationTotal > 0) summaryRowCount += 1;
+  if (quote.payWithCard && (quote.cardFeeAmount ?? 0) > 0) summaryRowCount += 1;
+
+  const summaryBoxHeight = 18 + (summaryRowCount * 6.2);
 
   doc.setFillColor(248, 249, 250);
   doc.setDrawColor(230, 230, 230);
-  doc.roundedRect(summaryX, finalY, summaryWidth, quote.installationTotal > 0 || quote.includeDelivery ? 48 : 38, 2, 2, 'FD');
+  doc.roundedRect(summaryX, finalY, summaryWidth, summaryBoxHeight, 2, 2, 'FD');
 
   let currentTotalY = finalY + 6;
   doc.setFontSize(8.5);
@@ -282,6 +294,16 @@ export function generateQuotePDF(quote: Quotation, settings: AppSettings, lang: 
     doc.text(formatCurrency(quote.installationTotal), pageWidth - margin - 4, currentTotalY, { align: 'right' });
   }
 
+  // 3% Debit / Credit Card Convenience Fee
+  if (quote.payWithCard && (quote.cardFeeAmount ?? 0) > 0) {
+    currentTotalY += 6;
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(224, 115, 0); // QuickSurfaces orange
+    doc.text(isEn ? 'Card Surcharge (3% Debit/Credit):' : 'Recargo Tarjeta Débito/Crédito (3%):', summaryX + 4, currentTotalY);
+    doc.text(`+${formatCurrency(quote.cardFeeAmount)}`, pageWidth - margin - 4, currentTotalY, { align: 'right' });
+    doc.setFont('helvetica', 'normal');
+  }
+
   // Total Line
   currentTotalY += 7;
   doc.setDrawColor(255, 132, 7);
@@ -296,7 +318,7 @@ export function generateQuotePDF(quote: Quotation, settings: AppSettings, lang: 
 
   // Left Side Payment Methods & Legal Warning Box
   const leftBoxWidth = summaryX - margin - 6;
-  const bottomBoxHeight = quote.installationTotal > 0 || quote.includeDelivery ? 52 : 46;
+  const bottomBoxHeight = Math.max(summaryBoxHeight, 52);
 
   doc.setFillColor(255, 248, 240); // Soft orange/warm cream tint
   doc.setDrawColor(255, 180, 100);
@@ -327,8 +349,8 @@ export function generateQuotePDF(quote: Quotation, settings: AppSettings, lang: 
   doc.setFontSize(7);
   doc.setTextColor(60, 60, 60);
   const otherPayText = isEn
-    ? 'Also accepted: Cash & Card / POS (Point of Sale).'
-    : 'Aceptamos también Efectivo y Punto de Venta (POS / Tarjeta).';
+    ? 'Also accepted: Cash & Card / POS (+3% debit/credit convenience fee).'
+    : 'Aceptamos también Efectivo y Punto de Venta (+3% con tarjeta débito o crédito).';
   doc.text(otherPayText, margin + 4, leftY);
 
   // Subtle separator line
@@ -376,26 +398,31 @@ export function generateWhatsAppMessage(quote: Quotation, lang: Language = 'en')
   
   message += `*${isEn ? 'ITEMIZED BREAKDOWN:' : 'DETALLE DE PRODUCTOS:'}*\n`;
   quote.items.forEach((item) => {
+    const detail = getItemUnitPriceDetail(item, isEn ? 'en' : 'es');
     message += `▪️ *${item.productName}*`;
     if (item.color) message += ` (${item.color.name})`;
-    message += `\n   ${item.calculatedUnitsLabel} | ${formatCurrency(item.subtotal)}\n`;
+    message += `\n   ${item.calculatedUnitsLabel}`;
+    message += `\n   ${isEn ? 'Unit Price' : 'Precio Unit.'}: ${detail.primaryRate}${detail.packagingRate ? ` (${detail.packagingRate})` : ''} | Subtotal: ${formatCurrency(item.subtotal)}\n`;
   });
 
   message += `\n*${isEn ? 'FINANCIAL SUMMARY:' : 'RESUMEN:'}*\n`;
   message += `▫️ ${isEn ? 'Products Subtotal' : 'Subtotal Materiales'}: ${formatCurrency(quote.subtotalProducts)}\n`;
   if (quote.includeDelivery) {
-    message += `▫️ ${isEn ? 'Delivery (Taxable)' : 'Delivery Fijo'}: ${formatCurrency(quote.deliveryCost)}\n`;
+    message += `▫️ ${isEn ? 'Delivery' : 'Delivery Fijo'}: ${formatCurrency(quote.deliveryCost)}\n`;
   }
   message += `▫️ ${isEn ? 'FL Sales Tax (7%)' : 'Impuesto (7%)'}: ${formatCurrency(quote.taxAmount)}\n`;
   if (quote.installationTotal > 0) {
     message += `▫️ ${isEn ? 'Labor / Services' : 'Instalación/Servicios'}: ${formatCurrency(quote.installationTotal)}\n`;
+  }
+  if (quote.payWithCard && (quote.cardFeeAmount ?? 0) > 0) {
+    message += `▫️ 💳 ${isEn ? 'Card Surcharge (3% Debit/Credit)' : 'Recargo Tarjeta Débito/Crédito (3%)'}: +${formatCurrency(quote.cardFeeAmount)}\n`;
   }
   message += `\n💰 *TOTAL: ${formatCurrency(quote.total)}*\n\n`;
 
   // Payment Methods Section
   message += `💳 *${isEn ? 'PAYMENT METHODS:' : 'MÉTODOS DE PAGO:'}*\n`;
   message += `▫️ *Zelle:* quickzelle@gmail.com\n   ${isEn ? 'Account Name' : 'Titular'}: *Brugge International*\n`;
-  message += `▫️ ${isEn ? 'We also accept Cash and POS / Card (Point of Sale).' : 'También aceptamos Efectivo y Punto de Venta (POS / Tarjeta).'}\n\n`;
+  message += `▫️ ${isEn ? 'We also accept Cash and POS / Card (+3% debit/credit card fee).' : 'También aceptamos Efectivo y Punto de Venta / Tarjeta (+3% con tarjeta).'}\n\n`;
 
   message += `⚠️ _${isEn ? `Reference estimate valid until ${quote.validUntil}.` : `Estimado referencial sujeto a cambio sin previo aviso. Válido hasta ${quote.validUntil}.`}_\n`;
   message += isEn ? `Thank you for choosing QuickSurfaces!` : `¡Gracias por preferir QuickSurfaces!`;
