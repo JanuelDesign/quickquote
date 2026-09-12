@@ -41,6 +41,18 @@ import { PriceListManager } from './components/PriceListManager';
 import { QuotesHistoryModal } from './components/QuotesHistoryModal';
 import { fetchGoogleSheetsCatalog, DEFAULT_GOOGLE_SHEET_URL } from './utils/tsvExporter';
 import { getAccessToken } from './services/googleAuth';
+import { 
+  subscribeToProducts, 
+  subscribeToClients, 
+  subscribeToQuotations, 
+  subscribeToSettings,
+  saveProductToDb,
+  batchSaveProductsToDb,
+  saveClientToDb,
+  deleteClientFromDb,
+  saveQuotationToDb,
+  deleteQuotationFromDb
+} from './services/firebaseDb';
 
 import { 
   ShoppingBag, 
@@ -64,8 +76,8 @@ export default function App() {
   // Persistence state
   const [products, setProducts] = useState<Product[]>(() => {
     const savedVersion = localStorage.getItem('qs_catalog_version');
-    if (savedVersion !== 'v4_gsheet_synced_2026_09_07') {
-      localStorage.setItem('qs_catalog_version', 'v4_gsheet_synced_2026_09_07');
+    if (savedVersion !== 'v5_official_catalog_2026_09_11') {
+      localStorage.setItem('qs_catalog_version', 'v5_official_catalog_2026_09_11');
       localStorage.setItem('qs_products_catalog', JSON.stringify(INITIAL_PRODUCTS));
       if (!localStorage.getItem('qs_google_sheet_url')) {
         localStorage.setItem('qs_google_sheet_url', DEFAULT_GOOGLE_SHEET_URL);
@@ -188,6 +200,45 @@ export default function App() {
     return () => {
       window.removeEventListener('focus', handleWindowFocus);
       window.clearInterval(intervalId);
+    };
+  }, []);
+
+  // Live Cloud Firestore Subscriptions (Products, Clients, Quotes History & Settings)
+  useEffect(() => {
+    const unsubProducts = subscribeToProducts((cloudProds) => {
+      if (cloudProds && cloudProds.length > 0) {
+        setProducts(cloudProds);
+      }
+    });
+
+    const unsubClients = subscribeToClients((cloudClients) => {
+      if (cloudClients && cloudClients.length > 0) {
+        setClients(cloudClients);
+        setCurrentClient((prev) => {
+          if (!prev) return cloudClients[0] || null;
+          const matched = cloudClients.find((c) => c.id === prev.id);
+          return matched || prev;
+        });
+      }
+    });
+
+    const unsubQuotes = subscribeToQuotations((cloudQuotes) => {
+      if (cloudQuotes) {
+        setQuotesHistory(cloudQuotes);
+      }
+    });
+
+    const unsubSettings = subscribeToSettings((cloudSettings) => {
+      if (cloudSettings) {
+        setSettings(cloudSettings);
+      }
+    });
+
+    return () => {
+      unsubProducts();
+      unsubClients();
+      unsubQuotes();
+      unsubSettings();
     };
   }, []);
 
@@ -324,8 +375,32 @@ export default function App() {
     setCartItems(prev => [...prev, item]);
   };
 
-  const handleAddCustomItem = (item: CartItem) => {
+  const handleAddCustomItem = async (item: CartItem, saveToCatalog: boolean = true) => {
     setCartItems(prev => [...prev, item]);
+
+    if (saveToCatalog) {
+      const newProduct: Product = {
+        id: `custom-prod-${Date.now()}`,
+        name: item.productName,
+        category: item.category || 'otros',
+        subcategory: item.subcategory || (item.isLabor ? 'Mano de obra' : 'Material / Servicio'),
+        basePrice: item.unitPrice,
+        priceUnit: 'unit',
+        description: item.notes || item.productName,
+        isCustom: true
+      };
+
+      try {
+        await saveProductToDb(newProduct);
+        setProducts(prev => {
+          const updated = [...prev.filter(p => p.id !== newProduct.id), newProduct];
+          localStorage.setItem('qs_products_catalog', JSON.stringify(updated));
+          return updated;
+        });
+      } catch (err) {
+        console.warn('Error guardando nuevo producto en Firestore:', err);
+      }
+    }
   };
 
   const handleDeleteCartItem = (itemId: string) => {
@@ -634,8 +709,13 @@ export default function App() {
     createdAt: new Date().toISOString()
   };
 
-  const handleSaveQuoteToHistory = () => {
+  const handleSaveQuoteToHistory = async () => {
     setQuotesHistory(prev => [activeQuote, ...prev.filter(q => q.quoteNumber !== activeQuote.quoteNumber)]);
+    try {
+      await saveQuotationToDb(activeQuote);
+    } catch (err) {
+      console.warn('Error guardando cotización en Firestore:', err);
+    }
   };
 
   const handleLoadQuoteFromHistory = (quote: Quotation) => {
@@ -654,7 +734,7 @@ export default function App() {
     }
   };
 
-  const handleSaveClient = (client: Client) => {
+  const handleSaveClient = async (client: Client) => {
     setClients(prev => {
       const exists = prev.some(c => c.id === client.id);
       if (exists) {
@@ -663,12 +743,22 @@ export default function App() {
       return [client, ...prev];
     });
     setCurrentClient(client);
+    try {
+      await saveClientToDb(client);
+    } catch (err) {
+      console.warn('Error guardando cliente en Firestore:', err);
+    }
   };
 
-  const handleDeleteClient = (clientId: string) => {
+  const handleDeleteClient = async (clientId: string) => {
     setClients(prev => prev.filter(c => c.id !== clientId));
     if (currentClient?.id === clientId) {
       setCurrentClient(clients.find(c => c.id !== clientId) || null);
+    }
+    try {
+      await deleteClientFromDb(clientId);
+    } catch (err) {
+      console.warn('Error eliminando cliente en Firestore:', err);
     }
   };
 
@@ -1024,7 +1114,15 @@ export default function App() {
           isOpen={isPriceManagerOpen}
           onClose={() => setIsPriceManagerOpen(false)}
           products={products}
-          onUpdateProducts={(newProducts) => setProducts(newProducts)}
+          onUpdateProducts={async (newProducts) => {
+            setProducts(newProducts);
+            localStorage.setItem('qs_products_catalog', JSON.stringify(newProducts));
+            try {
+              await batchSaveProductsToDb(newProducts);
+            } catch (err) {
+              console.warn('Error sincronizando productos con Firestore:', err);
+            }
+          }}
         />
       )}
 
@@ -1035,8 +1133,21 @@ export default function App() {
           history={quotesHistory}
           settings={settings}
           onLoadQuote={handleLoadQuoteFromHistory}
-          onDeleteQuote={(id) => setQuotesHistory(prev => prev.filter(q => q.id !== id))}
-          onClearHistory={() => setQuotesHistory([])}
+          onDeleteQuote={async (id) => {
+            setQuotesHistory(prev => prev.filter(q => q.id !== id));
+            try {
+              await deleteQuotationFromDb(id);
+            } catch (err) {
+              console.warn('Error eliminando cotización en Firestore:', err);
+            }
+          }}
+          onClearHistory={async () => {
+            const current = [...quotesHistory];
+            setQuotesHistory([]);
+            for (const q of current) {
+              deleteQuotationFromDb(q.id).catch(() => {});
+            }
+          }}
           language={language}
         />
       )}

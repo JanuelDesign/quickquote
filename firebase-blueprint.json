@@ -1,0 +1,79 @@
+{
+  "entities": {
+    "Product": {
+      "title": "Product",
+      "description": "Flooring, molding, stairs, wall panel or custom product item in the catalog",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "category": { "type": "string" },
+        "subcategory": { "type": "string" },
+        "basePrice": { "type": "number" },
+        "sqftPerBox": { "type": "number" },
+        "stripLengthFeet": { "type": "number" },
+        "thickness": { "type": "string" },
+        "wearLayer": { "type": "string" },
+        "size": { "type": "string" },
+        "priceUnit": { "type": "string" },
+        "isStock": { "type": "boolean" },
+        "description": { "type": "string" }
+      },
+      "required": ["id", "name", "category", "basePrice"]
+    },
+    "Client": {
+      "title": "Client",
+      "description": "Client profile including contact and shipping details",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "phone": { "type": "string" },
+        "email": { "type": "string" },
+        "address": { "type": "string" },
+        "clientType": { "type": "string" },
+        "notes": { "type": "string" },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["id", "name"]
+    },
+    "Quotation": {
+      "title": "Quotation",
+      "description": "Saved quotation record with items, calculations, client, and validity info",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "quoteNumber": { "type": "string" },
+        "date": { "type": "string" },
+        "validUntil": { "type": "string" },
+        "validDays": { "type": "number" },
+        "clientId": { "type": "string" },
+        "clientName": { "type": "string" },
+        "total": { "type": "number" },
+        "subtotalProducts": { "type": "number" },
+        "deliveryCost": { "type": "number" },
+        "includeDelivery": { "type": "boolean" },
+        "payWithCard": { "type": "boolean" },
+        "cardFeeAmount": { "type": "number" },
+        "taxAmount": { "type": "number" },
+        "status": { "type": "string" },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["id", "quoteNumber", "date", "total"]
+    }
+  },
+  "firestore": {
+    "/products/{productId}": {
+      "schema": { "$ref": "#/entities/Product" },
+      "description": "Shared product catalog accessible across all devices"
+    },
+    "/clients/{clientId}": {
+      "schema": { "$ref": "#/entities/Client" },
+      "description": "Shared clients directory accessible across all devices"
+    },
+    "/quotations/{quotationId}": {
+      "schema": { "$ref": "#/entities/Quotation" },
+      "description": "Centralized transaction and quotation history accessible across all devices"
+    }
+  }
+}

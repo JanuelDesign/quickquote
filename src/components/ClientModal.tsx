@@ -114,8 +114,13 @@ export const ClientModal: React.FC<ClientModalProps> = ({
               <h2 className="text-sm sm:text-base font-bold text-white tracking-wide">
                 {t.clientsModalTitle}
               </h2>
-              <p className="text-[11px] text-[#8C8C8C]">
-                {t.clientsModalSubtitle}
+              <p className="text-[11px] text-[#8C8C8C] flex items-center gap-1.5 mt-0.5">
+                <span>{t.clientsModalSubtitle}</span>
+                <span>•</span>
+                <span className="text-emerald-400 font-semibold flex items-center gap-1">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+                  {language === 'en' ? 'Cloud Synced' : 'En la nube (Firestore)'}
+                </span>
               </p>
             </div>
           </div>

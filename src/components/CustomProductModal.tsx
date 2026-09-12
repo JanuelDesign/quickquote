@@ -7,7 +7,7 @@ import { translations } from '../utils/translations';
 interface CustomProductModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onAddItem: (item: CartItem) => void;
+  onAddItem: (item: CartItem, saveToCatalog?: boolean) => void;
   language?: Language;
 }
 
@@ -26,6 +26,7 @@ export const CustomProductModal: React.FC<CustomProductModalProps> = ({
   const [isTaxable, setIsTaxable] = useState(false); // Default to false for services/labor
   const [isLabor, setIsLabor] = useState(true);
   const [notes, setNotes] = useState('');
+  const [saveToCatalog, setSaveToCatalog] = useState(true);
 
   const presets = language === 'en' ? [
     {
@@ -151,7 +152,7 @@ export const CustomProductModal: React.FC<CustomProductModalProps> = ({
       notes.trim() || undefined
     );
 
-    onAddItem(item);
+    onAddItem(item, saveToCatalog);
     onClose();
 
     // Reset fields
@@ -346,6 +347,26 @@ export const CustomProductModal: React.FC<CustomProductModalProps> = ({
                 className="w-full text-xs bg-white border border-[#E5E5E5] focus:border-black rounded-lg px-3 py-2 outline-none text-black"
               />
             </div>
+
+            {/* Save to Catalog & Cloud Database Checkbox */}
+            <label className="flex items-center gap-2.5 p-3 rounded-lg border border-amber-200/80 bg-amber-50/50 hover:bg-amber-50 cursor-pointer select-none transition-colors">
+              <input
+                type="checkbox"
+                checked={saveToCatalog}
+                onChange={(e) => setSaveToCatalog(e.target.checked)}
+                className="w-4 h-4 accent-[#FF8407] rounded cursor-pointer shrink-0"
+              />
+              <div className="flex-1 min-w-0">
+                <span className="text-xs font-bold text-black block leading-tight">
+                  {language === 'en' ? 'Save permanently to Database & Catalog' : 'Guardar en Base de Datos y Catálogo permanente'}
+                </span>
+                <span className="text-[11px] text-[#6B6A63] block mt-0.5 leading-snug">
+                  {language === 'en' 
+                    ? 'Syncs across all devices and stays available for future quotes' 
+                    : 'Sincronizado en la nube para todos los dispositivos y futuras cotizaciones'}
+                </span>
+              </div>
+            </label>
           </div>
 
           <div className="pt-3 border-t border-[#E5E5E5] flex justify-end gap-2">

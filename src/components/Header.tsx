@@ -107,6 +107,14 @@ export const Header: React.FC<HeaderProps> = ({
               by Quicksurfaces
             </span>
           </div>
+          {/* Cloud Firestore Live Sync Badge */}
+          <div 
+            className="hidden xl:flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-700 text-[10px] font-bold tracking-wide select-none"
+            title="Sincronizado en tiempo real con Firebase Firestore"
+          >
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+            <span>CLOUD FIRESTORE LIVE</span>
+          </div>
         </div>
 
         {/* Right Action Icons (Salesperson dropdown, Client button & "···" options menu) */}

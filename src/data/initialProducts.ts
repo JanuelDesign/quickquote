@@ -263,12 +263,13 @@ export const INITIAL_PRODUCTS: Product[] = [
     "name": "Pulse PRO Collection",
     "category": "piso",
     "subcategory": "Pulse PRO",
+    "badge": "COMMERCIAL PRO",
     "thickness": "8.0 mm",
     "size": "9\" x 54\"",
     "sqftPerBox": 20.37,
     "basePrice": 2.19,
     "priceUnit": "sqft",
-    "description": "Capa de uso: 22 Mil. 6 tablas/caja. Línea PRO de alta gama para proyectos comerciales y residenciales exigentes.",
+    "description": "Capa de uso: 22 Mil. 6 tablas/caja. Formato 9\"x54\". Línea PRO de alta gama para proyectos comerciales y residenciales exigentes.",
     "colors": [
       {
         "name": "Estate Oak",
@@ -284,126 +285,296 @@ export const INITIAL_PRODUCTS: Product[] = [
         "name": "Smoked Charcoal",
         "code": "PRO-03",
         "hex": "#4A4846"
+      },
+      {
+        "name": "Nordic Slate",
+        "code": "PRO-04",
+        "hex": "#73787E"
+      },
+      {
+        "name": "Californian Walnut",
+        "code": "PRO-05",
+        "hex": "#5A4331"
       }
     ]
   },
   {
     "id": "spc-10mm-ultrapulse",
-    "name": "UltraPulse Collection",
+    "name": "UltraPULSE Collection",
     "category": "piso",
     "subcategory": "UltraPulse",
+    "badge": "ULTRA MINERAL CORE",
     "thickness": "10.0 mm",
     "size": "9\" x 48\"",
-    "sqftPerBox": 14.82,
+    "sqftPerBox": 18.29,
     "basePrice": 2.29,
     "priceUnit": "sqft",
-    "description": "Capa de uso: AC5 Heavy Commercial. 5 tablas/caja. Máxima solidez y aislamiento acústico con 10mm de espesor y AC5.",
+    "description": "Ultra Mineral Core (8 mm UMC + 2 mm HD EVA). Capa de uso: AC5 (22 Mils). Acabado Satin. 5 tablas/caja (18.29 sqft/caja). Angle Angle. Garantía: 30 años residencial / 10 años comercial.",
     "colors": [
       {
-        "name": "Titanium Oak",
-        "code": "UP-01",
-        "hex": "#8F8A80"
+        "name": "Caliza",
+        "code": "SI-20",
+        "hex": "#D8D2C4"
       },
       {
-        "name": "Heritage Blonde",
-        "code": "UP-02",
-        "hex": "#D8C6A5"
+        "name": "Volcanica",
+        "code": "SI-10",
+        "hex": "#C2BFB9"
+      },
+      {
+        "name": "Grabo",
+        "code": "SI-40",
+        "hex": "#545752"
+      },
+      {
+        "name": "Castaño",
+        "code": "SI-30",
+        "hex": "#261A13"
       }
     ]
   },
   {
-    "id": "laminate-spain-fs",
-    "name": "Spain Laminate FS",
+    "id": "spc-8mm-pulsewood-herringbone",
+    "name": "PULSEWood Herringbone Collection",
     "category": "piso",
-    "subcategory": "Waterproof Laminate",
+    "subcategory": "PulseWood",
+    "badge": "HERRINGBONE",
     "thickness": "8.0 mm",
-    "size": "9\" x 51\"",
-    "sqftPerBox": 20.3,
-    "basePrice": 1.79,
+    "size": "5\" x 27\"",
+    "sqftPerBox": 11.75,
+    "basePrice": 2.39,
     "priceUnit": "sqft",
-    "description": "Capa de uso: AC6 | Eco Label. 8 tablas/caja. Piso laminado resistente al agua de origen español con certificación AC6.",
+    "description": "PULSEWood Herringbone. Capa de uso 22 Mil. 6 mm rigid core + 2 mm HD EVA. Acabado Satin. 12 tablas/caja (11.75 sqft/caja). Instalación Angle Angle.",
     "colors": [
       {
-        "name": "Barcelona Oak",
-        "code": "SL-01",
-        "hex": "#B59E7B"
+        "name": "Vintage",
+        "code": "B-04",
+        "hex": "#8F8778"
       },
       {
-        "name": "Madrid Walnut",
-        "code": "SL-02",
-        "hex": "#7A6248"
+        "name": "Japandi H",
+        "code": "B-03",
+        "hex": "#D9C3A1"
+      },
+      {
+        "name": "Natural H",
+        "code": "B-05",
+        "hex": "#B99868"
       }
     ]
   },
   {
-    "id": "laminate-spain-fe",
-    "name": "Spain Laminate FE",
+    "id": "spc-8mm-pulsewood-random",
+    "name": "PULSEWood Random Width Collection",
     "category": "piso",
-    "subcategory": "Waterproof Laminate",
+    "subcategory": "PulseWood",
+    "badge": "RANDOM WIDTH",
     "thickness": "8.0 mm",
-    "size": "7\" x 52\"",
-    "sqftPerBox": 22.24,
-    "basePrice": 1.79,
+    "size": "Random Width x 48\"",
+    "sqftPerBox": 35.46,
+    "basePrice": 2.39,
     "priceUnit": "sqft",
-    "description": "Capa de uso: AC6 | Eco Label. 8 tablas/caja. Laminado español hidrófugo formato 7\"x52\" de alta durabilidad.",
+    "description": "PULSEWood Random Width. Capa de uso 22 Mil. 6 mm rigid core + 2 mm HD EVA. Acabado Satin. 15 tablas/caja (35.46 sqft/caja). Instalación Angle Angle.",
     "colors": [
       {
-        "name": "Sevilla Natural",
-        "code": "SFE-01",
-        "hex": "#C4B196"
+        "name": "Vintage",
+        "code": "B-04",
+        "hex": "#8F8778"
       },
       {
-        "name": "Valencia Gray",
-        "code": "SFE-02",
-        "hex": "#99948D"
+        "name": "Japandi H",
+        "code": "B-03",
+        "hex": "#D9C3A1"
+      },
+      {
+        "name": "Natural H",
+        "code": "B-05",
+        "hex": "#B99868"
       }
     ]
   },
   {
     "id": "laminate-pulse-hd-core",
-    "name": "Pulse HD Core Laminate",
+    "name": "PULSEHD Collection",
     "category": "piso",
-    "subcategory": "Waterproof Laminate",
+    "subcategory": "Pulse HD Core",
+    "badge": "HD LAMINATE",
     "thickness": "7.0 mm",
     "size": "8\" x 48\"",
     "sqftPerBox": 36.43,
     "basePrice": 1.79,
     "priceUnit": "sqft",
-    "description": "Capa de uso: AC5 | Free PVC Black. 14 tablas/caja. Núcleo de alta densidad HD Core con 36.43 sqft por caja.",
+    "description": "Waterproof High Density Laminate. Capa de uso AC5. Acabado Satin. 14 tablas/caja (36.43 sqft/caja). Free PVC Black HD Core. Garantía: 30 años residencial / 10 años comercial.",
     "colors": [
       {
-        "name": "Alpine Ash",
-        "code": "HD-01",
-        "hex": "#AEAAA3"
+        "name": "Hera Beige",
+        "code": "HD6",
+        "hex": "#D1C9BC"
       },
       {
-        "name": "Tuscan Oak",
-        "code": "HD-02",
-        "hex": "#B89B72"
+        "name": "Gala Oak",
+        "code": "HD2",
+        "hex": "#BD9F77"
+      },
+      {
+        "name": "Zlato Oak",
+        "code": "HD4",
+        "hex": "#B49661"
+      },
+      {
+        "name": "Koppar Oak",
+        "code": "HD1",
+        "hex": "#8D5432"
+      },
+      {
+        "name": "Argenta Grey",
+        "code": "HD3",
+        "hex": "#9EA5AB"
+      },
+      {
+        "name": "Kern Oak",
+        "code": "HD5",
+        "hex": "#7C7872"
+      }
+    ]
+  },
+  {
+    "id": "laminate-spain-fe",
+    "name": "Finsa Spain Laminate - Evolve Collection",
+    "category": "piso",
+    "subcategory": "Spain Laminate",
+    "badge": "MADE IN SPAIN",
+    "thickness": "8.0 mm",
+    "size": "7\" x 52\"",
+    "sqftPerBox": 22.24,
+    "basePrice": 1.79,
+    "priceUnit": "sqft",
+    "description": "Finsa Waterproof Laminate Made In Spain. Commercial Intense (Clase 33 / AC6). 8 mm rigid core. 8 tablas/caja (22.24 sqft/caja). Angle Angle.",
+    "colors": [
+      {
+        "name": "Bruno",
+        "code": "EV-BR",
+        "hex": "#38383A"
+      },
+      {
+        "name": "Noz",
+        "code": "EV-NZ",
+        "hex": "#543D2D"
+      },
+      {
+        "name": "Blanco",
+        "code": "EV-BL",
+        "hex": "#D8D9DC"
+      },
+      {
+        "name": "Esencia",
+        "code": "EV-ES",
+        "hex": "#D2BA96"
+      },
+      {
+        "name": "Crepúsculo",
+        "code": "EV-CR",
+        "hex": "#9D8A7E"
+      }
+    ]
+  },
+  {
+    "id": "laminate-spain-fs",
+    "name": "Finsa Spain Laminate - Supreme Collection",
+    "category": "piso",
+    "subcategory": "Spain Laminate",
+    "badge": "MADE IN SPAIN",
+    "thickness": "8.0 mm",
+    "size": "9\" x 51\"",
+    "sqftPerBox": 20.30,
+    "basePrice": 1.79,
+    "priceUnit": "sqft",
+    "description": "Finsa Waterproof Laminate Made In Spain. Commercial Intense (Clase 33 / AC6). Formato ancho 9\"x51\". 8 tablas/caja (20.30 sqft/caja). Angle Angle.",
+    "colors": [
+      {
+        "name": "Crudo",
+        "code": "SUP-CR",
+        "hex": "#DDD1BE"
+      },
+      {
+        "name": "Santorini",
+        "code": "SUP-SA",
+        "hex": "#DDDCDA"
+      },
+      {
+        "name": "Victoria",
+        "code": "SUP-VI",
+        "hex": "#888681"
       }
     ]
   },
   {
     "id": "tile-porcelane-pulse",
-    "name": "Porcelane Tile Pulse",
+    "name": "TILE PULSE Porcelain Tiles",
     "category": "piso",
-    "subcategory": "Porcelane Tile",
+    "subcategory": "Tile Pulse",
+    "badge": "PORCELAIN TILE",
     "thickness": "9.0 mm",
     "size": "24\" x 48\"",
     "sqftPerBox": 15.5,
     "basePrice": 1.79,
     "priceUnit": "sqft",
-    "description": "Capa de uso: PEI 3 Stain & Glossy. 2 tablas/caja. Porcelanato rectificado 24x48 para acabados pulidos y mate de lujo.",
+    "description": "Porcelain Floor Tiles-Coloured. Medidas: 24\" x 48\". 2 piezas/caja (15.5 sqft/caja). Clasificación PEI 3. Bordes rectificados. Acabados Satin, Glossy y Matte.",
     "colors": [
       {
-        "name": "Calacatta White",
-        "code": "TP-01",
-        "hex": "#ECEAE4"
+        "name": "Stellar Statuario (Satin)",
+        "code": "L-1",
+        "hex": "#F4F3F1"
       },
       {
-        "name": "Marquina Black",
-        "code": "TP-02",
-        "hex": "#2A2928"
+        "name": "Celestial Crema (Glossy / Satin)",
+        "code": "L-2",
+        "hex": "#F1E5D5"
+      },
+      {
+        "name": "Titanium Grey (Glossy / Matte)",
+        "code": "L-3",
+        "hex": "#E6E6E6"
+      },
+      {
+        "name": "Obsidian Noir (Glossy / Matte)",
+        "code": "L-4",
+        "hex": "#7E8181"
+      },
+      {
+        "name": "Luminous Pearl (Glossy / Matte)",
+        "code": "L-5",
+        "hex": "#E2DFD9"
+      },
+      {
+        "name": "Florence White (Glossy / Matte)",
+        "code": "L-6",
+        "hex": "#FAF5EE"
+      },
+      {
+        "name": "Divine Statuario (Glossy / Satin)",
+        "code": "L-7",
+        "hex": "#F6F4F0"
+      },
+      {
+        "name": "Lunar Onix (Glossy / Satin)",
+        "code": "L-8",
+        "hex": "#EFF0F2"
+      },
+      {
+        "name": "Arbascato Blanco (Glossy / Satin)",
+        "code": "L-9",
+        "hex": "#F2F1EF"
+      },
+      {
+        "name": "Sahara Pulido (Satin)",
+        "code": "L-10",
+        "hex": "#E8D7C0"
+      },
+      {
+        "name": "Avant-Garde White (Glossy / Matte)",
+        "code": "L-11",
+        "hex": "#E5E8DD"
       }
     ]
   },
@@ -763,26 +934,121 @@ export const INITIAL_PRODUCTS: Product[] = [
     "colors": []
   },
   {
-    "id": "wall-panels-indoor",
-    "name": "Wall Panels Indoor (Revestimiento Pared)",
+    "id": "wall-panels-indoor-wpc",
+    "name": "WPC Indoor Wall Panels (9'5\")",
     "category": "wall_panels",
-    "subcategory": "Wall Panels",
-    "size": "1\" x 6 5/8\" x 113\" (10 piezas por caja)",
+    "subcategory": "Indoor WPC",
+    "badge": "INDOOR WPC",
+    "size": "1\" x 6 5/8\" x 9'5\"",
     "basePrice": 17,
     "priceUnit": "unit",
-    "description": "Paneles decorativos para pared interior acústico y moderno.",
-    "colors": []
+    "description": "Wood Plastic Composite (WPC) para interior. Medidas: 1\" x 6 5/8\" x 9'5\" (113\"). Acabado ranurado elegante y resistente.",
+    "colors": [
+      {
+        "name": "Desert",
+        "code": "WPC-DESERT",
+        "hex": "#C7BCA7"
+      },
+      {
+        "name": "Gray",
+        "code": "WPC-GRAY",
+        "hex": "#8F9193"
+      },
+      {
+        "name": "Dark",
+        "code": "WPC-DARK",
+        "hex": "#2B2D2F"
+      },
+      {
+        "name": "Matte",
+        "code": "WPC-MATTE",
+        "hex": "#4D3A2F"
+      },
+      {
+        "name": "Mocha",
+        "code": "WPC-MOCHA",
+        "hex": "#352520"
+      }
+    ]
+  },
+  {
+    "id": "wall-panels-indoor-fluted",
+    "name": "WPC Indoor Fluted Panels (16\")",
+    "category": "wall_panels",
+    "subcategory": "Indoor Fluted",
+    "badge": "FLUTED WPC",
+    "size": "1\" x 7\" x 16\"",
+    "basePrice": 12,
+    "priceUnit": "unit",
+    "description": "Wood Plastic Composite (WPC) con diseño estriado acanalado. Medidas: 1\" x 7\" x 16\".",
+    "colors": [
+      {
+        "name": "Ochre",
+        "code": "WPC-OCHRE",
+        "hex": "#A68758"
+      },
+      {
+        "name": "Cocoa",
+        "code": "WPC-COCOA",
+        "hex": "#6B543B"
+      },
+      {
+        "name": "Ashwood",
+        "code": "WPC-ASHWOOD",
+        "hex": "#40443D"
+      }
+    ]
   },
   {
     "id": "acoustic-wall-panel",
-    "name": "Acoustic Wall Panel Premium",
+    "name": "Wooden Slat Acoustic Panels",
     "category": "wall_panels",
-    "subcategory": "Wall Panels",
-    "size": "1\" x 12\" x 92\"",
+    "subcategory": "Acoustic Panels",
+    "badge": "ACOUSTIC SLAT",
+    "size": "1\" x 2' 4\" x 7' 8\" / 1\" x 7\" x 16\"",
     "basePrice": 35,
     "priceUnit": "unit",
-    "description": "Panel acústico en listones de madera con fieltro fonoabsorbente.",
-    "colors": []
+    "description": "Paneles fonoabsorbentes con listones de madera y fieltro acústico negro de alta densidad.",
+    "colors": [
+      {
+        "name": "Sandalwood (1\" x 2' 4\" x 7' 8\")",
+        "code": "AC-SANDAL",
+        "hex": "#A86C32"
+      },
+      {
+        "name": "EchoWood (1\" x 7\" x 16\")",
+        "code": "AC-ECHO",
+        "hex": "#5C4B37"
+      }
+    ]
+  },
+  {
+    "id": "wall-panels-outdoor-composite",
+    "name": "WPC Outdoor Exterior Panels",
+    "category": "wall_panels",
+    "subcategory": "Outdoor WPC",
+    "badge": "OUTDOOR",
+    "size": "8-1/2\" x 114\" x 26 mm",
+    "basePrice": 28,
+    "priceUnit": "unit",
+    "description": "WPC Exterior Composite para exteriores y fachadas. Medidas: 8-1/2\" x 114\" x 26 mm. Resistente a intemperie, rayos UV y humedad.",
+    "colors": [
+      {
+        "name": "Onyx",
+        "code": "OUT-ONYX",
+        "hex": "#222222"
+      },
+      {
+        "name": "Chestnut",
+        "code": "OUT-CHESTNUT",
+        "hex": "#7C4C2B"
+      },
+      {
+        "name": "Sienna",
+        "code": "OUT-SIENNA",
+        "hex": "#A55E2B"
+      }
+    ]
   }
 ];
 

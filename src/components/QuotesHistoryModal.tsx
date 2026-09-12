@@ -65,8 +65,13 @@ export const QuotesHistoryModal: React.FC<QuotesHistoryModalProps> = ({
               <h2 className="text-sm sm:text-base font-bold text-white tracking-wide">
                 {t.historyModalTitle}
               </h2>
-              <p className="text-[11px] text-[#8C8C8C]">
-                {history.length} {t.historySubtitle}
+              <p className="text-[11px] text-[#8C8C8C] flex items-center gap-1.5 mt-0.5">
+                <span>{history.length} {t.historySubtitle}</span>
+                <span>•</span>
+                <span className="text-emerald-400 font-semibold flex items-center gap-1">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+                  {currentLang === 'en' ? 'Cloud Firestore Synced' : 'En la nube (Firestore)'}
+                </span>
               </p>
             </div>
           </div>
