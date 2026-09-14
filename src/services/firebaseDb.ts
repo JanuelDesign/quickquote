@@ -91,11 +91,11 @@ export function subscribeToProducts(
         products.push(d.data() as Product);
       });
 
-      // Check if Firestore catalog needs to be upgraded with the official PDF catalog variants
-      const ultraPulse = products.find((p) => p.id === 'spc-10mm-ultrapulse');
-      const needsOfficialUpgrade = !ultraPulse || !ultraPulse.colors?.some((c) => c.code === 'SI-20');
+      // Check if Firestore catalog needs to be upgraded with the official PDF catalog variants and new color finishes
+      const pulseSelect = products.find((p) => p.id === 'spc-5.5mm-pulse-select');
+      const needsOfficialUpgrade = !pulseSelect || !pulseSelect.colors?.some((c) => c.code === 'Q-07');
       if (needsOfficialUpgrade) {
-        console.log('Actualizando catálogo de Firestore con variantes oficiales del PDF...');
+        console.log('Actualizando catálogo de Firestore con variantes oficiales y acabados de color...');
         try {
           const batch = writeBatch(db);
           for (const prod of INITIAL_PRODUCTS) {

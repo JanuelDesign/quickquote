@@ -76,8 +76,8 @@ export default function App() {
   // Persistence state
   const [products, setProducts] = useState<Product[]>(() => {
     const savedVersion = localStorage.getItem('qs_catalog_version');
-    if (savedVersion !== 'v5_official_catalog_2026_09_11') {
-      localStorage.setItem('qs_catalog_version', 'v5_official_catalog_2026_09_11');
+    if (savedVersion !== 'v6_euphoric_cherry_2026_09_14') {
+      localStorage.setItem('qs_catalog_version', 'v6_euphoric_cherry_2026_09_14');
       localStorage.setItem('qs_products_catalog', JSON.stringify(INITIAL_PRODUCTS));
       if (!localStorage.getItem('qs_google_sheet_url')) {
         localStorage.setItem('qs_google_sheet_url', DEFAULT_GOOGLE_SHEET_URL);

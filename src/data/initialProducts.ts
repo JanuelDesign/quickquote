@@ -45,6 +45,11 @@ export const INITIAL_PRODUCTS: Product[] = [
         "plankPhotoUrl": "https://raw.githubusercontent.com/JanuelDesign/quicksurfacesplanks/refs/heads/main/public/images/products/pulse-select/plank_5_vital_oak.webp"
       },
       {
+        "name": "Euphoric Chery",
+        "code": "Q-07",
+        "hex": "#986E45"
+      },
+      {
         "name": "Polar Pearl",
         "code": "Q-09",
         "hex": "#C9CAC9",
