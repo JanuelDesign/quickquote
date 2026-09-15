@@ -13,6 +13,7 @@ import {
 interface ProfilesCalculatorProps {
   products: Product[];
   language?: Language;
+  initialProductId?: string;
   onAddToCart: (
     product: Product,
     pieceCount: number,
@@ -25,6 +26,7 @@ interface ProfilesCalculatorProps {
 export const ProfilesCalculator: React.FC<ProfilesCalculatorProps> = ({
   products,
   language = 'en',
+  initialProductId,
   onAddToCart
 }) => {
   const t = translations[language];
@@ -39,6 +41,38 @@ export const ProfilesCalculator: React.FC<ProfilesCalculatorProps> = ({
   );
   const [notes, setNotes] = useState<string>('');
   const [addedSuccess, setAddedSuccess] = useState(false);
+
+  // Jump to specific product if passed via search selection
+  React.useEffect(() => {
+    if (initialProductId) {
+      const match = profileProducts.find(p => p.id === initialProductId);
+      if (match) {
+        setSelectedProduct(match);
+        setUnitPrice(match.basePrice || 30.00);
+        setSelectedColor(match.colors?.[0]);
+        setCurrentStep(2);
+        scrollToCalculatorTop();
+      }
+    }
+  }, [initialProductId]);
+
+  // Live synchronization
+  React.useEffect(() => {
+    if (!profileProducts.length) return;
+    if (!selectedProduct?.id || !profileProducts.some(p => p.id === selectedProduct.id)) {
+      const fallback = profileProducts[0];
+      if (fallback) {
+        setSelectedProduct(fallback);
+        setUnitPrice(fallback.basePrice || 30.00);
+        setSelectedColor(fallback.colors?.[0]);
+      }
+      return;
+    }
+    const fresh = profileProducts.find(p => p.id === selectedProduct.id);
+    if (fresh) {
+      setSelectedProduct(fresh);
+    }
+  }, [products]);
 
   const scrollToCalculatorTop = () => {
     setTimeout(() => {

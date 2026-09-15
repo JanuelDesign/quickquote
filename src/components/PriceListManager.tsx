@@ -16,7 +16,9 @@ import {
   Copy, 
   Info,
   RefreshCw,
-  Link as LinkIcon
+  Link as LinkIcon,
+  Palette,
+  Trash2
 } from 'lucide-react';
 import { INITIAL_PRODUCTS } from '../data/initialProducts';
 import { 
@@ -29,6 +31,8 @@ import {
 } from '../utils/tsvExporter';
 import { googleSignIn, logoutGoogle, getAccessToken, auth } from '../services/googleAuth';
 import { User, onAuthStateChanged } from 'firebase/auth';
+import { ProductEditModal } from './ProductEditModal';
+import { saveProductToDb, deleteProductFromDb } from '../services/firebaseDb';
 
 interface PriceListManagerProps {
   isOpen: boolean;
@@ -48,7 +52,10 @@ export const PriceListManager: React.FC<PriceListManagerProps> = ({
   const [filterCategory, setFilterCategory] = useState<string>('all');
   const [editingProductId, setEditingProductId] = useState<string | null>(null);
   
-  // Edit row form state
+  // Full product and variants edit modal state
+  const [modalEditingProduct, setModalEditingProduct] = useState<Product | null>(null);
+  
+  // Edit row form state (legacy fast edit)
   const [editBasePrice, setEditBasePrice] = useState<number>(0);
   const [editSqftBox, setEditSqftBox] = useState<number>(0);
   const [editName, setEditName] = useState<string>('');
@@ -183,7 +190,40 @@ export const PriceListManager: React.FC<PriceListManagerProps> = ({
     }
   };
 
-  const handleCreateNewProduct = (e: React.FormEvent) => {
+  // Full product save handler (calls saveProductToDb and updates local catalog)
+  const handleSaveModalProduct = async (updatedProduct: Product) => {
+    // 1. Persist directly to Firestore
+    await saveProductToDb(updatedProduct);
+
+    // 2. Update local state and localStorage
+    const exists = products.some((p) => p.id === updatedProduct.id);
+    const updated = exists
+      ? products.map((p) => (p.id === updatedProduct.id ? updatedProduct : p))
+      : [...products, updatedProduct];
+
+    onUpdateProducts(updated);
+    localStorage.setItem('qs_products_catalog', JSON.stringify(updated));
+  };
+
+  // Delete product from catalog and Firestore
+  const handleDeleteProduct = async (productId: string, productName: string) => {
+    if (!window.confirm(`¿Estás seguro de eliminar el producto "${productName}" del catálogo de Firestore? Esta acción no se puede deshacer.`)) {
+      return;
+    }
+    try {
+      await deleteProductFromDb(productId);
+      const updated = products.filter((p) => p.id !== productId);
+      onUpdateProducts(updated);
+      localStorage.setItem('qs_products_catalog', JSON.stringify(updated));
+      if (modalEditingProduct?.id === productId) {
+        setModalEditingProduct(null);
+      }
+    } catch (err: any) {
+      alert(`Error al eliminar de Firestore: ${err.message}`);
+    }
+  };
+
+  const handleCreateNewProduct = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newName.trim() || newBasePrice <= 0) return;
 
@@ -197,15 +237,29 @@ export const PriceListManager: React.FC<PriceListManagerProps> = ({
       stripLengthFeet: newCategory === 'rodapie' ? 16 : undefined,
       basePrice: newBasePrice,
       priceUnit: newCategory === 'piso' ? 'sqft' : newCategory === 'rodapie' ? 'linear_ft' : 'piece',
+      colors: [],
       isCustom: true
     };
 
-    const updated = [...products, newProd];
-    onUpdateProducts(updated);
-    setIsAddingNew(false);
-    setNewName('');
-    setNewThickness('');
-    setNewSize('');
+    try {
+      await saveProductToDb(newProd);
+      const updated = [...products, newProd];
+      onUpdateProducts(updated);
+      localStorage.setItem('qs_products_catalog', JSON.stringify(updated));
+      setIsAddingNew(false);
+      setNewName('');
+      setNewThickness('');
+      setNewSize('');
+      // Open immediately in full editor modal so the user can configure variants or full specs!
+      setModalEditingProduct(newProd);
+    } catch (err: any) {
+      console.error('Error guardando nuevo producto en Firestore:', err);
+      // Still update local catalog as fallback
+      const updated = [...products, newProd];
+      onUpdateProducts(updated);
+      setIsAddingNew(false);
+      setModalEditingProduct(newProd);
+    }
   };
 
   const handleApplyJsonImport = () => {
@@ -549,53 +603,48 @@ export const PriceListManager: React.FC<PriceListManagerProps> = ({
                       <th className="p-2.5 font-bold uppercase text-[10px] tracking-wider">Nombre del Producto</th>
                       <th className="p-2.5 font-bold uppercase text-[10px] tracking-wider">Especificaciones</th>
                       <th className="p-2.5 font-bold uppercase text-[10px] tracking-wider">SqFt / Tira</th>
+                      <th className="p-2.5 font-bold uppercase text-[10px] tracking-wider text-center">Colores / Acabados</th>
                       <th className="p-2.5 font-bold uppercase text-[10px] tracking-wider text-right">Precio Base</th>
                       <th className="p-2.5 font-bold uppercase text-[10px] tracking-wider text-center">Acciones</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-[#E5E5E5]">
                     {filteredProducts.map((p, idx) => {
-                      const isEditing = editingProductId === p.id;
+                      const hasColors = p.colors && p.colors.length > 0;
 
                       return (
                         <tr key={p.id} className={idx % 2 === 0 ? 'bg-white hover:bg-zinc-50' : 'bg-[#FAFAFA] hover:bg-zinc-50'}>
+                          {/* Categoría */}
                           <td className="p-2.5">
                             <span className="font-bold uppercase text-[10px] bg-zinc-100 text-zinc-700 px-1.5 py-0.5 rounded">
                               {p.category}
                             </span>
                           </td>
 
+                          {/* Nombre del Producto & Badge */}
                           <td className="p-2.5 font-semibold text-black">
-                            {isEditing ? (
-                              <input
-                                type="text"
-                                value={editName}
-                                onChange={(e) => setEditName(e.target.value)}
-                                className="w-full text-xs font-bold border border-[#FF8407] rounded px-1.5 py-0.5 bg-white"
-                              />
-                            ) : (
-                              <div>
-                                <p className="font-bold">{p.name}</p>
-                                {p.subcategory && <p className="text-[10px] text-[#8C8C8C]">{p.subcategory}</p>}
-                              </div>
+                            <div className="flex items-center gap-1.5 flex-wrap">
+                              <span className="font-bold text-black">{p.name}</span>
+                              {p.badge && (
+                                <span className="text-[9px] font-bold bg-[#FF8407]/15 text-[#FF8407] px-1.5 py-0.2 rounded uppercase">
+                                  {p.badge}
+                                </span>
+                              )}
+                            </div>
+                            {p.subcategory && (
+                              <p className="text-[10px] text-[#8C8C8C]">{p.subcategory}</p>
                             )}
                           </td>
 
+                          {/* Especificaciones */}
                           <td className="p-2.5 text-zinc-600">
                             <span className="text-[11px] block">{p.thickness || '—'}</span>
                             <span className="text-[10px] text-[#8C8C8C]">{p.size || '—'}</span>
                           </td>
 
+                          {/* SqFt / Tira */}
                           <td className="p-2.5 text-zinc-700 font-mono">
-                            {isEditing && p.category === 'piso' ? (
-                              <input
-                                type="number"
-                                step="0.01"
-                                value={editSqftBox}
-                                onChange={(e) => setEditSqftBox(parseFloat(e.target.value) || 0)}
-                                className="w-20 text-xs font-bold border border-[#FF8407] rounded px-1.5 py-0.5 bg-white"
-                              />
-                            ) : p.sqftPerBox ? (
+                            {p.sqftPerBox ? (
                               `${p.sqftPerBox} sqft/caja`
                             ) : p.stripLengthFeet ? (
                               `Tira ${p.stripLengthFeet} ft`
@@ -604,58 +653,79 @@ export const PriceListManager: React.FC<PriceListManagerProps> = ({
                             )}
                           </td>
 
-                          <td className="p-2.5 text-right font-mono font-bold text-black">
-                            {isEditing ? (
-                              <div className="flex items-center justify-end gap-1">
-                                <span className="text-zinc-400">$</span>
-                                <input
-                                  type="number"
-                                  step="0.01"
-                                  value={editBasePrice}
-                                  onChange={(e) => setEditBasePrice(parseFloat(e.target.value) || 0)}
-                                  className="w-20 text-xs font-bold border border-[#FF8407] rounded px-1.5 py-0.5 bg-white text-right"
-                                />
+                          {/* Colores y Acabados */}
+                          <td className="p-2.5 text-center">
+                            {hasColors ? (
+                              <div className="flex flex-col items-center gap-1">
+                                <button
+                                  type="button"
+                                  onClick={() => setModalEditingProduct(p)}
+                                  className="inline-flex items-center gap-1.5 px-2 py-1 rounded-md bg-amber-50 hover:bg-amber-100 border border-amber-200 text-[#FF8407] text-[11px] font-bold cursor-pointer transition-colors shadow-2xs"
+                                  title="Ver y editar variantes de color"
+                                >
+                                  <Palette className="w-3 h-3" />
+                                  <span>{p.colors!.length} colores</span>
+                                </button>
+                                <div className="flex items-center gap-1">
+                                  {p.colors!.slice(0, 4).map((c, cIdx) => (
+                                    <span
+                                      key={cIdx}
+                                      className="w-2.5 h-2.5 rounded-full border border-black/20 shrink-0 inline-block"
+                                      style={{ backgroundColor: c.hex || '#CCCCCC' }}
+                                      title={`${c.name} (${c.code})`}
+                                    />
+                                  ))}
+                                  {p.colors!.length > 4 && (
+                                    <span className="text-[9px] text-zinc-400 font-mono">+{p.colors!.length - 4}</span>
+                                  )}
+                                </div>
                               </div>
                             ) : (
-                              <span className="text-black font-bold">
-                                ${p.basePrice.toFixed(2)}
-                                <span className="text-[10px] text-[#8C8C8C] ml-1 font-normal">
-                                  /{p.priceUnit}
-                                </span>
-                              </span>
+                              p.category === 'piso' || p.category === 'wall_panels' ? (
+                                <button
+                                  type="button"
+                                  onClick={() => setModalEditingProduct(p)}
+                                  className="text-[10px] text-zinc-500 hover:text-[#FF8407] hover:underline inline-flex items-center gap-1 cursor-pointer font-semibold"
+                                >
+                                  <Plus className="w-2.5 h-2.5" /> + Colores
+                                </button>
+                              ) : (
+                                <span className="text-[10px] text-zinc-300 font-mono">—</span>
+                              )
                             )}
                           </td>
 
+                          {/* Precio Base */}
+                          <td className="p-2.5 text-right font-mono font-bold text-black">
+                            <span className="text-black font-bold">
+                              ${p.basePrice.toFixed(2)}
+                              <span className="text-[10px] text-[#8C8C8C] ml-1 font-normal">
+                                /{p.priceUnit}
+                              </span>
+                            </span>
+                          </td>
+
+                          {/* Acciones */}
                           <td className="p-2.5 text-center">
-                            {isEditing ? (
-                              <div className="flex items-center justify-center gap-1">
-                                <button
-                                  type="button"
-                                  onClick={() => handleSaveEdit(p.id)}
-                                  className="p-1 bg-emerald-600 text-white rounded hover:bg-emerald-700 cursor-pointer"
-                                  title="Guardar cambios"
-                                >
-                                  <Save className="w-3.5 h-3.5" />
-                                </button>
-                                <button
-                                  type="button"
-                                  onClick={() => setEditingProductId(null)}
-                                  className="p-1 bg-zinc-200 text-zinc-600 rounded hover:bg-zinc-300 cursor-pointer"
-                                  title="Cancelar"
-                                >
-                                  <X className="w-3.5 h-3.5" />
-                                </button>
-                              </div>
-                            ) : (
+                            <div className="flex items-center justify-center gap-1.5">
                               <button
                                 type="button"
-                                onClick={() => handleStartEdit(p)}
-                                className="p-1.5 text-zinc-400 hover:text-[#FF8407] hover:bg-amber-50 rounded transition-colors cursor-pointer"
-                                title="Editar precio o datos"
+                                onClick={() => setModalEditingProduct(p)}
+                                className="px-2.5 py-1.5 bg-black hover:bg-[#FF8407] text-white rounded-lg transition-colors cursor-pointer flex items-center gap-1 text-[11px] font-bold uppercase tracking-wider shadow-2xs"
+                                title="Editar todos los datos y colores del producto"
                               >
                                 <Edit3 className="w-3.5 h-3.5" />
+                                <span className="hidden sm:inline">Editar</span>
                               </button>
-                            )}
+                              <button
+                                type="button"
+                                onClick={() => handleDeleteProduct(p.id, p.name)}
+                                className="p-1.5 text-zinc-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors cursor-pointer"
+                                title="Eliminar producto de Firestore"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </button>
+                            </div>
                           </td>
                         </tr>
                       );
@@ -1209,6 +1279,17 @@ export const PriceListManager: React.FC<PriceListManagerProps> = ({
             </div>
           </div>
         </div>
+      )}
+
+      {/* Full Product & Variant Editor Modal */}
+      {modalEditingProduct && (
+        <ProductEditModal
+          isOpen={true}
+          onClose={() => setModalEditingProduct(null)}
+          product={modalEditingProduct}
+          onSave={handleSaveModalProduct}
+          onDeleteProduct={handleDeleteProduct}
+        />
       )}
     </div>
   );

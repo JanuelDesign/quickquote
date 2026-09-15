@@ -17,6 +17,7 @@ import {
 interface UnderlaymentCalculatorProps {
   products: Product[];
   language?: Language;
+  initialProductId?: string;
   onAddToCart: (
     product: Product,
     rollCount: number,
@@ -28,6 +29,7 @@ interface UnderlaymentCalculatorProps {
 export const UnderlaymentCalculator: React.FC<UnderlaymentCalculatorProps> = ({
   products,
   language = 'en',
+  initialProductId,
   onAddToCart
 }) => {
   const t = translations[language];
@@ -42,6 +44,36 @@ export const UnderlaymentCalculator: React.FC<UnderlaymentCalculatorProps> = ({
   const [areaSqft, setAreaSqft] = useState<string>('');
   const [notes, setNotes] = useState<string>('');
   const [addedSuccess, setAddedSuccess] = useState(false);
+
+  // Jump to specific product if passed via search selection
+  React.useEffect(() => {
+    if (initialProductId) {
+      const match = underlaymentProducts.find(p => p.id === initialProductId);
+      if (match) {
+        setSelectedProduct(match);
+        setUnitPrice(match.basePrice || 22.00);
+        setCurrentStep(2);
+        scrollToCalculatorTop();
+      }
+    }
+  }, [initialProductId]);
+
+  // Live synchronization
+  React.useEffect(() => {
+    if (!underlaymentProducts.length) return;
+    if (!selectedProduct?.id || !underlaymentProducts.some(p => p.id === selectedProduct.id)) {
+      const fallback = underlaymentProducts[0];
+      if (fallback) {
+        setSelectedProduct(fallback);
+        setUnitPrice(fallback.basePrice || 22.00);
+      }
+      return;
+    }
+    const fresh = underlaymentProducts.find(p => p.id === selectedProduct.id);
+    if (fresh) {
+      setSelectedProduct(fresh);
+    }
+  }, [products]);
 
   // Extract roll coverage from size or default to 100
   const getCoveragePerRoll = (prod: Product): number => {

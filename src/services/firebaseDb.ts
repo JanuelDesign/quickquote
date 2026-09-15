@@ -54,6 +54,24 @@ const CLIENTS_COLLECTION = 'clients';
 const QUOTATIONS_COLLECTION = 'quotations';
 const SETTINGS_COLLECTION = 'settings';
 
+// Helper to sanitize objects for Firestore (removes undefined values that Firestore rejects)
+export function cleanForFirestore<T>(data: T): any {
+  if (data === null || data === undefined) return null;
+  if (Array.isArray(data)) {
+    return data.map((item) => (typeof item === 'object' ? cleanForFirestore(item) : item));
+  }
+  if (typeof data === 'object' && !(data instanceof Date)) {
+    const cleaned: Record<string, any> = {};
+    for (const [key, val] of Object.entries(data as Record<string, any>)) {
+      if (val !== undefined) {
+        cleaned[key] = typeof val === 'object' && val !== null ? cleanForFirestore(val) : val;
+      }
+    }
+    return cleaned;
+  }
+  return data;
+}
+
 // ==========================================
 // 1. PRODUCTS (Catálogo de Productos en la Nube)
 // ==========================================
@@ -74,7 +92,7 @@ export function subscribeToProducts(
           const batch = writeBatch(db);
           for (const prod of INITIAL_PRODUCTS) {
             const docRef = doc(db, PRODUCTS_COLLECTION, prod.id);
-            batch.set(docRef, prod);
+            batch.set(docRef, cleanForFirestore(prod));
           }
           await batch.commit();
           onSuccess(INITIAL_PRODUCTS);
@@ -91,29 +109,6 @@ export function subscribeToProducts(
         products.push(d.data() as Product);
       });
 
-      // Check if Firestore catalog needs to be upgraded with the official PDF catalog variants and new color finishes
-      const pulseSelect = products.find((p) => p.id === 'spc-5.5mm-pulse-select');
-      const needsOfficialUpgrade = !pulseSelect || !pulseSelect.colors?.some((c) => c.code === 'Q-07');
-      if (needsOfficialUpgrade) {
-        console.log('Actualizando catálogo de Firestore con variantes oficiales y acabados de color...');
-        try {
-          const batch = writeBatch(db);
-          for (const prod of INITIAL_PRODUCTS) {
-            const docRef = doc(db, PRODUCTS_COLLECTION, prod.id);
-            batch.set(docRef, prod);
-          }
-          await batch.commit();
-          // Re-save any custom products created by the user
-          const customProds = products.filter((p) => p.isCustom);
-          for (const cp of customProds) {
-            await setDoc(doc(db, PRODUCTS_COLLECTION, cp.id), cp, { merge: true });
-          }
-          return;
-        } catch (e) {
-          console.warn('Could not auto-upgrade Firestore catalog:', e);
-        }
-      }
-
       onSuccess(products);
     },
     (error) => {
@@ -125,7 +120,8 @@ export function subscribeToProducts(
 
 export async function saveProductToDb(product: Product): Promise<void> {
   const docRef = doc(db, PRODUCTS_COLLECTION, product.id);
-  await setDoc(docRef, product, { merge: true });
+  const cleaned = cleanForFirestore(product);
+  await setDoc(docRef, cleaned);
 }
 
 export async function deleteProductFromDb(productId: string): Promise<void> {
@@ -137,7 +133,7 @@ export async function batchSaveProductsToDb(products: Product[]): Promise<void> 
   const batch = writeBatch(db);
   for (const prod of products) {
     const docRef = doc(db, PRODUCTS_COLLECTION, prod.id);
-    batch.set(docRef, prod, { merge: true });
+    batch.set(docRef, cleanForFirestore(prod));
   }
   await batch.commit();
 }

@@ -15,6 +15,8 @@ interface CategoryTabsProps {
   onSelectCategory: (cat: ProductCategory) => void;
   onOpenCustomItem?: () => void;
   itemCounts?: Record<ProductCategory, number>;
+  matchCounts?: Record<ProductCategory, number>;
+  isSearching?: boolean;
   language?: Language;
 }
 
@@ -22,6 +24,8 @@ export const CategoryTabs: React.FC<CategoryTabsProps> = ({
   activeCategory,
   onSelectCategory,
   itemCounts = { piso: 0, rodapie: 0, perfiles: 0, escalones: 0, wall_panels: 0, underlayment: 0, otros: 0 },
+  matchCounts,
+  isSearching = false,
   language = 'en'
 }) => {
   const t = translations[language];
@@ -78,6 +82,8 @@ export const CategoryTabs: React.FC<CategoryTabsProps> = ({
           const Icon = cat.icon;
           const isActive = activeCategory === cat.id;
           const count = itemCounts[cat.id] || 0;
+          const matchCount = matchCounts ? (matchCounts[cat.id] || 0) : 0;
+          const isFadedOut = isSearching && matchCount === 0 && !isActive;
 
           return (
             <button
@@ -88,6 +94,8 @@ export const CategoryTabs: React.FC<CategoryTabsProps> = ({
               className={`flex items-center justify-between p-2.5 sm:p-3 rounded-xl text-left transition-all duration-150 cursor-pointer border select-none ${
                 isActive
                   ? 'bg-[#FF8407] border-[#FF8407] text-white shadow-md shadow-[#FF8407]/20 ring-2 ring-[#FF8407]/30'
+                  : isFadedOut
+                  ? 'bg-[#F9F8F5] opacity-60 hover:opacity-100 hover:bg-[#F2F1EC] border-[#EAE8E1] text-[#9C9A90] hover:text-[#181818]'
                   : 'bg-[#F2F1EC] hover:bg-[#EAE8E1] border-[#E4E2DA] text-[#6B6A63] hover:text-[#181818]'
               }`}
             >
@@ -108,22 +116,38 @@ export const CategoryTabs: React.FC<CategoryTabsProps> = ({
                   <span className={`text-[10px] block truncate mt-0.5 ${
                     isActive ? 'text-white/80' : 'text-[#9C9A90]'
                   }`}>
-                    {cat.sublabel}
+                    {isSearching ? `${matchCount} ${language === 'en' ? 'matches' : 'coincidencias'}` : cat.sublabel}
                   </span>
                 </div>
               </div>
 
-              {count > 0 && (
-                <span
-                  className={`ml-1.5 px-1.5 py-0.5 text-[10px] sm:text-[11px] font-black rounded-full shrink-0 flex items-center justify-center ${
-                    isActive
-                      ? 'bg-white text-[#FF8407] shadow-2xs'
-                      : 'bg-[#181818] text-white'
-                  }`}
-                  title={`${count} items in quote`}
-                >
-                  {count}
-                </span>
+              {/* In search mode, show match count badge if > 0. In normal mode, show cart items count */}
+              {isSearching ? (
+                matchCount > 0 && (
+                  <span
+                    className={`ml-1.5 px-1.5 py-0.5 text-[10px] sm:text-[11px] font-black rounded-full shrink-0 flex items-center justify-center ${
+                      isActive
+                        ? 'bg-white text-[#FF8407] shadow-2xs'
+                        : 'bg-[#181818] text-white'
+                    }`}
+                    title={`${matchCount} ${language === 'en' ? 'products found' : 'productos encontrados'}`}
+                  >
+                    {matchCount}
+                  </span>
+                )
+              ) : (
+                count > 0 && (
+                  <span
+                    className={`ml-1.5 px-1.5 py-0.5 text-[10px] sm:text-[11px] font-black rounded-full shrink-0 flex items-center justify-center ${
+                      isActive
+                        ? 'bg-white text-[#FF8407] shadow-2xs'
+                        : 'bg-[#181818] text-white'
+                    }`}
+                    title={`${count} items in quote`}
+                  >
+                    {count}
+                  </span>
+                )
               )}
             </button>
           );

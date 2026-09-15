@@ -12,6 +12,7 @@ import {
 interface BaseboardCalculatorProps {
   products: Product[];
   language?: Language;
+  initialProductId?: string;
   onAddToCart: (
     product: Product,
     linearFeet: number,
@@ -24,6 +25,7 @@ interface BaseboardCalculatorProps {
 export const BaseboardCalculator: React.FC<BaseboardCalculatorProps> = ({
   products,
   language = 'en',
+  initialProductId,
   onAddToCart
 }) => {
   const t = translations[language];
@@ -35,6 +37,36 @@ export const BaseboardCalculator: React.FC<BaseboardCalculatorProps> = ({
   const [pricePerLinearFt, setPricePerLinearFt] = useState<number>(baseboardProducts[0]?.basePrice || 1.19);
   const [notes, setNotes] = useState<string>('');
   const [addedSuccess, setAddedSuccess] = useState(false);
+
+  // Jump to specific product if passed via search selection
+  React.useEffect(() => {
+    if (initialProductId) {
+      const match = baseboardProducts.find(p => p.id === initialProductId);
+      if (match) {
+        setSelectedProduct(match);
+        setPricePerLinearFt(match.basePrice || 1.19);
+        setCurrentStep(2);
+        scrollToCalculatorTop();
+      }
+    }
+  }, [initialProductId]);
+
+  // Live synchronization
+  React.useEffect(() => {
+    if (!baseboardProducts.length) return;
+    if (!selectedProduct?.id || !baseboardProducts.some(p => p.id === selectedProduct.id)) {
+      const fallback = baseboardProducts[0];
+      if (fallback) {
+        setSelectedProduct(fallback);
+        setPricePerLinearFt(fallback.basePrice || 1.19);
+      }
+      return;
+    }
+    const fresh = baseboardProducts.find(p => p.id === selectedProduct.id);
+    if (fresh) {
+      setSelectedProduct(fresh);
+    }
+  }, [products]);
 
   const scrollToCalculatorTop = () => {
     setTimeout(() => {

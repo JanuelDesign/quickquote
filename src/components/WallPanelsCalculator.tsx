@@ -17,6 +17,7 @@ import {
 interface WallPanelsCalculatorProps {
   products: Product[];
   language?: Language;
+  initialProductId?: string;
   onAddToCart: (
     product: Product,
     pieceCount: number,
@@ -29,6 +30,7 @@ interface WallPanelsCalculatorProps {
 export const WallPanelsCalculator: React.FC<WallPanelsCalculatorProps> = ({
   products,
   language = 'en',
+  initialProductId,
   onAddToCart
 }) => {
   const t = translations[language];
@@ -46,6 +48,48 @@ export const WallPanelsCalculator: React.FC<WallPanelsCalculatorProps> = ({
   const [wallWidthFeet, setWallWidthFeet] = useState<string>('');
   const [notes, setNotes] = useState<string>('');
   const [addedSuccess, setAddedSuccess] = useState(false);
+
+  // Jump to specific product if passed via search selection
+  React.useEffect(() => {
+    if (initialProductId) {
+      const match = panelProducts.find(p => p.id === initialProductId);
+      if (match) {
+        setSelectedProduct(match);
+        setUnitPrice(match.basePrice || 17.00);
+        setSelectedColor(match.colors?.[0]);
+        setCurrentStep(2);
+        scrollToCalculatorTop();
+      }
+    }
+  }, [initialProductId]);
+
+  // Live synchronization: when products change via Firestore, Admin updates, or search filter
+  React.useEffect(() => {
+    if (!panelProducts.length) return;
+    if (!selectedProduct?.id || !panelProducts.some(p => p.id === selectedProduct.id)) {
+      const fallback = panelProducts[0];
+      if (fallback) {
+        setSelectedProduct(fallback);
+        setSelectedColor(fallback.colors?.[0]);
+        setUnitPrice(fallback.basePrice || 17.00);
+      }
+      return;
+    }
+    const fresh = panelProducts.find(p => p.id === selectedProduct.id);
+    if (fresh) {
+      setSelectedProduct(fresh);
+      if (selectedColor) {
+        const matchingColor = fresh.colors?.find(c => c.code === selectedColor.code || c.name === selectedColor.name);
+        if (matchingColor) {
+          setSelectedColor(matchingColor);
+        } else {
+          setSelectedColor(fresh.colors?.[0]);
+        }
+      } else if (fresh.colors && fresh.colors.length > 0) {
+        setSelectedColor(fresh.colors[0]);
+      }
+    }
+  }, [products]);
 
   const scrollToCalculatorTop = () => {
     setTimeout(() => {

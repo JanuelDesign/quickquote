@@ -16,6 +16,7 @@ import {
 interface StairsCalculatorProps {
   products: Product[];
   language?: Language;
+  initialProductId?: string;
   onAddToCart: (
     product: Product,
     stepCount: number,
@@ -31,6 +32,7 @@ interface StairsCalculatorProps {
 export const StairsCalculator: React.FC<StairsCalculatorProps> = ({
   products,
   language = 'en',
+  initialProductId,
   onAddToCart
 }) => {
   const t = translations[language];
@@ -45,6 +47,36 @@ export const StairsCalculator: React.FC<StairsCalculatorProps> = ({
   const [riserStyle, setRiserStyle] = useState<'white' | 'match'>('white');
   const [notes, setNotes] = useState<string>('');
   const [addedSuccess, setAddedSuccess] = useState(false);
+
+  // Jump to specific product if passed via search selection
+  React.useEffect(() => {
+    if (initialProductId) {
+      const match = stairProducts.find(p => p.id === initialProductId);
+      if (match) {
+        setSelectedProduct(match);
+        setStepUnitPrice(match.basePrice || 19.00);
+        setCurrentStep(2);
+        scrollToCalculatorTop();
+      }
+    }
+  }, [initialProductId]);
+
+  // Live synchronization
+  React.useEffect(() => {
+    if (!stairProducts.length) return;
+    if (!selectedProduct?.id || !stairProducts.some(p => p.id === selectedProduct.id)) {
+      const fallback = stairProducts[0];
+      if (fallback) {
+        setSelectedProduct(fallback);
+        setStepUnitPrice(fallback.basePrice || 19.00);
+      }
+      return;
+    }
+    const fresh = stairProducts.find(p => p.id === selectedProduct.id);
+    if (fresh) {
+      setSelectedProduct(fresh);
+    }
+  }, [products]);
 
   const scrollToCalculatorTop = () => {
     setTimeout(() => {

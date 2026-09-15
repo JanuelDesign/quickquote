@@ -33,12 +33,15 @@ import { ProfilesCalculator } from './components/ProfilesCalculator';
 import { StairsCalculator } from './components/StairsCalculator';
 import { WallPanelsCalculator } from './components/WallPanelsCalculator';
 import { UnderlaymentCalculator } from './components/UnderlaymentCalculator';
+import { ProductSearchBar } from './components/ProductSearchBar';
+import { CrossCategorySearchResults } from './components/CrossCategorySearchResults';
 import { CartSummary } from './components/CartSummary';
 import { CustomProductModal } from './components/CustomProductModal';
 import { ClientModal } from './components/ClientModal';
 import { QuoteModal } from './components/QuoteModal';
 import { PriceListManager } from './components/PriceListManager';
 import { QuotesHistoryModal } from './components/QuotesHistoryModal';
+import { matchesProductSearch, getCategoryMatchCounts, getCategoryDisplayName } from './utils/productSearch';
 import { fetchGoogleSheetsCatalog, DEFAULT_GOOGLE_SHEET_URL } from './utils/tsvExporter';
 import { getAccessToken } from './services/googleAuth';
 import { 
@@ -151,6 +154,43 @@ export default function App() {
   });
   const [shippingAddress, setShippingAddress] = useState<string>('');
   const [sameAsBillingAddress, setSameAsBillingAddress] = useState<boolean>(true);
+
+  // Real-time Product Search State (Live Firebase-synced catalog)
+  const [productSearchTerm, setProductSearchTerm] = useState<string>('');
+  const [isViewingAllSearchResults, setIsViewingAllSearchResults] = useState<boolean>(false);
+  const [targetProductId, setTargetProductId] = useState<string | undefined>(undefined);
+
+  const isSearching = productSearchTerm.trim().length > 0;
+
+  // Real-time matching against products (synced with Firebase)
+  const allMatchingProducts = React.useMemo(() => {
+    if (!isSearching) return products;
+    return products.filter(p => matchesProductSearch(p, productSearchTerm));
+  }, [products, productSearchTerm, isSearching]);
+
+  const categoryMatchCounts = React.useMemo(() => {
+    return getCategoryMatchCounts(products, productSearchTerm);
+  }, [products, productSearchTerm]);
+
+  const matchesInActiveCategory = React.useMemo(() => {
+    if (!isSearching) {
+      return products.filter(p => p.category === activeCategory);
+    }
+    return allMatchingProducts.filter(p => p.category === activeCategory);
+  }, [allMatchingProducts, activeCategory, isSearching, products]);
+
+  // Handler when selecting a product from cross-category search results
+  const handleSelectSearchedProduct = (product: Product) => {
+    setActiveCategory(product.category);
+    setTargetProductId(product.id);
+    setIsViewingAllSearchResults(false);
+    setTimeout(() => {
+      const target = document.getElementById('active-calculator-container') || document.getElementById('category-tabs-container');
+      if (target) {
+        target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    }, 50);
+  };
 
   const handleAddAIParsedItems = (parsedItems: CartItem[]) => {
     setCartItems(prev => [...prev, ...parsedItems]);
@@ -841,89 +881,210 @@ export default function App() {
           </div>
         </div>
 
-        {/* 4 Category Tabs */}
-        <div id="category-tabs-container">
-          <CategoryTabs
+        {/* Search Bar & Category Controls */}
+        <div className="space-y-2.5">
+          <ProductSearchBar
+            searchTerm={productSearchTerm}
+            onSearchChange={(val) => {
+              setProductSearchTerm(val);
+              setIsViewingAllSearchResults(false);
+            }}
+            onClear={() => {
+              setProductSearchTerm('');
+              setIsViewingAllSearchResults(false);
+              setTargetProductId(undefined);
+            }}
+            totalProductsCount={products.length}
+            totalMatchesCount={allMatchingProducts.length}
+            matchesInActiveCategory={matchesInActiveCategory.length}
             activeCategory={activeCategory}
-            onSelectCategory={setActiveCategory}
-            onOpenCustomItem={() => setIsCustomModalOpen(true)}
-            itemCounts={categoryItemCounts}
+            categoryMatchCounts={categoryMatchCounts}
+            onSelectCategory={(cat) => {
+              setActiveCategory(cat);
+              setIsViewingAllSearchResults(false);
+            }}
+            onViewAllResults={() => setIsViewingAllSearchResults(prev => !prev)}
+            isViewingAllResults={isViewingAllSearchResults}
             language={language}
           />
+
+          {/* 4 Category Tabs */}
+          <div id="category-tabs-container">
+            <CategoryTabs
+              activeCategory={activeCategory}
+              onSelectCategory={(cat) => {
+                setActiveCategory(cat);
+                setIsViewingAllSearchResults(false);
+              }}
+              onOpenCustomItem={() => setIsCustomModalOpen(true)}
+              itemCounts={categoryItemCounts}
+              matchCounts={isSearching ? categoryMatchCounts : undefined}
+              isSearching={isSearching}
+              language={language}
+            />
+          </div>
         </div>
 
         {/* Two-Column Grid: Calculators on Left, Cart Summary on Right (Desktop) */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
           {/* Calculators Column */}
           <div id="active-calculator-container" className="lg:col-span-8 space-y-6 scroll-mt-4">
-            {activeCategory === 'piso' && (
-              <FloorCalculator
-                products={products}
-                onAddToCart={handleAddFloor}
+            {/* Condition 1: Searching and 0 matches anywhere in the catalog -> Empty State */}
+            {isSearching && allMatchingProducts.length === 0 ? (
+              <CrossCategorySearchResults
+                searchTerm={productSearchTerm}
+                products={[]}
+                activeCategory={activeCategory}
+                onSelectProduct={handleSelectSearchedProduct}
+                onSelectCategory={(cat) => {
+                  setActiveCategory(cat);
+                  setIsViewingAllSearchResults(false);
+                }}
+                onClearSearch={() => {
+                  setProductSearchTerm('');
+                  setIsViewingAllSearchResults(false);
+                  setTargetProductId(undefined);
+                }}
                 language={language}
               />
-            )}
-
-            {activeCategory === 'rodapie' && (
-              <BaseboardCalculator
-                products={products}
-                onAddToCart={handleAddBaseboard}
+            ) : isSearching && (isViewingAllSearchResults || matchesInActiveCategory.length === 0) ? (
+              /* Condition 2: Searching and 0 matches in current category OR user explicitly clicked "Ver Todos" */
+              <CrossCategorySearchResults
+                searchTerm={productSearchTerm}
+                products={allMatchingProducts}
+                activeCategory={activeCategory}
+                onSelectProduct={handleSelectSearchedProduct}
+                onSelectCategory={(cat) => {
+                  setActiveCategory(cat);
+                  setIsViewingAllSearchResults(false);
+                }}
+                onClearSearch={() => {
+                  setProductSearchTerm('');
+                  setIsViewingAllSearchResults(false);
+                  setTargetProductId(undefined);
+                }}
                 language={language}
               />
-            )}
+            ) : (
+              /* Condition 3: Normal mode or Searching with matching products in current category */
+              <>
+                {/* Cross-category notice if there are matches in active category AND also in other categories */}
+                {isSearching && allMatchingProducts.length > matchesInActiveCategory.length && (
+                  <div className="bg-[#F9F8F5] border border-[#EAE8E1] rounded-xl px-4 py-2.5 flex items-center justify-between flex-wrap gap-2 text-xs">
+                    <div className="flex items-center gap-1.5 flex-wrap text-[#6B6A63]">
+                      <span>
+                        {language === 'en'
+                          ? `Showing ${matchesInActiveCategory.length} in ${getCategoryDisplayName(activeCategory, language)}.`
+                          : `Mostrando ${matchesInActiveCategory.length} en ${getCategoryDisplayName(activeCategory, language)}.`}
+                      </span>
+                      <span className="font-semibold text-[#181818]">
+                        {language === 'en' ? 'Also found in:' : 'También se encontraron en:'}
+                      </span>
+                      {(Object.entries(categoryMatchCounts) as [ProductCategory, number][])
+                        .filter(([cat, count]) => cat !== activeCategory && count > 0)
+                        .map(([cat, count]) => (
+                          <button
+                            key={cat}
+                            type="button"
+                            onClick={() => {
+                              setActiveCategory(cat as ProductCategory);
+                              setIsViewingAllSearchResults(false);
+                            }}
+                            className="font-bold underline text-[#181818] hover:text-[#FF8407] cursor-pointer"
+                          >
+                            {getCategoryDisplayName(cat as ProductCategory, language)} ({count})
+                          </button>
+                        ))}
+                    </div>
 
-            {activeCategory === 'perfiles' && (
-              <ProfilesCalculator
-                products={products}
-                onAddToCart={handleAddProfile}
-                language={language}
-              />
-            )}
+                    <button
+                      type="button"
+                      onClick={() => setIsViewingAllSearchResults(true)}
+                      className="font-bold text-[#181818] hover:text-[#FF8407] underline cursor-pointer text-[11px]"
+                    >
+                      {language === 'en'
+                        ? `View all (${allMatchingProducts.length})`
+                        : `Ver todos (${allMatchingProducts.length})`}
+                    </button>
+                  </div>
+                )}
 
-            {activeCategory === 'escalones' && (
-              <StairsCalculator
-                products={products}
-                onAddToCart={handleAddStairs}
-                language={language}
-              />
-            )}
+                {activeCategory === 'piso' && (
+                  <FloorCalculator
+                    products={allMatchingProducts}
+                    initialProductId={targetProductId}
+                    onAddToCart={handleAddFloor}
+                    language={language}
+                  />
+                )}
 
-            {activeCategory === 'wall_panels' && (
-              <WallPanelsCalculator
-                products={products}
-                onAddToCart={handleAddWallPanel}
-                language={language}
-              />
-            )}
+                {activeCategory === 'rodapie' && (
+                  <BaseboardCalculator
+                    products={allMatchingProducts}
+                    initialProductId={targetProductId}
+                    onAddToCart={handleAddBaseboard}
+                    language={language}
+                  />
+                )}
 
-            {activeCategory === 'underlayment' && (
-              <UnderlaymentCalculator
-                products={products}
-                onAddToCart={handleAddUnderlayment}
-                language={language}
-              />
-            )}
+                {activeCategory === 'perfiles' && (
+                  <ProfilesCalculator
+                    products={allMatchingProducts}
+                    initialProductId={targetProductId}
+                    onAddToCart={handleAddProfile}
+                    language={language}
+                  />
+                )}
 
-            {activeCategory === 'otros' && (
-              <div className="bg-white rounded-xl p-8 border border-[#E5E5E5] shadow-2xs text-center space-y-4">
-                <div className="w-12 h-12 rounded-xl bg-black text-[#FF8407] flex items-center justify-center mx-auto">
-                  <Sparkles className="w-6 h-6" />
-                </div>
-                <h3 className="text-base font-bold text-black uppercase tracking-wider">
-                  {t.customProductTitle}
-                </h3>
-                <p className="text-xs text-[#8C8C8C] max-w-md mx-auto">
-                  {t.customProductSubtitle}
-                </p>
-                <button
-                  type="button"
-                  onClick={() => setIsCustomModalOpen(true)}
-                  className="px-5 py-2.5 bg-[#FF8407] text-white text-xs font-bold rounded-lg hover:bg-[#E07300] transition-colors inline-flex items-center gap-2 cursor-pointer shadow-md uppercase tracking-wider"
-                >
-                  <Plus className="w-4 h-4" />
-                  <span>{t.addToQuote}</span>
-                </button>
-              </div>
+                {activeCategory === 'escalones' && (
+                  <StairsCalculator
+                    products={allMatchingProducts}
+                    initialProductId={targetProductId}
+                    onAddToCart={handleAddStairs}
+                    language={language}
+                  />
+                )}
+
+                {activeCategory === 'wall_panels' && (
+                  <WallPanelsCalculator
+                    products={allMatchingProducts}
+                    initialProductId={targetProductId}
+                    onAddToCart={handleAddWallPanel}
+                    language={language}
+                  />
+                )}
+
+                {activeCategory === 'underlayment' && (
+                  <UnderlaymentCalculator
+                    products={allMatchingProducts}
+                    initialProductId={targetProductId}
+                    onAddToCart={handleAddUnderlayment}
+                    language={language}
+                  />
+                )}
+
+                {activeCategory === 'otros' && (
+                  <div className="bg-white rounded-xl p-8 border border-[#E5E5E5] shadow-2xs text-center space-y-4">
+                    <div className="w-12 h-12 rounded-xl bg-black text-[#FF8407] flex items-center justify-center mx-auto">
+                      <Sparkles className="w-6 h-6" />
+                    </div>
+                    <h3 className="text-base font-bold text-black uppercase tracking-wider">
+                      {t.customProductTitle}
+                    </h3>
+                    <p className="text-xs text-[#8C8C8C] max-w-md mx-auto">
+                      {t.customProductSubtitle}
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => setIsCustomModalOpen(true)}
+                      className="px-5 py-2.5 bg-[#FF8407] text-white text-xs font-bold rounded-lg hover:bg-[#E07300] transition-colors inline-flex items-center gap-2 cursor-pointer shadow-md uppercase tracking-wider"
+                    >
+                      <Plus className="w-4 h-4" />
+                      <span>{t.addToQuote}</span>
+                    </button>
+                  </div>
+                )}
+              </>
             )}
           </div>
 

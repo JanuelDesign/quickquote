@@ -179,8 +179,8 @@ export function generateQuotePDF(quote: Quotation, settings: AppSettings, lang: 
     if (item.notes) desc += isEn ? `\nNote: ${item.notes}` : `\nNota: ${item.notes}`;
 
     let qtyText = `${item.userEnteredQuantity} ${item.quantityUnitLabel}`;
-    if (item.calculatedUnitsLabel) {
-      qtyText += `\n➔ ${item.calculatedUnitsLabel}`;
+    if (item.calculatedUnitsLabel && item.calculatedUnitsLabel.trim() !== `${item.userEnteredQuantity} ${item.quantityUnitLabel}`.trim()) {
+      qtyText += `\n${item.calculatedUnitsLabel}`;
     }
 
     const priceDetail = getItemUnitPriceDetail(item, isEn ? 'en' : 'es');
@@ -219,7 +219,7 @@ export function generateQuotePDF(quote: Quotation, settings: AppSettings, lang: 
     columnStyles: {
       0: { cellWidth: 8, halign: 'center' },
       1: { cellWidth: 'auto' },
-      2: { cellWidth: 50 },
+      2: { cellWidth: 50, halign: 'left' },
       3: { cellWidth: 32, halign: 'right' },
       4: { cellWidth: 26, halign: 'right', fontStyle: 'bold' }
     },
@@ -269,19 +269,19 @@ export function generateQuotePDF(quote: Quotation, settings: AppSettings, lang: 
   doc.setTextColor(26, 26, 26);
   doc.text(formatCurrency(quote.subtotalProducts), pageWidth - margin - 4, currentTotalY, { align: 'right' });
 
-  // Delivery (Taxable with products)
+  // Delivery (Fixed rate, Tax Exempt / No Tax)
   if (quote.includeDelivery) {
     currentTotalY += 6;
     doc.setTextColor(80, 80, 80);
-    doc.text(isEn ? 'Delivery Fee (Taxable):' : 'Delivery Fijo (Gravable):', summaryX + 4, currentTotalY);
+    doc.text(isEn ? 'Delivery Fee (No Tax):' : 'Delivery Fijo (No Tax):', summaryX + 4, currentTotalY);
     doc.setTextColor(26, 26, 26);
     doc.text(formatCurrency(quote.deliveryCost), pageWidth - margin - 4, currentTotalY, { align: 'right' });
   }
 
-  // Sales Tax 7% (on Products + Delivery)
+  // Sales Tax 7% (on Products only, Delivery is No Tax)
   currentTotalY += 6;
   doc.setTextColor(80, 80, 80);
-  doc.text(isEn ? `FL Sales Tax (7%):` : `Impuesto Sales Tax (7%):`, summaryX + 4, currentTotalY);
+  doc.text(isEn ? `FL Sales Tax (7% on products):` : `Impuesto Sales Tax (7% s/materiales):`, summaryX + 4, currentTotalY);
   doc.setTextColor(26, 26, 26);
   doc.text(formatCurrency(quote.taxAmount), pageWidth - margin - 4, currentTotalY, { align: 'right' });
 
@@ -382,7 +382,7 @@ export function generateQuotePDF(quote: Quotation, settings: AppSettings, lang: 
   const footerY = doc.internal.pageSize.getHeight() - 10;
   doc.setFontSize(7.5);
   doc.setTextColor(140, 140, 140);
-  doc.text('QuickSurfaces — Luxury Flooring & Surfaces | Miami, FL | www.quicksurfaces.com', margin, footerY);
+  doc.text('QuickSurfaces - Luxury Flooring & Surfaces | Miami, FL | www.quicksurfaces.com', margin, footerY);
   doc.text(isEn ? 'Page 1 of 1' : 'Página 1 de 1', pageWidth - margin, footerY, { align: 'right' });
 
   return doc;

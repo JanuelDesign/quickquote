@@ -13,6 +13,7 @@ import {
 interface FloorCalculatorProps {
   products: Product[];
   language?: Language;
+  initialProductId?: string;
   onAddToCart: (
     product: Product,
     sqftRequired: number,
@@ -25,6 +26,7 @@ interface FloorCalculatorProps {
 export const FloorCalculator: React.FC<FloorCalculatorProps> = ({
   products,
   language = 'en',
+  initialProductId,
   onAddToCart
 }) => {
   const t = translations[language];
@@ -40,6 +42,53 @@ export const FloorCalculator: React.FC<FloorCalculatorProps> = ({
   const [pricePerSqft, setPricePerSqft] = useState<number>(floorProducts[0]?.basePrice || 1.49);
   const [notes, setNotes] = useState<string>('');
   const [addedSuccess, setAddedSuccess] = useState(false);
+
+  // Jump to specific product if passed via search selection
+  React.useEffect(() => {
+    if (initialProductId) {
+      const match = floorProducts.find(p => p.id === initialProductId);
+      if (match) {
+        setSelectedProduct(match);
+        setPricePerSqft(match.basePrice || 1.49);
+        if (match.colors && match.colors.length > 0) {
+          setSelectedColor(match.colors[0]);
+          setCurrentStep(2);
+        } else {
+          setCurrentStep(3);
+        }
+        scrollToCalculatorTop();
+      }
+    }
+  }, [initialProductId]);
+
+  // Live synchronization: when products change via Firestore, Admin updates, or search filter
+  React.useEffect(() => {
+    if (!floorProducts.length) return;
+
+    if (!selectedProduct?.id || !floorProducts.some(p => p.id === selectedProduct.id)) {
+      const fallback = floorProducts[0];
+      if (fallback) {
+        setSelectedProduct(fallback);
+        setSelectedColor(fallback.colors?.[0]);
+        setPricePerSqft(fallback.basePrice || 1.49);
+      }
+      return;
+    }
+    const fresh = floorProducts.find(p => p.id === selectedProduct.id);
+    if (fresh) {
+      setSelectedProduct(fresh);
+      if (selectedColor) {
+        const matchingColor = fresh.colors?.find(c => c.code === selectedColor.code || c.name === selectedColor.name);
+        if (matchingColor) {
+          setSelectedColor(matchingColor);
+        } else {
+          setSelectedColor(fresh.colors?.[0]);
+        }
+      } else if (fresh.colors && fresh.colors.length > 0) {
+        setSelectedColor(fresh.colors[0]);
+      }
+    }
+  }, [products]);
 
   // Helper to scroll smoothly to active calculator top on mobile/desktop
   const scrollToCalculatorTop = () => {
