@@ -11,7 +11,7 @@ import {
   getDocFromServer,
   writeBatch
 } from 'firebase/firestore';
-import { getAuth, signInAnonymously } from 'firebase/auth';
+import { getAuth } from 'firebase/auth';
 import firebaseConfig from '../../firebase-applet-config.json';
 import { Product, Client, Quotation, AppSettings } from '../types';
 import { INITIAL_PRODUCTS, INITIAL_CLIENTS, DEFAULT_SETTINGS } from '../data/initialProducts';
@@ -26,11 +26,6 @@ export const db = firebaseConfig.firestoreDatabaseId
 
 // Initialize Auth
 export const auth = getAuth(app);
-
-// Sign in anonymously in the background if not signed in to establish an authenticated session
-signInAnonymously(auth).catch((err) => {
-  console.warn('Anonymous auth note (fallback mode):', err.message);
-});
 
 // Test Connection per guidelines
 export async function testConnection(): Promise<boolean> {

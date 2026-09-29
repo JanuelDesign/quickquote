@@ -202,7 +202,7 @@ export const FloorCalculator: React.FC<FloorCalculatorProps> = ({
             </h3>
             <p className="text-xs text-[#6B6A63] font-medium leading-normal mt-0.5 truncate">
               {currentStep === 1 && `${floorProducts.length} ${language === 'en' ? 'collections available' : 'colecciones disponibles'}`}
-              {currentStep === 2 && `${selectedProduct.name} (${selectedProduct.colors?.length || 0} ${language === 'en' ? 'colors' : 'colores'})`}
+              {currentStep === 2 && `${selectedProduct.name} (${selectedProduct.colors?.length || 0} ${(selectedProduct.colors?.length || 0) === 1 ? (language === 'en' ? 'color' : 'color') : (language === 'en' ? 'colors' : 'colores')})`}
               {currentStep === 3 && `${selectedProduct.name}${selectedColor ? ` • ${selectedColor.name}` : ''}`}
             </p>
           </div>
@@ -265,7 +265,7 @@ export const FloorCalculator: React.FC<FloorCalculatorProps> = ({
                         ))}
                       </div>
                       <span className="text-[11px] text-[#6B6A63] font-semibold ml-1">
-                        {product.colors.length} {language === 'en' ? 'colors' : 'colores'}
+                        {product.colors.length} {product.colors.length === 1 ? 'color' : (language === 'en' ? 'colors' : 'colores')}
                       </span>
                     </div>
                   </div>

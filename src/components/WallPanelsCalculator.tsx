@@ -147,8 +147,9 @@ export const WallPanelsCalculator: React.FC<WallPanelsCalculatorProps> = ({
 
   return (
     <div className="space-y-4">
-      {/* Step Navigation Card */}
+      {/* Step Navigation Card - 2 Distinct Rows */}
       <div className="bg-white rounded-xl p-4 sm:p-5 border border-[#E4E2DA] shadow-xs space-y-3">
+        {/* Row 1: Step indication on Left, Progress Dots on Right */}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             {currentStep === 2 && (
@@ -156,48 +157,57 @@ export const WallPanelsCalculator: React.FC<WallPanelsCalculatorProps> = ({
                 type="button"
                 id="btn-panel-back"
                 onClick={() => setCurrentStep(1)}
-                className="w-7 h-7 rounded-lg border border-zinc-200 bg-zinc-50 hover:bg-zinc-100 flex items-center justify-center text-zinc-600 transition-colors cursor-pointer"
+                className="h-7 px-2.5 rounded-lg border border-[#E4E2DA] hover:border-[#181818] bg-[#F2F1EC] text-[#181818] text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer mr-1"
                 title="Volver al catálogo de paneles"
               >
-                <ArrowLeft className="w-4 h-4" />
+                <ArrowLeft className="w-3.5 h-3.5" />
+                <span>{language === 'en' ? 'Back' : 'Atrás'}</span>
               </button>
             )}
-            <span className="text-[11px] font-bold uppercase tracking-wider text-zinc-400">
-              {currentStep === 1 ? 'Paso 1 de 2' : 'Paso 2 de 2'}
+            <span className="text-[11px] uppercase font-bold tracking-wider text-[#9C9A90]">
+              {language === 'en' ? `Step ${currentStep} of 2` : `Paso ${currentStep} de 2`}
             </span>
           </div>
 
           <div className="flex items-center gap-1.5">
-            <span className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold ${
-              currentStep === 1 ? 'bg-[#FF8407] text-white' : 'bg-emerald-500 text-white'
-            }`}>
-              {currentStep > 1 ? <Check className="w-3 h-3" /> : '1'}
-            </span>
-            <div className="w-6 h-0.5 bg-zinc-200" />
-            <span className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold ${
-              currentStep === 2 ? 'bg-[#FF8407] text-white' : 'bg-zinc-200 text-zinc-500'
-            }`}>
-              2
-            </span>
+            {[1, 2].map((step) => (
+              <button
+                key={step}
+                type="button"
+                onClick={() => {
+                  if (step < currentStep) setCurrentStep(step as 1 | 2);
+                }}
+                className={`w-6 h-6 rounded-full text-[11px] font-bold flex items-center justify-center transition-all ${
+                  currentStep === step
+                    ? 'bg-[#FF8407] text-white shadow-xs'
+                    : currentStep > step
+                    ? 'bg-[#181818] text-white cursor-pointer hover:bg-black'
+                    : 'bg-[#F2F1EC] text-[#9C9A90] cursor-default'
+                }`}
+              >
+                {currentStep > step ? '✓' : step}
+              </button>
+            ))}
           </div>
         </div>
 
-        <div>
-          <h2 className="text-base sm:text-lg font-bold text-black flex items-center gap-2">
-            <div className="w-7 h-7 rounded-lg bg-black text-[#FF8407] flex items-center justify-center shrink-0">
-              <LayoutGrid className="w-4 h-4" />
-            </div>
-            <span>
+        {/* Row 2: Category Icon on Left + Title/Subtitle in Column on Right */}
+        <div className="flex items-center gap-3.5 pt-2 border-t border-[#F2F1EC]">
+          <div className="w-9 h-9 min-w-[36px] min-h-[36px] rounded-lg bg-[#181818] text-[#FF8407] flex items-center justify-center font-bold shrink-0">
+            <LayoutGrid className="w-4 h-4" />
+          </div>
+          <div className="min-w-0">
+            <h3 className="text-sm font-bold text-[#181818] leading-tight truncate">
               {currentStep === 1 
                 ? (language === 'en' ? '1. Select Wall Panel Model' : '1. Selecciona el Modelo de Wall Panel') 
                 : (language === 'en' ? '2. Dimensions, Color & Pricing' : '2. Cantidad, Color & Precios')}
-            </span>
-          </h2>
-          <p className="text-xs text-zinc-500 mt-0.5">
-            {currentStep === 1
-              ? `${panelProducts.length} modelos de paneles decorativos disponibles`
-              : selectedProduct.name}
-          </p>
+            </h3>
+            <p className="text-xs text-[#6B6A63] font-medium leading-normal mt-0.5 truncate">
+              {currentStep === 1
+                ? `${panelProducts.length} ${language === 'en' ? 'decorative panel models available' : 'modelos de paneles decorativos disponibles'}`
+                : selectedProduct.name}
+            </p>
+          </div>
         </div>
       </div>
 

@@ -276,18 +276,6 @@ export const ProductEditModal: React.FC<ProductEditModalProps> = ({
               <span>2. Colores y Acabados ({colorVariants.length})</span>
             </button>
           </div>
-
-          {onDeleteProduct && (
-            <button
-              type="button"
-              onClick={() => onDeleteProduct(formData.id, formData.name)}
-              className="px-3 py-1.5 rounded-lg text-xs font-bold text-red-600 hover:bg-red-50 border border-red-200 transition-colors flex items-center gap-1 cursor-pointer uppercase tracking-wider"
-              title="Eliminar este producto del catálogo"
-            >
-              <Trash2 className="w-3.5 h-3.5" />
-              <span className="hidden sm:inline">Eliminar Producto</span>
-            </button>
-          )}
         </div>
 
         {/* FEEDBACK BANNERS */}
@@ -996,10 +984,23 @@ export const ProductEditModal: React.FC<ProductEditModalProps> = ({
 
         {/* MODAL FOOTER */}
         <div className="bg-[#F8F8F8] px-5 py-3.5 border-t border-[#E5E5E5] flex flex-col sm:flex-row items-center justify-between gap-3 shrink-0">
-          <div className="text-[11px] text-zinc-500 flex items-center gap-1.5">
-            <Info className="w-3.5 h-3.5 text-[#FF8407]" />
-            <span>Al guardar, los cambios se replican en tiempo real en la nube Firestore.</span>
-          </div>
+          {onDeleteProduct ? (
+            <button
+              type="button"
+              disabled={isSaving}
+              onClick={() => onDeleteProduct(formData.id, formData.name)}
+              className="px-3.5 py-2 text-xs font-bold text-red-600 hover:text-red-700 bg-red-50 hover:bg-red-100 border border-red-200 rounded-lg transition-colors flex items-center gap-1.5 cursor-pointer uppercase tracking-wider w-full sm:w-auto justify-center"
+              title="Eliminar este producto del catálogo permanentemente"
+            >
+              <Trash2 className="w-3.5 h-3.5 text-red-500" />
+              <span>Eliminar producto completo</span>
+            </button>
+          ) : (
+            <div className="text-[11px] text-zinc-500 flex items-center gap-1.5">
+              <Info className="w-3.5 h-3.5 text-[#FF8407]" />
+              <span>Al guardar, los cambios se replican en tiempo real en la nube Firestore.</span>
+            </div>
+          )}
 
           <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
             <button

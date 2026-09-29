@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Quotation, AppSettings, Language } from '../types';
-import { generateQuotePDF, openWhatsAppShare, generateWhatsAppMessage } from '../utils/pdfGenerator';
+import { generateQuotePDF, generateWhatsAppMessage } from '../utils/pdfGenerator';
 import { formatCurrency, getItemUnitPriceDetail } from '../utils/calculations';
 import { translations } from '../utils/translations';
 import { QuickSurfacesLogo } from './QuickSurfacesLogo';
@@ -8,12 +8,19 @@ import {
   FileDown, 
   Check, 
   X, 
-  MessageSquare, 
   Copy, 
   Clock, 
-  AlertTriangle,
+  CreditCard,
   Truck,
-  CreditCard
+  Eye,
+  ArrowRight,
+  ArrowLeft,
+  Share2,
+  FileText,
+  UserCheck,
+  Building,
+  Zap,
+  Banknote
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 
@@ -49,33 +56,54 @@ export const QuoteModal: React.FC<QuoteModalProps> = ({
   language = 'en'
 }) => {
   const currentLang: Language = language === 'es' ? 'es' : 'en';
+  const isEn = currentLang === 'en';
   const t = translations[currentLang];
 
-  const [copied, setCopied] = useState(false);
-  const [copiedZelle, setCopiedZelle] = useState(false);
+  // Stage 1: Setup options -> Stage 2: Full Document Preview
+  const [isFullPreviewOpen, setIsFullPreviewOpen] = useState(false);
   const [downloading, setDownloading] = useState(false);
+  const [copiedZelle, setCopiedZelle] = useState(false);
+  const [successToast, setSuccessToast] = useState<string | null>(null);
+
   const salespersonName = quote.salespersonName || settings.salespersonName;
   const salespersonPhone = quote.salespersonPhone || settings.salespersonPhone;
 
+  // Prepare quote object with latest shipping address
+  const quoteWithShipping: Quotation = {
+    ...quote,
+    shippingAddress: sameAsBillingAddress ? (quote.client.address || '') : (shippingAddress || ''),
+    sameAsBillingAddress
+  };
+
+  const showToast = (message: string) => {
+    setSuccessToast(message);
+    setTimeout(() => {
+      setSuccessToast(null);
+    }, 3200);
+  };
+
+  // Download PDF with visible green confirmation toast
   const handleDownloadPDF = () => {
     setDownloading(true);
     try {
-      // Ensure the quote carries the latest shipping address
-      const quoteWithShipping: Quotation = {
-        ...quote,
-        shippingAddress: sameAsBillingAddress ? (quote.client.address || '') : (shippingAddress || ''),
-        sameAsBillingAddress
-      };
-
       const doc = generateQuotePDF(quoteWithShipping, settings, currentLang);
-      doc.save(`QuickSurfaces_${quote.quoteNumber}_${quote.client.name.replace(/\s+/g, '_')}.pdf`);
-      
+      const safeClient = (quote.client.name || 'Cliente').replace(/\s+/g, '_');
+      doc.save(`QuickSurfaces_${quote.quoteNumber}_${safeClient}.pdf`);
+
       confetti({
-        particleCount: 45,
-        spread: 60,
+        particleCount: 50,
+        spread: 65,
         origin: { y: 0.8 }
       });
+
       onSaveToHistory();
+
+      // Visible confirmation toast
+      showToast(
+        isEn 
+          ? '✓ PDF downloaded — check your Downloads folder' 
+          : '✓ PDF descargado — revisa tus Descargas'
+      );
     } catch (err) {
       console.error('Error generating PDF:', err);
     } finally {
@@ -83,16 +111,50 @@ export const QuoteModal: React.FC<QuoteModalProps> = ({
     }
   };
 
-  const handleWhatsAppShare = () => {
-    openWhatsAppShare(quote, undefined, currentLang);
-    onSaveToHistory();
-  };
+  // Native Web Share API or Clipboard Fallback
+  const handleShare = async () => {
+    const summaryText = generateWhatsAppMessage(quoteWithShipping, currentLang);
 
-  const handleCopyText = () => {
-    const text = generateWhatsAppMessage(quote, currentLang);
-    navigator.clipboard.writeText(text);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+    if (navigator.share) {
+      try {
+        // Try sharing with file if possible
+        const doc = generateQuotePDF(quoteWithShipping, settings, currentLang);
+        const pdfBlob = doc.output('blob');
+        const pdfFile = new File([pdfBlob], `QuickSurfaces_${quote.quoteNumber}.pdf`, { type: 'application/pdf' });
+
+        if (navigator.canShare && navigator.canShare({ files: [pdfFile] })) {
+          await navigator.share({
+            title: `QuickQuote - ${quote.quoteNumber}`,
+            text: summaryText,
+            files: [pdfFile]
+          });
+          onSaveToHistory();
+          showToast(isEn ? '✓ Shared successfully!' : '✓ ¡Compartido con éxito!');
+          return;
+        }
+
+        // Standard text share
+        await navigator.share({
+          title: `QuickQuote - ${quote.quoteNumber}`,
+          text: summaryText
+        });
+        onSaveToHistory();
+        showToast(isEn ? '✓ Shared successfully!' : '✓ ¡Compartido con éxito!');
+        return;
+      } catch (err: any) {
+        if (err.name === 'AbortError') return; // User cancelled share dialog
+        console.warn('Native share failed, copying to clipboard:', err);
+      }
+    }
+
+    // Fallback: Copy to clipboard
+    try {
+      await navigator.clipboard.writeText(summaryText);
+      onSaveToHistory();
+      showToast(isEn ? '✓ Summary copied to clipboard' : '✓ Resumen copiado al portapapeles');
+    } catch (clipErr) {
+      console.error('Clipboard copy failed:', clipErr);
+    }
   };
 
   const handleCopyZelle = () => {
@@ -103,6 +165,358 @@ export const QuoteModal: React.FC<QuoteModalProps> = ({
 
   if (!isOpen) return null;
 
+  // =========================================================================
+  // STAGE 2: FULL-SCREEN REAL DOCUMENT PREVIEW
+  // =========================================================================
+  if (isFullPreviewOpen) {
+    return (
+      <div className="fixed inset-0 z-50 bg-[#242424] overflow-y-auto flex flex-col text-[#181818] animate-in fade-in duration-200">
+        {/* Floating Success Toast */}
+        {successToast && (
+          <div className="fixed top-16 sm:top-20 left-1/2 -translate-x-1/2 z-60 bg-emerald-600 text-white px-5 sm:px-6 py-3 sm:py-3.5 rounded-2xl shadow-2xl font-bold text-xs sm:text-sm flex items-center gap-2.5 animate-in fade-in slide-in-from-top-4 duration-200 border border-emerald-400">
+            <Check className="w-5 h-5 text-white shrink-0 stroke-[3]" />
+            <span>{successToast}</span>
+          </div>
+        )}
+
+        {/* Top Control Bar */}
+        <header className="sticky top-0 z-40 bg-[#181818]/95 backdrop-blur-md border-b border-zinc-800 px-4 sm:px-8 py-3 flex items-center justify-between gap-3 shadow-md">
+          {/* Back to Options Button */}
+          <button
+            type="button"
+            id="btn-back-to-quote-options"
+            onClick={() => setIsFullPreviewOpen(false)}
+            className="px-3 py-1.5 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-zinc-300 hover:text-white text-xs font-bold flex items-center gap-2 transition-colors cursor-pointer"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            <span className="hidden xs:inline">{isEn ? 'Back to Options' : 'Volver a Opciones'}</span>
+            <span className="xs:hidden">{isEn ? 'Back' : 'Volver'}</span>
+          </button>
+
+          {/* Title in center */}
+          <div className="flex items-center gap-2 min-w-0">
+            <span className="text-xs font-black uppercase tracking-wider text-white truncate hidden md:inline">
+              {isEn ? 'Official Document Preview' : 'Vista Previa Oficial del Documento'}
+            </span>
+            <span className="font-mono text-xs font-bold text-[#FF8407] px-2 py-0.5 rounded bg-zinc-900 border border-zinc-800">
+              #{quote.quoteNumber}
+            </span>
+          </div>
+
+          {/* The 2 Actions: Descargar PDF (Primary Orange) + Compartir (Secondary) */}
+          <div className="flex items-center gap-2 sm:gap-3">
+            {/* Action 1: Descargar PDF */}
+            <button
+              type="button"
+              id="btn-preview-download-pdf"
+              onClick={handleDownloadPDF}
+              disabled={downloading}
+              className="px-4 sm:px-5 py-2 rounded-xl text-xs sm:text-sm font-bold uppercase tracking-wider bg-[#FF8407] hover:bg-[#E07300] active:scale-95 text-white flex items-center gap-2 shadow-md cursor-pointer transition-all disabled:opacity-60"
+            >
+              <FileDown className="w-4 h-4 text-white" />
+              <span>{downloading ? (isEn ? 'Saving...' : 'Guardando...') : (isEn ? 'Download PDF' : 'Descargar PDF')}</span>
+            </button>
+
+            {/* Action 2: Compartir (Web Share API) */}
+            <button
+              type="button"
+              id="btn-preview-share"
+              onClick={handleShare}
+              className="px-3.5 sm:px-4 py-2 rounded-xl text-xs sm:text-sm font-bold uppercase tracking-wider bg-white hover:bg-zinc-100 text-[#181818] flex items-center gap-2 shadow-xs cursor-pointer transition-all active:scale-95"
+            >
+              <Share2 className="w-4 h-4 text-[#FF8407]" />
+              <span>{isEn ? 'Share' : 'Compartir'}</span>
+            </button>
+
+            {/* Close Entire Modal */}
+            <button
+              type="button"
+              onClick={onClose}
+              className="w-8 h-8 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-zinc-400 hover:text-white flex items-center justify-center transition-colors cursor-pointer ml-1"
+              title="Cerrar"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+        </header>
+
+        {/* Real Printable Document Container */}
+        <div className="flex-1 p-3 sm:p-8 flex justify-center">
+          <div className="max-w-4xl w-full bg-white shadow-2xl rounded-sm p-6 sm:p-12 text-[#181818] border border-zinc-300 space-y-6 select-text">
+            {/* Document Header */}
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 pb-3">
+              <div>
+                <QuickSurfacesLogo className="h-9 sm:h-11 w-auto text-black" />
+                <p className="text-[11px] text-[#6B6A63] font-medium mt-1">
+                  Flooring & Architectural Surfaces Specialist
+                </p>
+              </div>
+
+              <div className="sm:text-right">
+                <h1 className="text-xl sm:text-2xl font-black text-[#181818] tracking-tight uppercase">
+                  {isEn ? 'QUOTATION' : 'COTIZACIÓN'}
+                </h1>
+                <p className="font-mono text-xs font-bold text-[#FF8407] mt-0.5">
+                  No. {quote.quoteNumber}
+                </p>
+                <p className="text-xs text-[#6B6A63] mt-0.5">
+                  {isEn ? 'Date:' : 'Fecha:'} <strong>{quote.date}</strong>
+                </p>
+                <p className="text-xs text-[#6B6A63]">
+                  {isEn ? 'Valid Until:' : 'Válido hasta:'} <strong>{quote.validUntil}</strong> ({quote.validDays} {isEn ? 'days' : 'días'})
+                </p>
+              </div>
+            </div>
+
+            {/* Orange Divider Line */}
+            <div className="h-1 bg-[#FF8407] w-full" />
+
+            {/* 2-Column Info Grid: Client Billing & Shipping/Salesperson */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
+              {/* Client Billing Info */}
+              <div className="bg-[#F8F9FA] p-4 rounded-lg border border-[#E9ECEF] space-y-1">
+                <span className="text-[10px] font-bold text-[#FF8407] uppercase tracking-wider block">
+                  {isEn ? 'CLIENT INFORMATION (BILLING)' : 'DATOS DEL CLIENTE (FACTURACIÓN)'}
+                </span>
+                <p className="text-sm font-bold text-[#181818]">
+                  {quote.client.name}
+                  {quote.client.clientType && (
+                    <span className="ml-2 text-[10px] font-bold px-1.5 py-0.2 rounded bg-zinc-200 text-zinc-800">
+                      {quote.client.clientType}
+                    </span>
+                  )}
+                </p>
+                {quote.client.phone && <p className="text-[#555] font-mono">Tel: {quote.client.phone}</p>}
+                {quote.client.email && <p className="text-[#555] font-mono">Email: {quote.client.email}</p>}
+                {quote.client.address && <p className="text-[#555]">Dir: {quote.client.address}</p>}
+              </div>
+
+              {/* Shipping Address & Salesperson Info */}
+              <div className="bg-[#F8F9FA] p-4 rounded-lg border border-[#E9ECEF] space-y-1">
+                <span className="text-[10px] font-bold text-[#FF8407] uppercase tracking-wider block">
+                  {isEn ? 'DISPATCH & SALESPERSON' : 'DESPACHO Y VENDEDOR ASIGNADO'}
+                </span>
+                <p className="text-xs font-semibold text-[#181818]">
+                  <span className="text-[#6B6A63] font-normal">{isEn ? 'Delivery:' : 'Entrega:'} </span>
+                  {quoteWithShipping.shippingAddress || (isEn ? 'Same as billing address' : 'Misma dirección de facturación')}
+                </p>
+                <div className="pt-1.5 border-t border-zinc-200 mt-1">
+                  <p className="font-bold text-[#181818] flex items-center gap-1.5">
+                    <UserCheck className="w-3.5 h-3.5 text-[#FF8407]" />
+                    <span>{salespersonName}</span>
+                  </p>
+                  <p className="text-[#555] font-mono text-[11px]">{salespersonPhone}</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Itemized Vertically Stacked Cards (Replacing narrow cramped table) */}
+            <div className="space-y-3">
+              <div className="flex items-center justify-between pb-1 border-b border-[#E4E2DA]">
+                <span className="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-[#9C9A90]">
+                  {isEn ? 'Itemized Products & Services' : 'Detalle de Productos y Servicios'} ({quote.items.length})
+                </span>
+                <span className="text-[10px] sm:text-[11px] font-mono text-[#6B6A63]">
+                  {isEn ? 'Quantity, Packaging & Rates' : 'Cantidad, Empaque & Precios'}
+                </span>
+              </div>
+
+              {quote.items.map((item, idx) => {
+                const priceDetail = getItemUnitPriceDetail(item, currentLang);
+                return (
+                  <div
+                    key={item.id}
+                    className="p-4 rounded-xl border border-[#E4E2DA] bg-[#FAFAFA] hover:border-[#181818] transition-colors space-y-2.5 shadow-2xs"
+                  >
+                    {/* Header Row: Index + Name + Badges on Left, Price / Subtotal aligned to Right of Name */}
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0 space-y-1">
+                        <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
+                          <span className="w-5 h-5 rounded-full bg-[#181818] text-[#FF8407] font-mono font-bold text-[10px] flex items-center justify-center shrink-0">
+                            {idx + 1}
+                          </span>
+                          <span className="font-bold uppercase px-1.5 py-0.5 rounded bg-zinc-200 text-zinc-800 text-[10px] shrink-0">
+                            {item.category}
+                          </span>
+                          {item.color && (
+                            <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded bg-amber-500/10 border border-[#FF8407]/30 text-[#FF8407] text-[11px] font-bold">
+                              {item.color.hex && (
+                                <span
+                                  className="w-2.5 h-2.5 rounded-full border border-black/20 shrink-0"
+                                  style={{ backgroundColor: item.color.hex }}
+                                />
+                              )}
+                              <span>{item.color.name} ({item.color.code})</span>
+                            </span>
+                          )}
+                          {!item.isTaxable && (
+                            <span className="text-[10px] font-bold text-emerald-800 bg-emerald-100 px-2 py-0.5 rounded">
+                              {isEn ? 'Tax Exempt (Labor)' : 'Exento Impuesto (Labor)'}
+                            </span>
+                          )}
+                        </div>
+
+                        <h4 className="text-sm sm:text-base font-bold text-[#181818] leading-snug">
+                          {item.productName}
+                        </h4>
+                      </div>
+
+                      {/* Price / Subtotal Aligned to the Right of the Name */}
+                      <div className="text-right shrink-0">
+                        <span className="font-mono font-bold text-base sm:text-lg text-[#181818] block leading-tight">
+                          {formatCurrency(item.subtotal)}
+                        </span>
+                        <span className="font-mono text-xs font-semibold text-[#FF8407] block mt-0.5">
+                          {priceDetail.primaryRate}
+                        </span>
+                        {priceDetail.packagingRate && (
+                          <span className="text-[10px] text-[#6B6A63] font-mono block">
+                            {priceDetail.packagingRate}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Quantity & Dispatch Specs - Full Width, No Truncation */}
+                    <div className="bg-white p-3 rounded-lg border border-[#E4E2DA] flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs">
+                      <div className="space-y-0.5">
+                        <span className="text-[10px] font-bold uppercase tracking-wider text-[#9C9A90] block">
+                          {isEn ? 'Quantity & Dispatch Specs' : 'Cantidad y Especificaciones de Despacho'}
+                        </span>
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="font-bold text-[#181818] text-xs sm:text-sm">
+                            {item.userEnteredQuantity} {item.quantityUnitLabel}
+                          </span>
+                          <span className="text-zinc-300">•</span>
+                          <span className="font-semibold text-[#FF8407] text-xs">
+                            {item.calculatedUnitsLabel}
+                          </span>
+                        </div>
+                      </div>
+
+                      {(item.thickness || item.notes) && (
+                        <div className="text-[11px] text-[#6B6A63] sm:text-right space-y-0.5">
+                          {item.thickness && (
+                            <span className="block font-medium">{item.thickness}</span>
+                          )}
+                          {item.notes && (
+                            <span className="block italic text-[10px] text-zinc-500">"{item.notes}"</span>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Financial Totals (Right Aligned) */}
+            <div className="flex justify-end">
+              <div className="w-full sm:w-80 bg-[#181818] text-white p-4 rounded-xl space-y-2 text-xs">
+                <div className="flex justify-between text-zinc-400">
+                  <span>{isEn ? 'Products Subtotal (Taxable):' : 'Subtotal Materiales (Gravable):'}</span>
+                  <span className="font-mono font-bold text-white">{formatCurrency(quote.subtotalProducts)}</span>
+                </div>
+
+                <div className="flex justify-between text-zinc-400">
+                  <span>{isEn ? 'FL Sales Tax (7% on products):' : 'Impuesto de Ventas (7%):'}</span>
+                  <span className="font-mono font-bold text-white">{formatCurrency(quote.taxAmount)}</span>
+                </div>
+
+                {quote.includeDelivery && (
+                  <div className="flex justify-between text-zinc-400">
+                    <span>{isEn ? 'Delivery Fee (No Tax):' : 'Delivery Fijo (No Tax):'}</span>
+                    <span className="font-mono font-bold text-white">{formatCurrency(quote.deliveryCost)}</span>
+                  </div>
+                )}
+
+                {quote.installationTotal > 0 && (
+                  <div className="flex justify-between text-zinc-400">
+                    <span>{isEn ? 'Installation / Labor (Tax Exempt):' : 'Instalación / Mano de obra:'}</span>
+                    <span className="font-mono font-bold text-white">{formatCurrency(quote.installationTotal)}</span>
+                  </div>
+                )}
+
+                {quote.payWithCard && (quote.cardFeeAmount ?? 0) > 0 && (
+                  <div className="flex justify-between text-[#FF8407] bg-black/40 px-2 py-1 rounded border border-[#FF8407]/30">
+                    <span>{isEn ? 'Card Surcharge (3%):' : 'Recargo Tarjeta (3%):'}</span>
+                    <span className="font-mono font-bold">+{formatCurrency(quote.cardFeeAmount)}</span>
+                  </div>
+                )}
+
+                <div className="pt-2 border-t border-zinc-800 flex justify-between items-baseline">
+                  <span className="font-bold text-xs uppercase tracking-wider text-white">
+                    {isEn ? 'TOTAL ESTIMATE:' : 'TOTAL ESTIMADO:'}
+                  </span>
+                  <span className="font-mono font-black text-2xl text-[#FF8407]">
+                    {formatCurrency(quote.total)}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* Payment Methods Info Box */}
+            <div className="bg-[#FFFBF5] border border-[#F0D5BA] rounded-xl p-4 text-xs space-y-2.5">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                <span className="font-bold text-[#181818] uppercase tracking-wider text-xs">
+                  {isEn ? 'Accepted Payment Methods' : 'Métodos de Pago Aceptados'}
+                </span>
+
+                {/* 3 distinct payment icons with short label underneath */}
+                <div className="flex items-center gap-3 sm:gap-4">
+                  {/* Zelle */}
+                  <div className="flex flex-col items-center gap-1 text-center">
+                    <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-[#181818] flex items-center justify-center text-[#FF8407] shadow-2xs">
+                      <Zap className="w-3.5 h-3.5 sm:w-4 sm:h-4 fill-[#FF8407]" />
+                    </div>
+                    <span className="text-[10px] font-bold text-[#181818]">Zelle</span>
+                  </div>
+
+                  {/* Cash */}
+                  <div className="flex flex-col items-center gap-1 text-center">
+                    <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-[#181818] flex items-center justify-center text-emerald-400 shadow-2xs">
+                      <Banknote className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                    </div>
+                    <span className="text-[10px] font-bold text-[#181818]">{isEn ? 'Cash' : 'Efectivo'}</span>
+                  </div>
+
+                  {/* Card / POS */}
+                  <div className="flex flex-col items-center gap-1 text-center">
+                    <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-[#181818] flex items-center justify-center text-sky-400 shadow-2xs">
+                      <CreditCard className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                    </div>
+                    <span className="text-[10px] font-bold text-[#181818]">Card / POS</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="pt-2 border-t border-[#F0D5BA]/60 flex flex-col sm:flex-row sm:items-center justify-between gap-1 text-[11px] text-[#555]">
+                <p>
+                  {isEn ? 'Zelle Payments:' : 'Transferencias Zelle:'} <strong className="text-black font-mono font-bold">quickzelle@gmail.com</strong>
+                </p>
+                <p className="text-[#777]">
+                  {isEn ? 'Account: Brugge International' : 'Titular: Brugge International'}
+                </p>
+              </div>
+            </div>
+
+            {/* Legal Disclaimer Box (Customer Signature & Date removed completely) */}
+            <div className="pt-3 border-t border-zinc-200 text-[11px] text-[#6B6A63]">
+              <p>
+                {isEn
+                  ? `This quote is valid until ${quote.validUntil}. Prices and inventory are subject to change after the validity period. Materials must be inspected prior to installation.`
+                  : `Esta cotización es válida hasta el ${quote.validUntil}. Los precios e inventario están sujetos a cambio luego del período de validez. Inspeccionar materiales antes de instalar.`}
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // =========================================================================
+  // STAGE 1: QUOTE OPTIONS & REVIEW (SINGLE PRIMARY BUTTON FLOW)
+  // =========================================================================
   return (
     <div className="fixed inset-0 z-50 bg-black/75 backdrop-blur-xs flex items-start sm:items-center justify-center p-2 sm:p-4 overflow-y-auto pt-2 sm:pt-4">
       <div 
@@ -118,11 +532,10 @@ export const QuoteModal: React.FC<QuoteModalProps> = ({
             <div>
               <div className="flex items-center gap-2">
                 <h2 className="text-base font-bold text-white tracking-wide">
-                  {currentLang === 'en' ? 'Quote Ready' : 'Cotización Lista'}
+                  {isEn ? 'Review Quote' : 'Revisar Cotización'}
                 </h2>
-                {/* Brand unified badge (Orange, NOT green) */}
                 <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-[#FF8407] text-white uppercase tracking-wider">
-                  {currentLang === 'en' ? 'READY TO SEND' : 'LISTA PARA ENVIAR'}
+                  {isEn ? 'STEP 1 OF 2' : 'PASO 1 DE 2'}
                 </span>
               </div>
               <p className="text-xs text-zinc-400 font-mono mt-0.5">
@@ -131,7 +544,6 @@ export const QuoteModal: React.FC<QuoteModalProps> = ({
             </div>
           </div>
 
-          {/* Close button at least 32x32px aligned with title */}
           <button
             id="btn-close-quote-modal"
             onClick={onClose}
@@ -142,46 +554,45 @@ export const QuoteModal: React.FC<QuoteModalProps> = ({
           </button>
         </div>
 
-        {/* Scrollable Document Container (Max 2 Levels of Cards) */}
+        {/* Scrollable Document Container */}
         <div className="flex-1 overflow-y-auto p-4 sm:p-5 bg-[#F9F9F8] space-y-4 text-xs">
-          {/* Validity Chips - Fixed 4-column grid that NEVER wraps */}
+          {/* Validity Chips - Fixed 4-column grid */}
           <div className="bg-white p-3.5 rounded-xl border border-[#E4E2DA] shadow-xs space-y-2">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-1.5 font-bold text-[#181818] uppercase tracking-wider text-[11px]">
-                <Clock className="w-3.5 h-3.5 text-[#FF8407]" />
-                <span>{currentLang === 'en' ? 'Validity' : 'Validez de la cotización'}</span>
+                <Clock className="w-4 h-4 text-[#FF8407]" />
+                <span>{isEn ? 'Quote Validity Days:' : 'Días de Validez de la Oferta:'}</span>
               </div>
-              <span className="text-[11px] text-[#6B6A63]">
-                {currentLang === 'en' ? 'Valid until:' : 'Válido hasta:'} <strong className="text-[#181818]">{quote.validUntil}</strong>
+              <span className="text-[11px] text-[#6B6A63] font-semibold">
+                {isEn ? 'Valid Until' : 'Vence el'}: <strong className="text-[#181818] font-mono">{quote.validUntil}</strong>
               </span>
             </div>
 
             <div className="grid grid-cols-4 gap-2">
-              {[2, 3, 5, 7].map((days) => (
+              {[3, 7, 15, 30].map((days) => (
                 <button
                   key={days}
                   type="button"
-                  id={`btn-validity-${days}`}
                   onClick={() => onUpdateQuoteDays(days)}
-                  className={`py-2 rounded-lg text-xs font-bold text-center transition-all cursor-pointer border ${
+                  className={`py-2 rounded-lg font-bold text-xs transition-colors cursor-pointer border ${
                     quote.validDays === days
-                      ? 'bg-[#181818] border-[#181818] text-[#FF8407] shadow-xs'
-                      : 'bg-[#FAFAFA] border-[#E4E2DA] text-[#6B6A63] hover:border-[#181818] hover:text-[#181818]'
+                      ? 'bg-[#181818] text-[#FF8407] border-[#181818] shadow-xs'
+                      : 'bg-[#FAFAFA] text-[#6B6A63] hover:text-[#181818] border-[#E4E2DA]'
                   }`}
                 >
-                  {days} {currentLang === 'en' ? 'days' : 'días'}
+                  {days} {isEn ? 'Days' : 'Días'}
                 </button>
               ))}
             </div>
           </div>
 
-          {/* Clean Quote Preview Box (Single Client appearance) */}
-          <div className="bg-white p-4 sm:p-5 rounded-xl border border-[#E4E2DA] shadow-xs space-y-4">
-            {/* Top info */}
+          {/* Quick Summary Card */}
+          <div className="bg-white p-4 rounded-xl border border-[#E4E2DA] shadow-xs space-y-3">
+            {/* Client & Salesperson summary */}
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 pb-3 border-b border-[#E4E2DA]">
               <div>
                 <span className="text-[10px] font-bold text-[#9C9A90] uppercase tracking-wider block">
-                  {currentLang === 'en' ? 'Quoted For (Billing):' : 'Cotizado para (Facturación):'}
+                  {isEn ? 'Quoted For (Billing):' : 'Cotizado para (Facturación):'}
                 </span>
                 <div className="flex items-center gap-2 flex-wrap">
                   <h3 className="text-sm font-bold text-[#181818]">
@@ -193,17 +604,13 @@ export const QuoteModal: React.FC<QuoteModalProps> = ({
                     </span>
                   )}
                 </div>
-                {quote.client.phone && (
-                  <p className="text-[11px] text-[#6B6A63]">{quote.client.phone}</p>
-                )}
-                {quote.client.address && (
-                  <p className="text-[11px] text-[#6B6A63]">{quote.client.address}</p>
-                )}
+                {quote.client.phone && <p className="text-[11px] text-[#6B6A63]">{quote.client.phone}</p>}
+                {quote.client.address && <p className="text-[11px] text-[#6B6A63]">{quote.client.address}</p>}
               </div>
 
               <div className="sm:text-right">
                 <span className="text-[10px] font-bold text-[#9C9A90] uppercase tracking-wider block">
-                  {currentLang === 'en' ? 'Sales Representative:' : 'Vendedor Asignado:'}
+                  {isEn ? 'Sales Representative:' : 'Vendedor Asignado:'}
                 </span>
                 <p className="text-xs font-bold text-[#181818]">{salespersonName}</p>
                 <p className="text-[11px] text-[#6B6A63]">{salespersonPhone}</p>
@@ -221,320 +628,205 @@ export const QuoteModal: React.FC<QuoteModalProps> = ({
                   className="w-4 h-4 accent-[#FF8407] rounded cursor-pointer shrink-0"
                 />
                 <span className="text-xs font-bold text-[#181818]">
-                  {currentLang === 'en' 
-                    ? 'Shipping address same as billing' 
-                    : 'Dirección de entrega igual a la de facturación'}
+                  {isEn ? 'Shipping address same as billing' : 'Dirección de entrega igual a la de facturación'}
                 </span>
               </label>
 
               {!sameAsBillingAddress && (
                 <div className="pt-1.5 space-y-1">
                   <label className="text-[10px] font-bold uppercase tracking-wider text-[#6B6A63] block">
-                    {currentLang === 'en' ? 'Shipping / Delivery Address' : 'Dirección de Entrega (Shipping Address)'}
+                    {isEn ? 'Shipping / Delivery Address' : 'Dirección de Entrega (Shipping Address)'}
                   </label>
                   <input
                     type="text"
                     id="input-shipping-address"
                     value={shippingAddress}
                     onChange={(e) => onUpdateShippingAddress?.(e.target.value)}
-                    placeholder={currentLang === 'en' ? 'e.g. 8320 NW 56th St, Doral, FL 33166' : 'Ej. 8320 NW 56th St, Doral, FL 33166'}
-                    className="w-full text-xs bg-white border border-[#E4E2DA] focus:border-[#181818] rounded-lg px-3 py-2 outline-none font-medium text-[#181818]"
+                    placeholder={isEn ? 'e.g. 8320 NW 56th St, Doral, FL 33166' : 'Ej. 8320 NW 56th St, Doral, FL 33166'}
+                    className="w-full text-xs bg-white border border-[#E4E2DA] focus:border-[#FF8407] rounded-lg px-3 py-2 outline-none font-medium text-black"
                   />
-                  <p className="text-[10px] text-[#9C9A90]">
-                    {currentLang === 'en' 
-                      ? 'This delivery address will be printed on the quotation PDF for logistics and installation.' 
-                      : 'Esta dirección de entrega se imprimirá en el PDF de cotización para logística e instalación.'}
-                  </p>
                 </div>
               )}
             </div>
 
-            {/* Itemized Table */}
-            <div className="border border-[#E4E2DA] rounded-lg overflow-x-auto">
-              <table className="w-full min-w-[520px] text-left border-collapse text-xs">
-                <thead className="bg-[#181818] text-white">
-                  <tr>
-                    <th className="p-2.5 font-bold uppercase text-[10px] tracking-wider w-8 text-center">#</th>
-                    <th className="p-2.5 font-bold uppercase text-[10px] tracking-wider">
-                      {currentLang === 'en' ? 'Item / Finish' : 'Producto / Acabado'}
-                    </th>
-                    <th className="p-2.5 font-bold uppercase text-[10px] tracking-wider">
-                      {currentLang === 'en' ? 'Qty & Dispatch' : 'Cantidad & Despacho'}
-                    </th>
-                    <th className="p-2.5 font-bold uppercase text-[10px] tracking-wider text-right">
-                      {currentLang === 'en' ? 'Unit Price' : 'Precio Unit.'}
-                    </th>
-                    <th className="p-2.5 font-bold uppercase text-[10px] tracking-wider text-right">
-                      {currentLang === 'en' ? 'Subtotal' : 'Subtotal'}
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-[#E4E2DA]">
-                  {quote.items.map((item, idx) => {
-                    const priceDetail = getItemUnitPriceDetail(item, currentLang);
-                    return (
-                      <tr key={item.id} className={idx % 2 === 0 ? 'bg-white' : 'bg-[#FAFAFA]'}>
-                        <td className="p-2.5 text-[#9C9A90] font-mono text-center">{idx + 1}</td>
-                        <td className="p-2.5">
-                          <p className="font-bold text-[#181818]">{item.productName}</p>
-                          {item.color && (
-                            <p className="text-[11px] text-[#FF8407] font-semibold">
-                              {item.color.name} ({item.color.code})
-                            </p>
-                          )}
-                          {item.thickness && (
-                            <span className="text-[10px] text-[#6B6A63] block">{item.thickness}</span>
-                          )}
-                          {item.notes && (
-                            <p className="text-[10px] text-[#6B6A63] italic">{item.notes}</p>
-                          )}
-                        </td>
-                        <td className="p-2.5 text-[#181818]">
-                          <span className="font-bold block">{item.userEnteredQuantity} {item.quantityUnitLabel}</span>
-                          <span className="block text-[10px] text-[#9C9A90] font-medium">{item.calculatedUnitsLabel}</span>
-                        </td>
-                        <td className="p-2.5 text-right font-mono text-[#181818]">
-                          <span className="font-bold text-[#FF8407] block text-xs">
+            {/* Products in Quote - Vertically Stacked Cards */}
+            <div className="space-y-2.5 pt-1">
+              <span className="text-[10px] font-bold text-[#9C9A90] uppercase tracking-wider block">
+                {isEn ? 'Products in Quote:' : 'Productos en la Cotización:'} ({quote.items.length})
+              </span>
+              <div className="space-y-2">
+                {quote.items.map((item, idx) => {
+                  const priceDetail = getItemUnitPriceDetail(item, currentLang);
+                  return (
+                    <div
+                      key={item.id}
+                      className="p-3 rounded-xl border border-[#E4E2DA] bg-[#FAFAFA] space-y-2"
+                    >
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            <span className="w-4 h-4 rounded-full bg-[#181818] text-[#FF8407] font-mono font-bold text-[9px] flex items-center justify-center shrink-0">
+                              {idx + 1}
+                            </span>
+                            <span className="font-bold uppercase px-1.5 py-0.2 rounded bg-zinc-200 text-zinc-800 text-[9px]">
+                              {item.category}
+                            </span>
+                            {item.color && (
+                              <span className="text-[10px] font-bold text-[#FF8407] bg-amber-500/10 px-1.5 py-0.2 rounded border border-[#FF8407]/20">
+                                {item.color.name}
+                              </span>
+                            )}
+                          </div>
+                          <h4 className="text-xs font-bold text-[#181818] mt-0.5 leading-snug">
+                            {item.productName}
+                          </h4>
+                        </div>
+
+                        <div className="text-right shrink-0">
+                          <span className="font-mono font-bold text-xs text-[#181818] block">
+                            {formatCurrency(item.subtotal)}
+                          </span>
+                          <span className="font-mono text-[10px] text-[#FF8407] block">
                             {priceDetail.primaryRate}
                           </span>
-                          {priceDetail.packagingRate && (
-                            <span className="block text-[10px] text-[#6B6A63]">
-                              {priceDetail.packagingRate}
-                            </span>
-                          )}
-                        </td>
-                        <td className="p-2.5 text-right font-mono font-bold text-[#181818]">
-                          {formatCurrency(item.subtotal)}
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
+                        </div>
+                      </div>
+
+                      <div className="bg-white p-2 rounded-lg border border-[#E4E2DA] text-[11px] text-[#6B6A63] flex items-center justify-between gap-2">
+                        <span className="font-bold text-[#181818]">
+                          {item.userEnteredQuantity} {item.quantityUnitLabel}
+                        </span>
+                        <span className="font-semibold text-[#FF8407]">
+                          {item.calculatedUnitsLabel}
+                        </span>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
             </div>
 
-            {/* Delivery Toggle, Card Payment Toggle & Totals Breakdown */}
-            <div className="space-y-3 pt-2">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                {/* Delivery row with quick toggle */}
-                {onToggleDelivery && (
-                  <div className="flex items-center justify-between p-3 bg-[#F2F1EC] rounded-lg border border-[#E4E2DA]">
-                    <div className="flex items-center gap-2">
-                      <Truck className="w-4 h-4 text-[#FF8407] shrink-0" />
-                      <div>
-                        <span className="font-bold text-xs text-[#181818] block">
-                          {currentLang === 'en' ? 'Flat Delivery Fee' : 'Servicio de Delivery'}
-                        </span>
-                        <span className="text-[10px] text-[#6B6A63] block">
-                          {currentLang === 'en' ? '$60 fixed rate (no tax)' : '$60 tarifa plana (sin tax)'}
-                        </span>
-                      </div>
-                    </div>
-
-                    <label className="relative inline-flex items-center cursor-pointer shrink-0">
-                      <input
-                        type="checkbox"
-                        id="chk-delivery-checkout"
-                        checked={quote.includeDelivery}
-                        onChange={(e) => onToggleDelivery(e.target.checked)}
-                        className="sr-only peer"
-                      />
-                      <div className="w-9 h-5 bg-zinc-300 peer-focus:outline-hidden rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-[#FF8407]"></div>
-                    </label>
-                  </div>
-                )}
-
-                {/* Card Payment Toggle (+3% surcharge for debit/credit card) */}
-                {onTogglePayWithCard && (
-                  <div className={`flex items-center justify-between p-3 rounded-lg border transition-colors ${
-                    quote.payWithCard 
-                      ? 'bg-[#FFF6EC] border-[#FF8407]/50 shadow-2xs' 
-                      : 'bg-[#F9F9F9] border-[#E4E2DA]'
-                  }`}>
-                    <div className="flex items-center gap-2">
-                      <CreditCard className={`w-4 h-4 shrink-0 ${quote.payWithCard ? 'text-[#FF8407]' : 'text-zinc-500'}`} />
-                      <div>
-                        <div className="flex items-center gap-1.5 flex-wrap">
-                          <span className="font-bold text-xs text-[#181818]">
-                            {currentLang === 'en' ? 'Card Payment' : 'Pago con Tarjeta'}
-                          </span>
-                          <span className="text-[9px] font-black px-1.5 py-0.2 rounded bg-[#FF8407] text-white">
-                            +3%
-                          </span>
-                        </div>
-                        <span className="text-[10px] text-[#6B6A63] block">
-                          {currentLang === 'en' ? 'Debit / Credit processing fee' : 'Recargo tarjeta débito o crédito'}
-                        </span>
-                      </div>
-                    </div>
-
-                    <label className="relative inline-flex items-center cursor-pointer shrink-0">
-                      <input
-                        type="checkbox"
-                        id="chk-card-payment-checkout"
-                        checked={quote.payWithCard || false}
-                        onChange={(e) => onTogglePayWithCard(e.target.checked)}
-                        className="sr-only peer"
-                      />
-                      <div className="w-9 h-5 bg-zinc-300 peer-focus:outline-hidden rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-[#FF8407]"></div>
-                    </label>
-                  </div>
-                )}
-              </div>
-
-              {/* Totals Box */}
-              <div className="bg-[#181818] text-white p-4 rounded-xl space-y-2">
-                <div className="flex justify-between text-zinc-400">
-                  <span>{currentLang === 'en' ? 'Products Subtotal:' : 'Subtotal Materiales:'}</span>
-                  <span className="font-mono font-bold text-white">{formatCurrency(quote.subtotalProducts)}</span>
-                </div>
-
-                <div className="flex justify-between text-zinc-400">
-                  <span>{currentLang === 'en' ? 'FL Sales Tax (7% on products):' : 'Impuesto (7% solo s/materiales):'}</span>
-                  <span className="font-mono font-bold text-white">{formatCurrency(quote.taxAmount)}</span>
-                </div>
-
-                {quote.includeDelivery && (
-                  <div className="flex justify-between text-zinc-400">
-                    <span>{currentLang === 'en' ? 'Delivery Fee (No Tax):' : 'Delivery ($60 sin impuesto):'}</span>
-                    <span className="font-mono font-bold text-white">{formatCurrency(quote.deliveryCost)}</span>
-                  </div>
-                )}
-
-                {quote.installationTotal > 0 && (
-                  <div className="flex justify-between text-zinc-400">
-                    <span>{currentLang === 'en' ? 'Installation / Labor (Tax Exempt):' : 'Instalación / Mano de obra:'}</span>
-                    <span className="font-mono font-bold text-white">{formatCurrency(quote.installationTotal)}</span>
-                  </div>
-                )}
-
-                {quote.payWithCard && (quote.cardFeeAmount ?? 0) > 0 && (
-                  <div className="flex justify-between text-[#FF8407] bg-black/40 px-2.5 py-1.5 rounded-lg border border-[#FF8407]/30">
-                    <span className="flex items-center gap-1.5 font-semibold text-xs">
-                      <CreditCard className="w-3.5 h-3.5 text-[#FF8407]" />
-                      {currentLang === 'en' ? 'Card Surcharge (3% Debit/Credit):' : 'Recargo Tarjeta Débito/Crédito (3%):'}
-                    </span>
-                    <span className="font-mono font-bold text-[#FF8407]">+{formatCurrency(quote.cardFeeAmount)}</span>
-                  </div>
-                )}
-
-                <div className="pt-2 border-t border-zinc-800 flex justify-between items-baseline">
-                  <span className="font-bold text-xs uppercase tracking-wider text-white">
-                    {currentLang === 'en' ? 'TOTAL ESTIMATE:' : 'TOTAL:'}
-                  </span>
-                  <span className="font-mono font-black text-2xl text-[#FF8407]">
-                    {formatCurrency(quote.total)}
-                  </span>
-                </div>
-              </div>
-
-              {/* Payment Methods Section (Zelle, Cash, Point of Sale) */}
-              <div className="bg-[#FFFBF5] border border-[#F0D5BA] rounded-xl p-3.5 space-y-2.5">
-                <div className="flex items-center justify-between">
+            {/* Toggles: Delivery & Card */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-1">
+              {onToggleDelivery && (
+                <div className={`flex items-center justify-between p-3 rounded-lg border transition-colors ${
+                  quote.includeDelivery ? 'bg-[#FFF6EC] border-[#FF8407]/50 shadow-2xs' : 'bg-[#F9F9F9] border-[#E4E2DA]'
+                }`}>
                   <div className="flex items-center gap-2">
-                    <CreditCard className="w-4 h-4 text-[#FF8407]" />
-                    <span className="text-xs font-bold uppercase tracking-wider text-[#181818]">
-                      {t.paymentMethodsTitle || (currentLang === 'en' ? 'Accepted Payment Methods' : 'Métodos de Pago Aceptados')}
-                    </span>
-                  </div>
-                  <span className="text-[10px] font-bold uppercase px-2 py-0.5 rounded bg-[#181818] text-[#FF8407]">
-                    ZELLE • CASH • POS
-                  </span>
-                </div>
-
-                {/* Zelle details row */}
-                <div className="bg-white p-2.5 rounded-lg border border-[#E8D0B8] flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                  <div>
-                    <div className="flex items-center gap-1.5 flex-wrap">
-                      <span className="text-[10px] font-black text-purple-700 bg-purple-50 px-1.5 py-0.5 rounded border border-purple-200">
-                        ZELLE
+                    <Truck className={`w-4 h-4 shrink-0 ${quote.includeDelivery ? 'text-[#FF8407]' : 'text-zinc-500'}`} />
+                    <div>
+                      <span className="font-bold text-xs text-[#181818] block leading-tight">
+                        {isEn ? 'Include Delivery ($60)' : 'Incluir Delivery ($60)'}
                       </span>
-                      <span className="text-xs font-mono font-bold text-[#181818] select-all">
-                        quickzelle@gmail.com
+                      <span className="text-[10px] text-[#6B6A63] block">
+                        {isEn ? 'Local delivery fee (No Tax)' : 'Flete local (Sin Impuesto)'}
                       </span>
                     </div>
-                    <p className="text-[11px] text-[#6B6A63] mt-0.5">
-                      {currentLang === 'en' ? 'Account Name / Entity:' : 'Titular / Empresa:'} <strong className="text-[#181818]">Brugge International</strong>
-                    </p>
                   </div>
-
-                  <button
-                    type="button"
-                    id="btn-copy-zelle-checkout"
-                    onClick={handleCopyZelle}
-                    className="px-2.5 py-1.5 rounded-md bg-[#F2F1EC] hover:bg-[#E4E2DA] text-[#181818] text-[11px] font-bold flex items-center justify-center gap-1.5 transition-colors cursor-pointer border border-[#E4E2DA] shrink-0 active:scale-95"
-                  >
-                    {copiedZelle ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5 text-[#6B6A63]" />}
-                    <span>{copiedZelle ? (currentLang === 'en' ? 'Copied!' : '¡Copiado!') : (currentLang === 'en' ? 'Copy Zelle' : 'Copiar Zelle')}</span>
-                  </button>
+                  <label className="relative inline-flex items-center cursor-pointer shrink-0">
+                    <input
+                      type="checkbox"
+                      id="chk-delivery-checkout"
+                      checked={quote.includeDelivery}
+                      onChange={(e) => onToggleDelivery(e.target.checked)}
+                      className="sr-only peer"
+                    />
+                    <div className="w-9 h-5 bg-zinc-300 peer-focus:outline-hidden rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-[#FF8407]"></div>
+                  </label>
                 </div>
+              )}
 
-                {/* Cash & POS Accepted description */}
-                <div className="text-[11px] text-[#555] space-y-1 font-medium px-0.5">
-                  <div className="flex items-center gap-1.5">
-                    <Check className="w-3.5 h-3.5 text-[#FF8407] shrink-0" />
-                    <span>
-                      {currentLang === 'en'
-                        ? 'We accept Cash and POS / Card (Point of Sale).'
-                        : 'Aceptamos Efectivo y Punto de Venta (POS / Tarjeta).'}
-                    </span>
+              {onTogglePayWithCard && (
+                <div className={`flex items-center justify-between p-3 rounded-lg border transition-colors ${
+                  quote.payWithCard ? 'bg-[#FFF6EC] border-[#FF8407]/50 shadow-2xs' : 'bg-[#F9F9F9] border-[#E4E2DA]'
+                }`}>
+                  <div className="flex items-center gap-2">
+                    <CreditCard className={`w-4 h-4 shrink-0 ${quote.payWithCard ? 'text-[#FF8407]' : 'text-zinc-500'}`} />
+                    <div>
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <span className="font-bold text-xs text-[#181818]">
+                          {isEn ? 'Card Payment' : 'Pago con Tarjeta'}
+                        </span>
+                        <span className="text-[9px] font-black px-1.5 py-0.2 rounded bg-[#FF8407] text-white">
+                          +3%
+                        </span>
+                      </div>
+                      <span className="text-[10px] text-[#6B6A63] block">
+                        {isEn ? 'Debit/Credit card fee' : 'Recargo tarjeta débito/crédito'}
+                      </span>
+                    </div>
                   </div>
-                  {quote.payWithCard && (
-                    <p className="text-[10px] text-[#FF8407] font-bold pl-5">
-                      {currentLang === 'en'
-                        ? '✓ 3% card processing surcharge is currently applied to this estimate.'
-                        : '✓ Recargo del 3% por cobro con tarjeta aplicado a esta cotización.'}
-                    </p>
-                  )}
+                  <label className="relative inline-flex items-center cursor-pointer shrink-0">
+                    <input
+                      type="checkbox"
+                      id="chk-card-payment-checkout"
+                      checked={quote.payWithCard || false}
+                      onChange={(e) => onTogglePayWithCard(e.target.checked)}
+                      className="sr-only peer"
+                    />
+                    <div className="w-9 h-5 bg-zinc-300 peer-focus:outline-hidden rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-[#FF8407]"></div>
+                  </label>
                 </div>
+              )}
+            </div>
+
+            {/* Totals Summary */}
+            <div className="bg-[#181818] text-white p-4 rounded-xl space-y-2">
+              <div className="flex justify-between text-zinc-400">
+                <span>{isEn ? 'Products Subtotal:' : 'Subtotal Materiales:'}</span>
+                <span className="font-mono font-bold text-white">{formatCurrency(quote.subtotalProducts)}</span>
               </div>
 
-              {/* Clean Legal Note */}
-              <p className="text-[11px] text-[#6B6A63] leading-relaxed bg-[#FAFAFA] p-2.5 rounded-lg border border-[#E4E2DA]">
-                {currentLang === 'en'
-                  ? `This is a reference estimate. Prices are subject to change without prior notice. Valid until ${quote.validUntil}.`
-                  : `Este es un estimado referencial. Los precios están sujetos a cambio sin previo aviso. Válido hasta ${quote.validUntil}.`}
-              </p>
+              <div className="flex justify-between text-zinc-400">
+                <span>{isEn ? 'FL Sales Tax (7% on products):' : 'Impuesto (7% solo s/materiales):'}</span>
+                <span className="font-mono font-bold text-white">{formatCurrency(quote.taxAmount)}</span>
+              </div>
+
+              {quote.includeDelivery && (
+                <div className="flex justify-between text-zinc-400">
+                  <span>{isEn ? 'Delivery Fee (No Tax):' : 'Delivery ($60 sin impuesto):'}</span>
+                  <span className="font-mono font-bold text-white">{formatCurrency(quote.deliveryCost)}</span>
+                </div>
+              )}
+
+              {quote.installationTotal > 0 && (
+                <div className="flex justify-between text-zinc-400">
+                  <span>{isEn ? 'Installation / Labor (Tax Exempt):' : 'Instalación / Mano de obra:'}</span>
+                  <span className="font-mono font-bold text-white">{formatCurrency(quote.installationTotal)}</span>
+                </div>
+              )}
+
+              {quote.payWithCard && (quote.cardFeeAmount ?? 0) > 0 && (
+                <div className="flex justify-between text-[#FF8407] bg-black/40 px-2.5 py-1.5 rounded-lg border border-[#FF8407]/30">
+                  <span>{isEn ? 'Card Surcharge (3% Debit/Credit):' : 'Recargo Tarjeta (3%):'}</span>
+                  <span className="font-mono font-bold">+{formatCurrency(quote.cardFeeAmount)}</span>
+                </div>
+              )}
+
+              <div className="pt-2 border-t border-zinc-800 flex justify-between items-baseline">
+                <span className="font-bold text-xs uppercase tracking-wider text-white">
+                  {isEn ? 'TOTAL ESTIMATE:' : 'TOTAL:'}
+                </span>
+                <span className="font-mono font-black text-2xl text-[#FF8407]">
+                  {formatCurrency(quote.total)}
+                </span>
+              </div>
             </div>
           </div>
         </div>
 
-        {/* Modal Bottom Actions: One prominent Download button + Two secondary actions */}
-        <div className="p-4 sm:p-5 border-t border-[#E4E2DA] bg-white space-y-2.5 shrink-0">
-          {/* Dominant Primary Button: Full width, solid orange */}
+        {/* Modal Bottom: SINGLE PRIMARY BUTTON (Ver vista previa completa) */}
+        <div className="p-4 sm:p-5 border-t border-[#E4E2DA] bg-white shrink-0">
           <button
             type="button"
-            id="btn-download-pdf-primary"
-            onClick={handleDownloadPDF}
-            disabled={downloading}
-            className="w-full py-3.5 rounded-xl text-xs sm:text-sm font-bold uppercase tracking-wider bg-[#FF8407] hover:bg-[#E07300] text-white flex items-center justify-center gap-2 transition-all cursor-pointer shadow-md active:scale-95"
+            id="btn-open-full-preview"
+            onClick={() => setIsFullPreviewOpen(true)}
+            className="w-full py-4 rounded-xl text-xs sm:text-sm font-bold uppercase tracking-wider bg-[#FF8407] hover:bg-[#E07300] active:scale-[0.99] text-white flex items-center justify-center gap-2.5 transition-all cursor-pointer shadow-md group"
           >
-            <FileDown className="w-5 h-5 text-white" />
-            <span>{downloading ? (currentLang === 'en' ? 'Generating PDF...' : 'Generando PDF...') : (currentLang === 'en' ? 'Download PDF' : 'Descargar PDF')}</span>
+            <Eye className="w-5 h-5 text-white group-hover:scale-110 transition-transform" />
+            <span>{isEn ? 'View Full Document Preview' : 'Ver vista previa completa'}</span>
+            <ArrowRight className="w-4 h-4 text-white group-hover:translate-x-1 transition-transform" />
           </button>
-
-          {/* Secondary Actions in 2 Columns */}
-          <div className="grid grid-cols-2 gap-2.5">
-            <button
-              type="button"
-              id="btn-copy-quote-text"
-              onClick={handleCopyText}
-              className="py-2.5 px-3 rounded-xl text-xs font-bold border border-[#E4E2DA] hover:border-[#181818] bg-[#FAFAFA] text-[#181818] flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
-            >
-              {copied ? <Check className="w-4 h-4 text-emerald-600" /> : <Copy className="w-4 h-4 text-[#6B6A63]" />}
-              <span>{copied ? (currentLang === 'en' ? 'Copied!' : '¡Copiado!') : (currentLang === 'en' ? 'Copy Text' : 'Copiar Texto')}</span>
-            </button>
-
-            <button
-              type="button"
-              id="btn-share-quote-whatsapp"
-              onClick={handleWhatsAppShare}
-              className="py-2.5 px-3 rounded-xl text-xs font-bold bg-[#25D366] hover:bg-[#1EBE5D] text-white flex items-center justify-center gap-1.5 transition-colors cursor-pointer shadow-xs"
-            >
-              <MessageSquare className="w-4 h-4" />
-              <span>{currentLang === 'en' ? 'WhatsApp' : 'WhatsApp'}</span>
-            </button>
-          </div>
         </div>
       </div>
     </div>

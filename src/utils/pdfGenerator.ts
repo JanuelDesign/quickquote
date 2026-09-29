@@ -328,25 +328,101 @@ export function generateQuotePDF(quote: Quotation, settings: AppSettings, lang: 
 
   // 1. Payment Methods Section
   doc.setFont('helvetica', 'bold');
-  doc.setFontSize(8);
+  doc.setFontSize(7.5);
   doc.setTextColor(224, 115, 0); // Dark orange
-  doc.text(isEn ? 'PAYMENT METHODS' : 'MÉTODOS DE PAGO', margin + 4, leftY);
+  doc.text(isEn ? 'ACCEPTED PAYMENT METHODS' : 'MÉTODOS DE PAGO ACEPTADOS', margin + 4, leftY);
 
-  leftY += 4.5;
+  // 3 distinct inline icons with short label underneath: Zelle, Cash, Card/POS
+  const iconY = leftY + 2.5;
+  const colCenters = [margin + 12, margin + 33, margin + 55];
+
+  // --- 1. ZELLE ICON & LABEL ---
+  const zelleCx = colCenters[0];
+  // Dark rounded pill container
+  doc.setFillColor(24, 24, 24);
+  doc.roundedRect(zelleCx - 4.5, iconY, 9, 6.2, 1.2, 1.2, 'F');
+  // Stylized orange lightning bolt vector
+  doc.setFillColor(255, 132, 7);
+  doc.setDrawColor(255, 132, 7);
+  doc.setLineWidth(0.1);
+  const zPoints = [
+    { x: zelleCx + 0.6, y: iconY + 1.2 },
+    { x: zelleCx - 1.6, y: iconY + 3.3 },
+    { x: zelleCx - 0.1, y: iconY + 3.3 },
+    { x: zelleCx - 0.7, y: iconY + 5.1 },
+    { x: zelleCx + 1.6, y: iconY + 2.8 },
+    { x: zelleCx + 0.1, y: iconY + 2.8 }
+  ];
+  doc.lines(
+    [
+      [zPoints[1].x - zPoints[0].x, zPoints[1].y - zPoints[0].y],
+      [zPoints[2].x - zPoints[1].x, zPoints[2].y - zPoints[1].y],
+      [zPoints[3].x - zPoints[2].x, zPoints[3].y - zPoints[2].y],
+      [zPoints[4].x - zPoints[3].x, zPoints[4].y - zPoints[3].y],
+      [zPoints[5].x - zPoints[4].x, zPoints[5].y - zPoints[4].y]
+    ],
+    zPoints[0].x,
+    zPoints[0].y,
+    [1, 1],
+    'FD',
+    true
+  );
+  // Short label underneath
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(6.5);
+  doc.setTextColor(24, 24, 24);
+  doc.text('Zelle', zelleCx, iconY + 9.0, { align: 'center' });
+
+  // --- 2. CASH ICON & LABEL ---
+  const cashCx = colCenters[1];
+  // Dark rounded pill container
+  doc.setFillColor(24, 24, 24);
+  doc.roundedRect(cashCx - 4.5, iconY, 9, 6.2, 1.2, 1.2, 'F');
+  // Emerald green banknote vector
+  doc.setDrawColor(34, 197, 94);
+  doc.setLineWidth(0.35);
+  doc.roundedRect(cashCx - 3.0, iconY + 1.4, 6.0, 3.4, 0.4, 0.4, 'D');
+  doc.setFillColor(34, 197, 94);
+  doc.circle(cashCx, iconY + 3.1, 0.75, 'F');
+  // Short label underneath
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(6.5);
+  doc.setTextColor(24, 24, 24);
+  doc.text(isEn ? 'Cash' : 'Efectivo', cashCx, iconY + 9.0, { align: 'center' });
+
+  // --- 3. CARD / POS ICON & LABEL ---
+  const cardCx = colCenters[2];
+  // Dark rounded pill container
+  doc.setFillColor(24, 24, 24);
+  doc.roundedRect(cardCx - 4.5, iconY, 9, 6.2, 1.2, 1.2, 'F');
+  // Sky blue credit card vector
+  doc.setDrawColor(56, 189, 248);
+  doc.setLineWidth(0.35);
+  doc.roundedRect(cardCx - 3.0, iconY + 1.3, 6.0, 3.5, 0.5, 0.5, 'D');
+  doc.setFillColor(56, 189, 248);
+  doc.rect(cardCx - 3.0, iconY + 2.0, 6.0, 0.8, 'F'); // stripe
+  doc.rect(cardCx - 2.2, iconY + 3.4, 1.2, 0.9, 'F'); // chip
+  // Short label underneath
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(6.5);
+  doc.setTextColor(24, 24, 24);
+  doc.text('Card / POS', cardCx, iconY + 9.0, { align: 'center' });
+
+  leftY = iconY + 12.8;
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(7.5);
   doc.setTextColor(24, 24, 24);
   doc.text('Zelle: quickzelle@gmail.com', margin + 4, leftY);
 
-  leftY += 4;
+  leftY += 3.8;
   doc.setFont('helvetica', 'normal');
-  doc.setFontSize(7);
+  doc.setFontSize(6.8);
   doc.setTextColor(80, 80, 80);
   doc.text(`${isEn ? 'Account Name:' : 'Titular:'} Brugge International`, margin + 4, leftY);
 
-  leftY += 3.8;
+  leftY += 3.6;
   doc.setFont('helvetica', 'normal');
-  doc.setFontSize(7);
+  doc.setFontSize(6.8);
   doc.setTextColor(60, 60, 60);
   const otherPayText = isEn
     ? 'Also accepted: Cash & Card / POS (+3% debit/credit convenience fee).'

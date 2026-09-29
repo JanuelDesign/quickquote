@@ -60,9 +60,29 @@
         "createdAt": { "type": "string" }
       },
       "required": ["id", "quoteNumber", "date", "total"]
+    },
+    "User": {
+      "title": "User",
+      "description": "User profile with role (admin or vendedor) and salesperson details",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "email": { "type": "string" },
+        "displayName": { "type": "string" },
+        "role": { "type": "string", "enum": ["admin", "vendedor"] },
+        "canManageCatalog": { "type": "boolean" },
+        "canManageUsers": { "type": "boolean" },
+        "phone": { "type": "string" },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["uid", "email", "displayName", "role"]
     }
   },
   "firestore": {
+    "/users/{userId}": {
+      "schema": { "$ref": "#/entities/User" },
+      "description": "User profile documents storing role (admin or vendedor) and assigned salesperson details"
+    },
     "/products/{productId}": {
       "schema": { "$ref": "#/entities/Product" },
       "description": "Shared product catalog accessible across all devices"

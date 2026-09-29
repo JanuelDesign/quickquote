@@ -7,7 +7,9 @@ import {
   Client, 
   Quotation, 
   AppSettings,
-  Language 
+  Language,
+  UserProfile,
+  QuoteStatus
 } from './types';
 import { INITIAL_PRODUCTS, DEFAULT_SETTINGS, INITIAL_CLIENTS } from './data/initialProducts';
 import { 
@@ -41,6 +43,10 @@ import { ClientModal } from './components/ClientModal';
 import { QuoteModal } from './components/QuoteModal';
 import { PriceListManager } from './components/PriceListManager';
 import { QuotesHistoryModal } from './components/QuotesHistoryModal';
+import { CustomItemCalculator } from './components/CustomItemCalculator';
+import { LoginScreen } from './components/LoginScreen';
+import { UsersModal } from './components/UsersModal';
+import { QuickSurfacesLogo } from './components/QuickSurfacesLogo';
 import { matchesProductSearch, getCategoryMatchCounts, getCategoryDisplayName } from './utils/productSearch';
 import { fetchGoogleSheetsCatalog, DEFAULT_GOOGLE_SHEET_URL } from './utils/tsvExporter';
 import { getAccessToken } from './services/googleAuth';
@@ -56,6 +62,11 @@ import {
   saveQuotationToDb,
   deleteQuotationFromDb
 } from './services/firebaseDb';
+import { 
+  subscribeToAuth, 
+  subscribeToUserProfile, 
+  logout 
+} from './services/authService';
 
 import { 
   ShoppingBag, 
@@ -63,10 +74,16 @@ import {
   ChevronDown, 
   Plus, 
   Sparkles, 
-  User
+  User,
+  Loader2
 } from 'lucide-react';
 
 export default function App() {
+  // Authentication & Role State
+  const [currentUser, setCurrentUser] = useState<UserProfile | null>(null);
+  const [isAuthChecking, setIsAuthChecking] = useState<boolean>(true);
+  const [isUsersModalOpen, setIsUsersModalOpen] = useState<boolean>(false);
+
   // Language state (defaults to English 'en' as requested, with instant Spanish toggle)
   const [language, setLanguage] = useState<Language>(() => {
     const saved = localStorage.getItem('qs_app_language');
@@ -149,9 +166,11 @@ export default function App() {
   const [payWithCard, setPayWithCard] = useState<boolean>(false);
   const [activeCategory, setActiveCategory] = useState<ProductCategory>('piso');
   const [quoteValidDays, setQuoteValidDays] = useState<number>(settings.defaultValidDays || 3);
-  const [salespersonName, setSalespersonName] = useState<string>(() => {
-    return localStorage.getItem('qs_salesperson_name') || 'Esteban Gavotti';
-  });
+  
+  // Sales representative is strictly bound to the authenticated user's profile
+  const activeSalespersonName = currentUser?.displayName || 'Vendedor';
+  const activeSalespersonPhone = currentUser?.phone || (currentUser?.displayName === 'Ruben Valverde' ? '(305) 555-0188' : '(305) 555-0199');
+
   const [shippingAddress, setShippingAddress] = useState<string>('');
   const [sameAsBillingAddress, setSameAsBillingAddress] = useState<boolean>(true);
 
@@ -205,8 +224,30 @@ export default function App() {
   const [isPriceManagerOpen, setIsPriceManagerOpen] = useState(false);
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
 
+  // Authentication State Listener
+  useEffect(() => {
+    const unsub = subscribeToAuth((firebaseUser, profile) => {
+      setCurrentUser(profile);
+      setIsAuthChecking(false);
+    });
+    return () => unsub();
+  }, []);
+
+  // Sync current user's profile changes from Firestore in real time
+  useEffect(() => {
+    if (!currentUser?.uid) return;
+    const unsub = subscribeToUserProfile(currentUser.uid, (fresh) => {
+      if (fresh) {
+        setCurrentUser(prev => (prev ? { ...prev, ...fresh } : fresh));
+      }
+    });
+    return () => unsub();
+  }, [currentUser?.uid]);
+
   // Silent background auto-sync from Google Sheets on app load and window focus
   useEffect(() => {
+    if (!currentUser) return;
+
     const syncQuietly = async () => {
       const savedUrl = localStorage.getItem('qs_google_sheet_url') || DEFAULT_GOOGLE_SHEET_URL;
       const isAuto = localStorage.getItem('qs_google_sheet_autosync') !== 'false';
@@ -241,10 +282,12 @@ export default function App() {
       window.removeEventListener('focus', handleWindowFocus);
       window.clearInterval(intervalId);
     };
-  }, []);
+  }, [currentUser]);
 
-  // Live Cloud Firestore Subscriptions (Products, Clients, Quotes History & Settings)
+  // Live Cloud Firestore Subscriptions (Only attach if user is authenticated)
   useEffect(() => {
+    if (!currentUser) return;
+
     const unsubProducts = subscribeToProducts((cloudProds) => {
       if (cloudProds && cloudProds.length > 0) {
         setProducts(cloudProds);
@@ -280,7 +323,7 @@ export default function App() {
       unsubQuotes();
       unsubSettings();
     };
-  }, []);
+  }, [currentUser]);
 
   // Sync to localStorage
   useEffect(() => {
@@ -727,8 +770,8 @@ export default function App() {
       phone: '(305) 555-0123',
       createdAt: new Date().toISOString()
     },
-    salespersonName: salespersonName,
-    salespersonPhone: salespersonName === 'Ruben Valverde' ? '(305) 555-0188' : '(305) 555-0199',
+    salespersonName: activeSalespersonName,
+    salespersonPhone: activeSalespersonPhone,
     items: cartItems,
     subtotalProducts,
     taxRate: settings.taxRate,
@@ -749,10 +792,23 @@ export default function App() {
     createdAt: new Date().toISOString()
   };
 
-  const handleSaveQuoteToHistory = async () => {
-    setQuotesHistory(prev => [activeQuote, ...prev.filter(q => q.quoteNumber !== activeQuote.quoteNumber)]);
+  const handleLogout = async () => {
     try {
-      await saveQuotationToDb(activeQuote);
+      await logout();
+      setCurrentUser(null);
+    } catch (err) {
+      console.error('Error logging out:', err);
+    }
+  };
+
+  const handleSaveQuoteToHistory = async () => {
+    const quoteToSave: Quotation = {
+      ...activeQuote,
+      status: activeQuote.status === 'approved' ? 'approved' : 'sent'
+    };
+    setQuotesHistory(prev => [quoteToSave, ...prev.filter(q => q.quoteNumber !== quoteToSave.quoteNumber)]);
+    try {
+      await saveQuotationToDb(quoteToSave);
     } catch (err) {
       console.warn('Error guardando cotización en Firestore:', err);
     }
@@ -771,6 +827,40 @@ export default function App() {
     }
     if (quote.sameAsBillingAddress !== undefined) {
       setSameAsBillingAddress(quote.sameAsBillingAddress);
+    }
+  };
+
+  const handleDuplicateQuoteFromHistory = (quote: Quotation) => {
+    // Clone cart items with fresh unique IDs so they are fully independent
+    const clonedItems = quote.items.map(item => ({
+      ...item,
+      id: `item-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`
+    }));
+    setCartItems(clonedItems);
+    setIncludeDelivery(quote.includeDelivery);
+    if (quote.payWithCard !== undefined) {
+      setPayWithCard(quote.payWithCard);
+    }
+    setCurrentClient(quote.client);
+    setQuoteValidDays(quote.validDays || 15);
+    if (quote.shippingAddress) {
+      setShippingAddress(quote.shippingAddress);
+    }
+    if (quote.sameAsBillingAddress !== undefined) {
+      setSameAsBillingAddress(quote.sameAsBillingAddress);
+    }
+  };
+
+  const handleUpdateQuoteStatus = async (quoteId: string, newStatus: QuoteStatus) => {
+    setQuotesHistory(prev => prev.map(q => q.id === quoteId ? { ...q, status: newStatus } : q));
+    const targetQuote = quotesHistory.find(q => q.id === quoteId);
+    if (targetQuote) {
+      const updated = { ...targetQuote, status: newStatus };
+      try {
+        await saveQuotationToDb(updated);
+      } catch (err) {
+        console.warn('Error actualizando estado en Firestore:', err);
+      }
     }
   };
 
@@ -812,18 +902,40 @@ export default function App() {
     otros: cartItems.filter(i => i.category === 'otros').length
   };
 
+  // Splash loading screen while verifying Firebase session
+  if (isAuthChecking) {
+    return (
+      <div className="min-h-screen bg-[#F7F7F7] flex flex-col items-center justify-center p-6 text-center space-y-4">
+        <QuickSurfacesLogo className="h-12 w-auto text-black animate-pulse" />
+        <div className="flex items-center gap-2 text-xs font-bold text-[#6B6A63] uppercase tracking-wider">
+          <Loader2 className="w-4 h-4 animate-spin text-[#FF8407]" />
+          <span>{language === 'en' ? 'Verifying session...' : 'Verificando sesión...'}</span>
+        </div>
+      </div>
+    );
+  }
+
+  // Not authenticated: Show Login Screen (no public registration)
+  if (!currentUser) {
+    return (
+      <LoginScreen
+        onLoginSuccess={(profile) => setCurrentUser(profile)}
+        language={language}
+        onToggleLanguage={toggleLanguage}
+      />
+    );
+  }
+
   return (
     <div className="min-h-screen bg-[#F7F7F7] text-black flex flex-col font-sans pb-24 lg:pb-10">
-      {/* Top Header with Language Switcher, Salesperson and Menu */}
+      {/* Top Header with Language Switcher, User Session and Menu */}
       <Header
         quoteNumber={activeQuote.quoteNumber}
         client={currentClient}
         clientName={currentClient?.name}
-        salespersonName={salespersonName}
-        onSelectSalesperson={(name) => {
-          setSalespersonName(name);
-          localStorage.setItem('qs_salesperson_name', name);
-        }}
+        currentUser={currentUser}
+        onLogout={handleLogout}
+        onOpenUsersManager={() => setIsUsersModalOpen(true)}
         cartItemsCount={cartItems.length}
         cartTotal={total}
         onOpenCart={() => setIsCartOpen(true)}
@@ -868,15 +980,6 @@ export default function App() {
               className="px-3 py-1.5 rounded-lg border border-[#E4E2DA] hover:border-[#181818] bg-[#F2F1EC] text-[#181818] text-xs font-bold transition-colors cursor-pointer uppercase tracking-wider"
             >
               {currentClient ? t.changeClient : t.assignClient}
-            </button>
-            <button
-              type="button"
-              id="btn-add-other-product"
-              onClick={() => setIsCustomModalOpen(true)}
-              className="px-3 py-1.5 rounded-lg border border-[#E4E2DA] hover:border-[#181818] bg-white text-[#6B6A63] hover:text-[#181818] text-xs font-semibold transition-colors flex items-center gap-1.5 cursor-pointer uppercase tracking-wider"
-            >
-              <Plus className="w-3.5 h-3.5 text-[#FF8407]" />
-              <span>{t.customProductTabBtn}</span>
             </button>
           </div>
         </div>
@@ -1064,25 +1167,10 @@ export default function App() {
                 )}
 
                 {activeCategory === 'otros' && (
-                  <div className="bg-white rounded-xl p-8 border border-[#E5E5E5] shadow-2xs text-center space-y-4">
-                    <div className="w-12 h-12 rounded-xl bg-black text-[#FF8407] flex items-center justify-center mx-auto">
-                      <Sparkles className="w-6 h-6" />
-                    </div>
-                    <h3 className="text-base font-bold text-black uppercase tracking-wider">
-                      {t.customProductTitle}
-                    </h3>
-                    <p className="text-xs text-[#8C8C8C] max-w-md mx-auto">
-                      {t.customProductSubtitle}
-                    </p>
-                    <button
-                      type="button"
-                      onClick={() => setIsCustomModalOpen(true)}
-                      className="px-5 py-2.5 bg-[#FF8407] text-white text-xs font-bold rounded-lg hover:bg-[#E07300] transition-colors inline-flex items-center gap-2 cursor-pointer shadow-md uppercase tracking-wider"
-                    >
-                      <Plus className="w-4 h-4" />
-                      <span>{t.addToQuote}</span>
-                    </button>
-                  </div>
+                  <CustomItemCalculator
+                    onAddItem={handleAddCustomItem}
+                    language={language}
+                  />
                 )}
               </>
             )}
@@ -1187,7 +1275,7 @@ export default function App() {
                   : 'bg-zinc-200 text-zinc-400 cursor-not-allowed'
               }`}
             >
-              <span>{language === 'en' ? 'Next: Review Quote' : 'Siguiente: Ver Cotización'}</span>
+              <span>{language === 'en' ? 'Review Quote' : 'Ver Cotización'}</span>
               <ChevronRight className="w-4 h-4" />
             </button>
           </div>
@@ -1270,7 +1358,7 @@ export default function App() {
         />
       )}
 
-      {isPriceManagerOpen && (
+      {(currentUser.role === 'admin' || currentUser.canManageCatalog === true) && isPriceManagerOpen && (
         <PriceListManager
           isOpen={isPriceManagerOpen}
           onClose={() => setIsPriceManagerOpen(false)}
@@ -1287,6 +1375,15 @@ export default function App() {
         />
       )}
 
+      {(currentUser.role === 'admin' || currentUser.canManageUsers === true) && isUsersModalOpen && (
+        <UsersModal
+          isOpen={isUsersModalOpen}
+          onClose={() => setIsUsersModalOpen(false)}
+          currentUser={currentUser}
+          language={language}
+        />
+      )}
+
       {isHistoryOpen && (
         <QuotesHistoryModal
           isOpen={isHistoryOpen}
@@ -1294,6 +1391,8 @@ export default function App() {
           history={quotesHistory}
           settings={settings}
           onLoadQuote={handleLoadQuoteFromHistory}
+          onDuplicateQuote={handleDuplicateQuoteFromHistory}
+          onUpdateQuoteStatus={handleUpdateQuoteStatus}
           onDeleteQuote={async (id) => {
             setQuotesHistory(prev => prev.filter(q => q.id !== id));
             try {

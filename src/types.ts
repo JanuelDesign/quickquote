@@ -1,5 +1,18 @@
 export type ProductCategory = 'piso' | 'rodapie' | 'perfiles' | 'escalones' | 'wall_panels' | 'underlayment' | 'otros';
 
+export type UserRole = 'admin' | 'vendedor';
+
+export interface UserProfile {
+  uid: string;
+  email: string;
+  displayName: string;
+  role: UserRole;
+  canManageCatalog?: boolean;
+  canManageUsers?: boolean;
+  phone?: string;
+  createdAt?: string;
+}
+
 export interface ProductColor {
   code: string;
   name: string;
@@ -100,7 +113,7 @@ export interface Client {
 
 export type Language = 'en' | 'es';
 
-export type QuoteStatus = 'draft' | 'sent' | 'approved' | 'rejected';
+export type QuoteStatus = 'draft' | 'sent' | 'approved' | 'expired' | 'rejected';
 
 export interface Quotation {
   id: string;
