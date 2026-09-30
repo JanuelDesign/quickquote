@@ -1358,7 +1358,7 @@ export default function App() {
         />
       )}
 
-      {(currentUser.role === 'admin' || currentUser.canManageCatalog === true) && isPriceManagerOpen && (
+      {(currentUser.role === 'admin' || currentUser.canManageCatalog !== false) && isPriceManagerOpen && (
         <PriceListManager
           isOpen={isPriceManagerOpen}
           onClose={() => setIsPriceManagerOpen(false)}

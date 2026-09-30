@@ -60,9 +60,9 @@ export const Header: React.FC<HeaderProps> = ({
   const isEn = language === 'en';
   const t = translations[language];
 
-  // Granular independent permissions
+  // Granular independent permissions: Vendedor can edit catalog & price list by default
   const isAdmin = currentUser.role === 'admin';
-  const canManageCatalog = isAdmin || currentUser.canManageCatalog === true;
+  const canManageCatalog = isAdmin || currentUser.canManageCatalog !== false;
   const canManageUsers = isAdmin || currentUser.canManageUsers === true;
 
   const activeClientName = client?.name || clientName;

@@ -20,7 +20,8 @@ import {
   UserCheck,
   Building,
   Zap,
-  Banknote
+  Banknote,
+  Loader2
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 
@@ -203,39 +204,42 @@ export const QuoteModal: React.FC<QuoteModalProps> = ({
             </span>
           </div>
 
-          {/* The 2 Actions: Descargar PDF (Primary Orange) + Compartir (Secondary) */}
-          <div className="flex items-center gap-2 sm:gap-3">
-            {/* Action 1: Descargar PDF */}
+          {/* The 2 Actions: Descargar PDF (Primary Orange) + Compartir (Secondary) - ICON ONLY */}
+          <div className="flex items-center gap-2 sm:gap-2.5">
+            {/* Action 1: Descargar PDF (Icon only) */}
             <button
               type="button"
               id="btn-preview-download-pdf"
               onClick={handleDownloadPDF}
               disabled={downloading}
-              className="px-4 sm:px-5 py-2 rounded-xl text-xs sm:text-sm font-bold uppercase tracking-wider bg-[#FF8407] hover:bg-[#E07300] active:scale-95 text-white flex items-center gap-2 shadow-md cursor-pointer transition-all disabled:opacity-60"
+              title={downloading ? (isEn ? 'Saving PDF...' : 'Guardando PDF...') : (isEn ? 'Download PDF' : 'Descargar PDF')}
+              aria-label={downloading ? (isEn ? 'Saving PDF...' : 'Guardando PDF...') : (isEn ? 'Download PDF' : 'Descargar PDF')}
+              className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-[#FF8407] hover:bg-[#E07300] active:scale-95 text-white flex items-center justify-center shadow-md cursor-pointer transition-all disabled:opacity-60"
             >
-              <FileDown className="w-4 h-4 text-white" />
-              <span>{downloading ? (isEn ? 'Saving...' : 'Guardando...') : (isEn ? 'Download PDF' : 'Descargar PDF')}</span>
+              {downloading ? <Loader2 className="w-4 h-4 sm:w-5 sm:h-5 text-white animate-spin" /> : <FileDown className="w-4 h-4 sm:w-5 sm:h-5 text-white" />}
             </button>
 
-            {/* Action 2: Compartir (Web Share API) */}
+            {/* Action 2: Compartir (Web Share API - Icon only) */}
             <button
               type="button"
               id="btn-preview-share"
               onClick={handleShare}
-              className="px-3.5 sm:px-4 py-2 rounded-xl text-xs sm:text-sm font-bold uppercase tracking-wider bg-white hover:bg-zinc-100 text-[#181818] flex items-center gap-2 shadow-xs cursor-pointer transition-all active:scale-95"
+              title={isEn ? 'Share Quote' : 'Compartir Cotización'}
+              aria-label={isEn ? 'Share Quote' : 'Compartir Cotización'}
+              className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-white hover:bg-zinc-100 text-[#181818] flex items-center justify-center shadow-xs cursor-pointer transition-all active:scale-95"
             >
-              <Share2 className="w-4 h-4 text-[#FF8407]" />
-              <span>{isEn ? 'Share' : 'Compartir'}</span>
+              <Share2 className="w-4 h-4 sm:w-5 sm:h-5 text-[#FF8407]" />
             </button>
 
             {/* Close Entire Modal */}
             <button
               type="button"
               onClick={onClose}
-              className="w-8 h-8 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-zinc-400 hover:text-white flex items-center justify-center transition-colors cursor-pointer ml-1"
-              title="Cerrar"
+              className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-zinc-400 hover:text-white flex items-center justify-center transition-colors cursor-pointer ml-0.5"
+              title={isEn ? 'Close' : 'Cerrar'}
+              aria-label={isEn ? 'Close' : 'Cerrar'}
             >
-              <X className="w-4 h-4" />
+              <X className="w-4 h-4 sm:w-5 sm:h-5" />
             </button>
           </div>
         </header>

@@ -55,7 +55,7 @@ export function getDefaultTeamProfile(email: string, uid: string): UserProfile {
       email,
       displayName: 'Ruben Valverde',
       role: 'vendedor',
-      canManageCatalog: false,
+      canManageCatalog: true,
       canManageUsers: false,
       phone: '(305) 555-0188',
       createdAt: new Date().toISOString()
@@ -73,7 +73,7 @@ export function getDefaultTeamProfile(email: string, uid: string): UserProfile {
     email,
     displayName: formattedName || 'Vendedor',
     role: 'vendedor',
-    canManageCatalog: false,
+    canManageCatalog: true,
     canManageUsers: false,
     phone: '(305) 555-0100',
     createdAt: new Date().toISOString()
@@ -95,7 +95,7 @@ export async function getOrCreateUserProfile(user: FirebaseUser): Promise<UserPr
       uid: user.uid,
       email: user.email || data.email,
       role,
-      canManageCatalog: data.canManageCatalog !== undefined ? data.canManageCatalog : (role === 'admin'),
+      canManageCatalog: data.canManageCatalog !== undefined ? data.canManageCatalog : true,
       canManageUsers: data.canManageUsers !== undefined ? data.canManageUsers : (role === 'admin')
     };
   }
@@ -225,7 +225,7 @@ export async function createTeamUserAccount(
     email: email.trim(),
     displayName: displayName.trim(),
     role,
-    canManageCatalog: canManageCatalog !== undefined ? canManageCatalog : (role === 'admin'),
+    canManageCatalog: canManageCatalog !== undefined ? canManageCatalog : true,
     canManageUsers: canManageUsers !== undefined ? canManageUsers : (role === 'admin'),
     phone: phone?.trim() || '',
     createdAt: new Date().toISOString()

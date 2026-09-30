@@ -54,7 +54,7 @@ export const UsersModal: React.FC<UsersModalProps> = ({
   const [newName, setNewName] = useState('');
   const [newRole, setNewRole] = useState<UserRole>('vendedor');
   const [newPhone, setNewPhone] = useState('');
-  const [newCanManageCatalog, setNewCanManageCatalog] = useState(false);
+  const [newCanManageCatalog, setNewCanManageCatalog] = useState(true);
   const [newCanManageUsers, setNewCanManageUsers] = useState(false);
   const [createLoading, setCreateLoading] = useState(false);
   const [createError, setCreateError] = useState<string | null>(null);
@@ -77,7 +77,7 @@ export const UsersModal: React.FC<UsersModalProps> = ({
     setEditName(user.displayName);
     setEditRole(user.role);
     setEditPhone(user.phone || '');
-    setEditCanManageCatalog(user.canManageCatalog !== undefined ? user.canManageCatalog : (user.role === 'admin'));
+    setEditCanManageCatalog(user.canManageCatalog !== undefined ? user.canManageCatalog : true);
     setEditCanManageUsers(user.canManageUsers !== undefined ? user.canManageUsers : (user.role === 'admin'));
   };
 
@@ -86,6 +86,8 @@ export const UsersModal: React.FC<UsersModalProps> = ({
     if (role === 'admin') {
       setEditCanManageCatalog(true);
       setEditCanManageUsers(true);
+    } else {
+      setEditCanManageCatalog(true);
     }
   };
 
@@ -107,7 +109,7 @@ export const UsersModal: React.FC<UsersModalProps> = ({
 
   const handleTogglePermission = async (user: UserProfile, perm: 'canManageCatalog' | 'canManageUsers') => {
     const currentVal = perm === 'canManageCatalog' 
-      ? (user.canManageCatalog !== undefined ? user.canManageCatalog : user.role === 'admin')
+      ? (user.canManageCatalog !== undefined ? user.canManageCatalog : true)
       : (user.canManageUsers !== undefined ? user.canManageUsers : user.role === 'admin');
     
     const newVal = !currentVal;
@@ -179,7 +181,7 @@ export const UsersModal: React.FC<UsersModalProps> = ({
       setNewName('');
       setNewPhone('');
       setNewRole('vendedor');
-      setNewCanManageCatalog(false);
+      setNewCanManageCatalog(true);
       setNewCanManageUsers(false);
       setIsCreating(false);
       setTimeout(() => setCreateSuccess(null), 4000);
@@ -354,7 +356,7 @@ export const UsersModal: React.FC<UsersModalProps> = ({
                         checked={newRole === 'vendedor'}
                         onChange={() => {
                           setNewRole('vendedor');
-                          setNewCanManageCatalog(false);
+                          setNewCanManageCatalog(true);
                           setNewCanManageUsers(false);
                         }}
                         className="accent-[#FF8407]"
@@ -475,7 +477,7 @@ export const UsersModal: React.FC<UsersModalProps> = ({
               users.map((u) => {
                 const isEditing = editingUserId === u.uid;
                 const isSelf = u.uid === currentUser.uid;
-                const canCatalog = u.canManageCatalog !== undefined ? u.canManageCatalog : (u.role === 'admin');
+                const canCatalog = u.canManageCatalog !== undefined ? u.canManageCatalog : true;
                 const canUsers = u.canManageUsers !== undefined ? u.canManageUsers : (u.role === 'admin');
 
                 return (
