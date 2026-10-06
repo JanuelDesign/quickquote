@@ -209,12 +209,12 @@ export const UsersModal: React.FC<UsersModalProps> = ({
               <UsersIcon className="w-5 h-5" />
             </div>
             <div>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 flex-wrap">
                 <h2 className="text-base font-bold text-white tracking-wide">
                   {isEn ? 'Team & User Permissions' : 'Gestión de Usuarios y Permisos'}
                 </h2>
                 <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-[#FF8407] text-white uppercase tracking-wider">
-                  RBAC & FIRESTORE
+                  {isEn ? 'Permissions' : 'Permisos'}
                 </span>
               </div>
               <p className="text-xs text-zinc-400 font-mono mt-0.5">
@@ -225,7 +225,7 @@ export const UsersModal: React.FC<UsersModalProps> = ({
 
           <button
             onClick={onClose}
-            className="w-8 h-8 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-300 hover:text-white flex items-center justify-center transition-colors cursor-pointer"
+            className="w-8 h-8 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-300 hover:text-white flex items-center justify-center transition-colors cursor-pointer shrink-0"
             title="Cerrar"
           >
             <X className="w-5 h-5" />
@@ -247,17 +247,17 @@ export const UsersModal: React.FC<UsersModalProps> = ({
           </div>
         )}
 
-        {/* Top Actions Bar */}
-        <div className="p-4 sm:p-5 border-b border-[#E4E2DA] bg-[#FAFAFA] flex items-center justify-between gap-3 shrink-0">
-          <div>
+        {/* Top Actions Bar — Stacked in 2 rows */}
+        <div className="p-4 sm:p-5 border-b border-[#E4E2DA] bg-[#FAFAFA] flex flex-col gap-3 shrink-0">
+          <div className="w-full">
             <span className="text-xs font-bold text-[#181818] block">
               {isEn ? 'QuickSurfaces Sales Team' : 'Equipo Comercial de QuickSurfaces'}
             </span>
-            <span className="text-[11px] text-[#6B6A63]">
+            <p className="text-[11px] text-[#6B6A63] mt-0.5 leading-relaxed">
               {isEn 
-                ? 'Assign roles and grant Catálogo / User permissions independently.' 
+                ? 'Assign roles and grant Catalog & Price List access independently.' 
                 : 'Asigna roles y otorga acceso a Catálogo y Lista de Precios de forma independiente.'}
-            </span>
+            </p>
           </div>
 
           <button
@@ -267,7 +267,7 @@ export const UsersModal: React.FC<UsersModalProps> = ({
               setIsCreating(prev => !prev);
               setCreateError(null);
             }}
-            className="px-3.5 py-2 rounded-xl bg-[#181818] hover:bg-black text-white text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-1.5 transition-colors cursor-pointer shrink-0 shadow-xs"
+            className="w-full sm:w-auto sm:self-end px-4 py-2.5 rounded-xl bg-[#181818] hover:bg-black text-white text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-1.5 transition-colors cursor-pointer shadow-xs"
           >
             <UserPlus className="w-4 h-4 text-[#FF8407]" />
             <span>{isCreating ? (isEn ? 'Cancel' : 'Cancelar') : (isEn ? '+ New User' : '+ Nuevo Usuario')}</span>
@@ -402,8 +402,8 @@ export const UsersModal: React.FC<UsersModalProps> = ({
                         </span>
                         <span className="text-[10px] text-[#6B6A63]">
                           {isEn 
-                            ? 'Allows viewing, adding, editing base prices and product variants.' 
-                            : 'Permite al vendedor ver y editar precios base, agregar productos y variantes de catálogo.'}
+                            ? 'Allows salesperson to view catalog and add new products (editing existing products is Admin only).' 
+                            : 'Permite al vendedor ver el catálogo y agregar nuevos productos (editar o eliminar existentes es solo para Admin).'}
                         </span>
                       </div>
                     </label>
@@ -470,7 +470,7 @@ export const UsersModal: React.FC<UsersModalProps> = ({
             ) : users.length === 0 ? (
               <div className="bg-white p-8 rounded-xl border border-[#E4E2DA] text-center space-y-2">
                 <p className="text-xs font-semibold text-[#6B6A63]">
-                  {isEn ? 'No user profiles found in Firestore.' : 'No se encontraron perfiles de usuario en Firestore.'}
+                  {isEn ? 'No user profiles found.' : 'No se encontraron perfiles de usuario.'}
                 </p>
               </div>
             ) : (

@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Product, ProductCategory } from '../types';
+import { Product, ProductCategory, ProductColor, UserRole } from '../types';
 import { 
   Settings2, 
   Plus, 
@@ -17,26 +17,31 @@ import {
   Palette, 
   AlertCircle,
   Layers,
-  ChevronDown
+  ChevronDown,
+  Lock
 } from 'lucide-react';
 import { INITIAL_PRODUCTS } from '../data/initialProducts';
 import { ProductEditModal } from './ProductEditModal';
 import { saveProductToDb, deleteProductFromDb, batchSaveProductsToDb } from '../services/firebaseDb';
 import { formatCurrency } from '../utils/calculations';
+import { Badge, SpecValue } from './ui/Badge';
 
 interface PriceListManagerProps {
   isOpen: boolean;
   onClose: () => void;
   products: Product[];
   onUpdateProducts: (newProducts: Product[]) => void;
+  userRole?: UserRole;
 }
 
 export const PriceListManager: React.FC<PriceListManagerProps> = ({
   isOpen,
   onClose,
   products,
-  onUpdateProducts
+  onUpdateProducts,
+  userRole = 'admin'
 }) => {
+  const isAdmin = userRole === 'admin';
   const [searchTerm, setSearchTerm] = useState('');
   const [filterCategory, setFilterCategory] = useState<string>('all');
   
@@ -54,6 +59,10 @@ export const PriceListManager: React.FC<PriceListManagerProps> = ({
   const [newSqftBox, setNewSqftBox] = useState<number>(24.26);
   const [newStripLength, setNewStripLength] = useState<number>(16);
   const [newSize, setNewSize] = useState('');
+  const [newColors, setNewColors] = useState<ProductColor[]>([]);
+  const [tempColorName, setTempColorName] = useState('');
+  const [tempColorCode, setTempColorCode] = useState('');
+  const [tempColorHex, setTempColorHex] = useState('#C8B496');
 
   // Dropdown menu state for "⋯ Más opciones"
   const [isMoreMenuOpen, setIsMoreMenuOpen] = useState(false);
@@ -117,7 +126,7 @@ export const PriceListManager: React.FC<PriceListManagerProps> = ({
       priceUnit: newPriceUnit,
       sqftPerBox: newCategory === 'piso' ? Number(newSqftBox) || 20 : undefined,
       stripLengthFeet: newCategory === 'rodapie' ? Number(newStripLength) || 16 : undefined,
-      colors: []
+      colors: newColors
     };
 
     try {
@@ -130,9 +139,12 @@ export const PriceListManager: React.FC<PriceListManagerProps> = ({
       setNewSubcategory('');
       setNewThickness('');
       setNewSize('');
+      setNewColors([]);
+      setTempColorName('');
+      setTempColorCode('');
     } catch (err) {
       console.error('Error guardando producto:', err);
-      showFeedback('error', 'Error al sincronizar con Firestore.');
+      showFeedback('error', 'Error al sincronizar el producto.');
     }
   };
 
@@ -149,13 +161,13 @@ export const PriceListManager: React.FC<PriceListManagerProps> = ({
       showFeedback('success', `"${productName}" eliminado del catálogo.`);
     } catch (err) {
       console.error('Error eliminando producto:', err);
-      showFeedback('error', 'Error al eliminar en Firestore.');
+      showFeedback('error', 'Error al eliminar el producto.');
     }
   };
 
   // Handle Reset to Default Products
   const handleResetDefaults = async () => {
-    if (!window.confirm('¿Restablecer todo el catálogo a los productos iniciales de fábrica? Esto reemplazará los productos actuales en Firestore.')) {
+    if (!window.confirm('¿Restablecer todo el catálogo a los productos iniciales de fábrica? Esto reemplazará los productos actuales.')) {
       return;
     }
 
@@ -166,7 +178,7 @@ export const PriceListManager: React.FC<PriceListManagerProps> = ({
       setIsMoreMenuOpen(false);
     } catch (err) {
       console.error('Error restableciendo catálogo:', err);
-      showFeedback('error', 'Error al restablecer en Firestore.');
+      showFeedback('error', 'Error al restablecer el catálogo.');
     }
   };
 
@@ -421,7 +433,7 @@ export const PriceListManager: React.FC<PriceListManagerProps> = ({
         const merged = Array.from(map.values());
         await batchSaveProductsToDb(merged);
         onUpdateProducts(merged);
-        showFeedback('success', `✓ ${importedProducts.length} productos importados y sincronizados con Firestore.`);
+        showFeedback('success', `✓ ${importedProducts.length} productos importados y sincronizados.`);
       } catch (err: any) {
         console.error('Error importando CSV:', err);
         showFeedback('error', err?.message || 'Error al procesar el archivo CSV.');
@@ -443,29 +455,38 @@ export const PriceListManager: React.FC<PriceListManagerProps> = ({
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="px-5 py-4 border-b border-[#E4E2DA] bg-[#181818] text-white flex items-center justify-between shrink-0">
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-zinc-900 border border-zinc-800 text-[#FF8407] flex items-center justify-center font-bold shrink-0">
+        <div className="px-4 sm:px-5 py-4 border-b border-[#E4E2DA] bg-[#181818] text-white flex items-start justify-between gap-2 shrink-0">
+          <div className="flex items-start gap-3 min-w-0">
+            <div className="w-9 h-9 rounded-xl bg-zinc-900 border border-zinc-800 text-[#FF8407] flex items-center justify-center font-bold shrink-0 mt-0.5">
               <Settings2 className="w-5 h-5" />
             </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <h2 className="text-base font-bold text-white tracking-wide">
+            <div className="min-w-0">
+              <div className="flex items-center gap-2 flex-wrap">
+                <h2 className="text-sm sm:text-base font-bold text-white tracking-wide leading-tight">
                   Catálogo & Lista de Precios
                 </h2>
-                <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-[#FF8407] text-white uppercase tracking-wider">
-                  CLOUD FIRESTORE
+                <span className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-full shrink-0">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+                  <span>Sincronizado</span>
                 </span>
+                {!isAdmin && (
+                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-zinc-800 text-amber-400 border border-amber-500/30 uppercase tracking-wider flex items-center gap-1 shrink-0">
+                    <Lock className="w-3 h-3" />
+                    Solo Agregar Productos
+                  </span>
+                )}
               </div>
-              <p className="text-xs text-zinc-400 font-mono mt-0.5">
-                {products.length} productos sincronizados en tiempo real
+              <p className="text-xs text-zinc-400 font-mono mt-1 leading-relaxed">
+                {isAdmin 
+                  ? `${products.length} productos disponibles en el catálogo`
+                  : `${products.length} productos • Modo Vendedor: puedes agregar nuevos productos`}
               </p>
             </div>
           </div>
 
           <button
             onClick={onClose}
-            className="w-8 h-8 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-300 hover:text-white flex items-center justify-center transition-colors cursor-pointer"
+            className="w-8 h-8 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-300 hover:text-white flex items-center justify-center transition-colors cursor-pointer shrink-0"
             title="Cerrar"
           >
             <X className="w-5 h-5" />
@@ -537,75 +558,77 @@ export const PriceListManager: React.FC<PriceListManagerProps> = ({
               className="hidden" 
             />
 
-            {/* Secondary Options Dropdown Menu (⋯ Más opciones) */}
-            <div className="relative" ref={moreMenuRef}>
-              <button
-                type="button"
-                id="btn-price-manager-more"
-                onClick={() => setIsMoreMenuOpen(prev => !prev)}
-                className="h-10 px-3 rounded-xl border border-[#E4E2DA] bg-white hover:bg-[#F2F1EC] text-[#181818] text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer"
-                title="Más opciones de respaldo y CSV"
-              >
-                <MoreHorizontal className="w-4 h-4 text-[#6B6A63]" />
-                <span className="hidden sm:inline">Más opciones</span>
-                <ChevronDown className="w-3.5 h-3.5 text-[#9C9A90]" />
-              </button>
+            {/* Secondary Options Dropdown Menu (⋯ Más opciones) - Admin Only */}
+            {isAdmin && (
+              <div className="relative" ref={moreMenuRef}>
+                <button
+                  type="button"
+                  id="btn-price-manager-more"
+                  onClick={() => setIsMoreMenuOpen(prev => !prev)}
+                  className="h-10 px-3 rounded-xl border border-[#E4E2DA] bg-white hover:bg-[#F2F1EC] text-[#181818] text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer"
+                  title="Más opciones de respaldo y CSV"
+                >
+                  <MoreHorizontal className="w-4 h-4 text-[#6B6A63]" />
+                  <span className="hidden sm:inline">Más opciones</span>
+                  <ChevronDown className="w-3.5 h-3.5 text-[#9C9A90]" />
+                </button>
 
-              {isMoreMenuOpen && (
-                <div className="absolute right-0 top-11 w-64 bg-white border border-[#E4E2DA] rounded-xl shadow-xl p-2 z-50 text-xs text-[#181818] space-y-1 animate-in fade-in duration-100">
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-[#9C9A90] px-2.5 py-1 block">
-                    Carga Masiva y Respaldo
-                  </span>
+                {isMoreMenuOpen && (
+                  <div className="absolute right-0 top-11 w-64 bg-white border border-[#E4E2DA] rounded-xl shadow-xl p-2 z-50 text-xs text-[#181818] space-y-1 animate-in fade-in duration-100">
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-[#9C9A90] px-2.5 py-1 block">
+                      Carga Masiva y Respaldo
+                    </span>
 
-                  <button
-                    type="button"
-                    onClick={handleDownloadTemplate}
-                    className="w-full px-2.5 py-2 rounded-lg hover:bg-[#F2F1EC] text-left flex items-center gap-2.5 font-medium transition-colors cursor-pointer"
-                  >
-                    <FileText className="w-4 h-4 text-[#FF8407]" />
-                    <div>
-                      <span className="font-bold block leading-tight">Descargar Plantilla CSV</span>
-                      <span className="text-[10px] text-[#6B6A63]">Formato listo para Excel/Sheets</span>
-                    </div>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={handleExportCSV}
-                    className="w-full px-2.5 py-2 rounded-lg hover:bg-[#F2F1EC] text-left flex items-center gap-2.5 font-medium transition-colors cursor-pointer"
-                  >
-                    <FileSpreadsheet className="w-4 h-4 text-emerald-600" />
-                    <div>
-                      <span className="font-bold block leading-tight">Exportar Catálogo a CSV</span>
-                      <span className="text-[10px] text-[#6B6A63]">Descarga todos los {products.length} productos</span>
-                    </div>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => fileInputRef.current?.click()}
-                    className="w-full px-2.5 py-2 rounded-lg hover:bg-[#F2F1EC] text-left flex items-center gap-2.5 font-medium transition-colors cursor-pointer"
-                  >
-                    <Upload className="w-4 h-4 text-blue-600" />
-                    <div>
-                      <span className="font-bold block leading-tight">Importar Productos desde CSV</span>
-                      <span className="text-[10px] text-[#6B6A63]">Carga o actualiza masivamente</span>
-                    </div>
-                  </button>
-
-                  <div className="pt-1 border-t border-[#E4E2DA] mt-1">
                     <button
                       type="button"
-                      onClick={handleResetDefaults}
-                      className="w-full px-2.5 py-2 rounded-lg hover:bg-red-50 text-left flex items-center gap-2.5 font-medium text-red-600 transition-colors cursor-pointer"
+                      onClick={handleDownloadTemplate}
+                      className="w-full px-2.5 py-2 rounded-lg hover:bg-[#F2F1EC] text-left flex items-center gap-2.5 font-medium transition-colors cursor-pointer"
                     >
-                      <RotateCcw className="w-4 h-4 text-red-500" />
-                      <span>Restablecer catálogo inicial</span>
+                      <FileText className="w-4 h-4 text-[#FF8407]" />
+                      <div>
+                        <span className="font-bold block leading-tight">Descargar Plantilla CSV</span>
+                        <span className="text-[10px] text-[#6B6A63]">Formato listo para Excel/Sheets</span>
+                      </div>
                     </button>
+
+                    <button
+                      type="button"
+                      onClick={handleExportCSV}
+                      className="w-full px-2.5 py-2 rounded-lg hover:bg-[#F2F1EC] text-left flex items-center gap-2.5 font-medium transition-colors cursor-pointer"
+                    >
+                      <FileSpreadsheet className="w-4 h-4 text-emerald-600" />
+                      <div>
+                        <span className="font-bold block leading-tight">Exportar Catálogo a CSV</span>
+                        <span className="text-[10px] text-[#6B6A63]">Descarga todos los {products.length} productos</span>
+                      </div>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => fileInputRef.current?.click()}
+                      className="w-full px-2.5 py-2 rounded-lg hover:bg-[#F2F1EC] text-left flex items-center gap-2.5 font-medium transition-colors cursor-pointer"
+                    >
+                      <Upload className="w-4 h-4 text-blue-600" />
+                      <div>
+                        <span className="font-bold block leading-tight">Importar Productos desde CSV</span>
+                        <span className="text-[10px] text-[#6B6A63]">Carga o actualiza masivamente</span>
+                      </div>
+                    </button>
+
+                    <div className="pt-1 border-t border-[#E4E2DA] mt-1">
+                      <button
+                        type="button"
+                        onClick={handleResetDefaults}
+                        className="w-full px-2.5 py-2 rounded-lg hover:bg-red-50 text-left flex items-center gap-2.5 font-medium text-red-600 transition-colors cursor-pointer"
+                      >
+                        <RotateCcw className="w-4 h-4 text-red-500" />
+                        <span>Restablecer catálogo inicial</span>
+                      </button>
+                    </div>
                   </div>
-                </div>
-              )}
-            </div>
+                )}
+              </div>
+            )}
           </div>
         </div>
 
@@ -764,6 +787,77 @@ export const PriceListManager: React.FC<PriceListManagerProps> = ({
                 </div>
               </div>
 
+              {/* Optional Color Variants when creating a new product */}
+              <div className="bg-[#FAFAFA] p-3 rounded-xl border border-[#E4E2DA] space-y-2.5">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-[#6B6A63] flex items-center gap-1.5">
+                  <Palette className="w-3.5 h-3.5 text-[#FF8407]" />
+                  Variantes de Color / Acabado (Opcional)
+                </span>
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+                  <input
+                    type="text"
+                    placeholder="Nombre del color (Ej. Natural Oak)"
+                    value={tempColorName}
+                    onChange={(e) => setTempColorName(e.target.value)}
+                    className="flex-1 px-2.5 py-1.5 bg-white border border-[#E4E2DA] rounded-lg text-xs text-[#181818]"
+                  />
+                  <input
+                    type="text"
+                    placeholder="Código (Ej. Q-01)"
+                    value={tempColorCode}
+                    onChange={(e) => setTempColorCode(e.target.value)}
+                    className="sm:w-32 px-2.5 py-1.5 bg-white border border-[#E4E2DA] rounded-lg text-xs font-mono text-[#181818]"
+                  />
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="color"
+                      value={tempColorHex}
+                      onChange={(e) => setTempColorHex(e.target.value)}
+                      className="w-8 h-8 rounded cursor-pointer border border-[#E4E2DA] bg-white p-0.5 shrink-0"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (!tempColorName.trim()) return;
+                        setNewColors(prev => [
+                          ...prev,
+                          {
+                            name: tempColorName.trim(),
+                            code: tempColorCode.trim() || `COL-${prev.length + 1}`,
+                            hex: tempColorHex
+                          }
+                        ]);
+                        setTempColorName('');
+                        setTempColorCode('');
+                      }}
+                      className="px-3 py-1.5 rounded-lg bg-[#181818] hover:bg-black text-white text-xs font-bold cursor-pointer shrink-0"
+                    >
+                      + Color
+                    </button>
+                  </div>
+                </div>
+                {newColors.length > 0 && (
+                  <div className="flex flex-wrap gap-1.5 pt-1">
+                    {newColors.map((col, idx) => (
+                      <span
+                        key={idx}
+                        className="inline-flex items-center gap-1.5 px-2 py-1 rounded-md bg-white border border-[#E4E2DA] text-[11px] font-medium text-[#181818]"
+                      >
+                        <span className="w-2.5 h-2.5 rounded-full border border-black/20" style={{ backgroundColor: col.hex }} />
+                        <span>{col.name} ({col.code})</span>
+                        <button
+                          type="button"
+                          onClick={() => setNewColors(prev => prev.filter((_, i) => i !== idx))}
+                          className="text-zinc-400 hover:text-red-500 ml-0.5 cursor-pointer"
+                        >
+                          <X className="w-3 h-3" />
+                        </button>
+                      </span>
+                    ))}
+                  </div>
+                )}
+              </div>
+
               <div className="flex justify-end gap-2 pt-2">
                 <button
                   type="button"
@@ -809,21 +903,21 @@ export const PriceListManager: React.FC<PriceListManagerProps> = ({
                     <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-2">
                       <div className="space-y-1 min-w-0">
                         <div className="flex items-center gap-1.5 flex-wrap">
-                          <span className="font-bold uppercase text-[10px] bg-[#181818] text-[#FF8407] px-2 py-0.5 rounded tracking-wider">
+                          <Badge variant="brand" className="uppercase tracking-wider">
                             {p.category}
-                          </span>
+                          </Badge>
                           {p.subcategory && (
-                            <span className="text-[10px] font-semibold text-zinc-600 bg-[#F2F1EC] px-1.5 py-0.5 rounded border border-[#E4E2DA]">
+                            <Badge variant="neutral">
                               {p.subcategory}
-                            </span>
+                            </Badge>
                           )}
                           {p.badge && (
-                            <span className="text-[10px] font-bold bg-amber-100 text-amber-800 px-1.5 py-0.5 rounded uppercase">
+                            <Badge variant="amber" className="uppercase">
                               {p.badge}
-                            </span>
+                            </Badge>
                           )}
                         </div>
-                        <h4 className="text-sm sm:text-base font-bold text-[#181818] leading-tight">
+                        <h4 className="text-sm sm:text-base font-bold text-[#181818] leading-snug break-words">
                           {p.name}
                         </h4>
                       </div>
@@ -840,34 +934,40 @@ export const PriceListManager: React.FC<PriceListManagerProps> = ({
                     </div>
 
                     {/* Middle Grid: Specifications, SqFt/Tira, Colores / Acabados */}
-                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 text-xs pt-2 border-t border-zinc-100 bg-[#FAFAFA] p-3 rounded-lg">
-                      {/* Specs */}
-                      <div>
-                        <span className="text-[10px] uppercase font-bold text-[#9C9A90] block">Especificaciones</span>
-                        <span className="font-semibold text-[#181818] block truncate">{p.thickness || '—'}</span>
-                        <span className="text-[10px] text-[#6B6A63] block truncate">{p.size || p.wearLayer || '—'}</span>
-                      </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 text-xs pt-2 border-t border-zinc-100 bg-[#FAFAFA] p-3 rounded-lg">
+                      {/* Specs — wraps to 2 lines cleanly via shared SpecValue */}
+                      <SpecValue
+                        label="Especificaciones"
+                        primary={p.thickness || '—'}
+                        secondary={p.size || p.wearLayer || '—'}
+                      />
 
-                      {/* Coverage / Yield */}
-                      <div>
-                        <span className="text-[10px] uppercase font-bold text-[#9C9A90] block">Rendimiento</span>
-                        <span className="font-mono font-semibold text-[#181818] block truncate">
-                          {p.sqftPerBox ? `${p.sqftPerBox} sqft/caja` : p.stripLengthFeet ? `Tira ${p.stripLengthFeet} ft` : 'Por unidad'}
-                        </span>
-                      </div>
+                      {/* Coverage / Yield — wraps to 2 lines cleanly via shared SpecValue */}
+                      <SpecValue
+                        label="Rendimiento"
+                        primary={p.sqftPerBox ? `${p.sqftPerBox} sqft/caja` : p.stripLengthFeet ? `Tira ${p.stripLengthFeet} ft` : 'Por unidad'}
+                        mono
+                      />
 
                       {/* Colors / Variants (1 color vs X colores) */}
-                      <div className="col-span-2 sm:col-span-1">
+                      <div className="min-w-0">
                         <span className="text-[10px] uppercase font-bold text-[#9C9A90] block">Colores / Acabados</span>
-                        <div className="flex items-center gap-1.5 mt-0.5">
-                          <button
-                            type="button"
-                            onClick={() => setModalEditingProduct(p)}
-                            className="inline-flex items-center gap-1 text-[11px] font-bold text-[#FF8407] hover:underline cursor-pointer"
-                          >
-                            <Palette className="w-3 h-3" />
-                            <span>{colorCount > 0 ? colorLabel : 'Sin variantes'}</span>
-                          </button>
+                        <div className="flex items-center gap-1.5 flex-wrap mt-0.5">
+                          {isAdmin ? (
+                            <button
+                              type="button"
+                              onClick={() => setModalEditingProduct(p)}
+                              className="inline-flex items-center gap-1 text-[11px] font-bold text-[#FF8407] hover:underline cursor-pointer"
+                            >
+                              <Palette className="w-3 h-3" />
+                              <span>{colorCount > 0 ? colorLabel : 'Sin variantes'}</span>
+                            </button>
+                          ) : (
+                            <span className="inline-flex items-center gap-1 text-[11px] font-bold text-[#6B6A63]">
+                              <Palette className="w-3 h-3 text-[#FF8407]" />
+                              <span>{colorCount > 0 ? colorLabel : 'Sin variantes'}</span>
+                            </span>
+                          )}
 
                           {colorCount > 0 && (
                             <div className="flex items-center gap-0.5 ml-1">
@@ -888,28 +988,30 @@ export const PriceListManager: React.FC<PriceListManagerProps> = ({
                       </div>
                     </div>
 
-                    {/* Bottom Row: Actions for this card */}
-                    <div className="flex items-center justify-end gap-2 pt-2 border-t border-zinc-100">
-                      <button
-                        type="button"
-                        onClick={() => setModalEditingProduct(p)}
-                        className="px-3.5 py-1.5 rounded-lg text-xs font-bold text-[#181818] hover:bg-[#F2F1EC] border border-[#E4E2DA] transition-colors flex items-center gap-1.5 cursor-pointer uppercase tracking-wider"
-                        title="Editar especificaciones y variantes de color"
-                      >
-                        <Edit3 className="w-3.5 h-3.5 text-[#FF8407]" />
-                        <span>Editar</span>
-                      </button>
+                    {/* Bottom Row: Actions for this card (Admin Only) */}
+                    {isAdmin && (
+                      <div className="flex items-center justify-end gap-2 pt-2 border-t border-zinc-100">
+                        <button
+                          type="button"
+                          onClick={() => setModalEditingProduct(p)}
+                          className="px-3.5 py-1.5 rounded-lg text-xs font-bold text-[#181818] hover:bg-[#F2F1EC] border border-[#E4E2DA] transition-colors flex items-center gap-1.5 cursor-pointer uppercase tracking-wider"
+                          title="Editar especificaciones y variantes de color"
+                        >
+                          <Edit3 className="w-3.5 h-3.5 text-[#FF8407]" />
+                          <span>Editar</span>
+                        </button>
 
-                      <button
-                        type="button"
-                        onClick={() => handleDeleteProduct(p.id, p.name)}
-                        className="px-3 py-1.5 rounded-lg text-xs font-bold text-red-600 hover:bg-red-50 border border-red-200 transition-colors flex items-center gap-1 cursor-pointer uppercase tracking-wider"
-                        title="Eliminar producto del catálogo"
-                      >
-                        <Trash2 className="w-3.5 h-3.5" />
-                        <span>Eliminar</span>
-                      </button>
-                    </div>
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteProduct(p.id, p.name)}
+                          className="px-3 py-1.5 rounded-lg text-xs font-bold text-red-600 hover:bg-red-50 border border-red-200 transition-colors flex items-center gap-1 cursor-pointer uppercase tracking-wider"
+                          title="Eliminar producto del catálogo"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                          <span>Eliminar</span>
+                        </button>
+                      </div>
+                    )}
                   </div>
                 );
               })
@@ -932,8 +1034,8 @@ export const PriceListManager: React.FC<PriceListManagerProps> = ({
         </div>
       </div>
 
-      {/* Modal for editing product details and colors */}
-      {modalEditingProduct && (
+      {/* Modal for editing product details and colors (Admin only) */}
+      {isAdmin && modalEditingProduct && (
         <ProductEditModal
           isOpen={!!modalEditingProduct}
           onClose={() => setModalEditingProduct(null)}

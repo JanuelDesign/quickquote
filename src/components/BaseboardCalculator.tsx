@@ -169,12 +169,12 @@ export const BaseboardCalculator: React.FC<BaseboardCalculatorProps> = ({
             <Ruler className="w-4 h-4" />
           </div>
           <div className="min-w-0">
-            <h3 className="text-sm font-bold text-[#181818] leading-tight truncate">
+            <h3 className="text-sm font-bold text-[#181818] leading-snug break-words">
               {currentStep === 1 
                 ? (language === 'en' ? '1. Select Baseboard Model' : '1. Seleccionar modelo de rodapié')
                 : (language === 'en' ? '2. Linear Feet & Pricing' : '2. Pies lineales y precio')}
             </h3>
-            <p className="text-xs text-[#6B6A63] font-medium leading-normal mt-0.5 truncate">
+            <p className="text-xs text-[#6B6A63] font-medium leading-normal mt-0.5 break-words">
               {currentStep === 1
                 ? `${baseboardProducts.length} ${language === 'en' ? 'options (16 ft strips)' : 'opciones (tiras de 16 ft)'}`
                 : `${selectedProduct.name} • ${stripLength} ft / tira`}
@@ -255,8 +255,8 @@ export const BaseboardCalculator: React.FC<BaseboardCalculatorProps> = ({
       {currentStep === 2 && (
         <div className="space-y-4">
           {/* Top selected model badge */}
-          <div className="bg-[#F2F1EC] border border-[#E4E2DA] rounded-xl px-4 py-2.5 flex items-center justify-between">
-            <div className="flex items-center gap-2 text-xs">
+          <div className="bg-[#F2F1EC] border border-[#E4E2DA] rounded-xl px-4 py-2.5 flex items-center justify-between flex-wrap gap-2">
+            <div className="flex items-center gap-2 flex-wrap text-xs min-w-0">
               <span className="font-bold text-[#181818]">{selectedProduct.name}</span>
               <span className="text-[#9C9A90]">•</span>
               <span className="text-[#6B6A63] font-medium">Tiras de {stripLength} ft</span>
@@ -264,7 +264,7 @@ export const BaseboardCalculator: React.FC<BaseboardCalculatorProps> = ({
             <button
               type="button"
               onClick={() => setCurrentStep(1)}
-              className="text-[11px] font-bold text-[#FF8407] hover:underline cursor-pointer"
+              className="text-[11px] font-bold text-[#FF8407] hover:underline cursor-pointer shrink-0"
             >
               {language === 'en' ? 'Change' : 'Cambiar'}
             </button>

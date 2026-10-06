@@ -40,3 +40,50 @@ input[type="number"]::-webkit-outer-spin-button {
 input[type="number"] {
   -moz-appearance: textfield;
 }
+
+/* Shared utility to hide scrollbars when needed */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/*
+ * Global anti-clipping rule:
+ * Prevent single-line truncation (.truncate) from cutting off product specs,
+ * color names, badges, or cart labels. Instead, allow natural multi-line wrap.
+ */
+.truncate {
+  white-space: normal !important;
+  overflow: visible !important;
+  text-overflow: unset !important;
+  overflow-wrap: break-word;
+  word-break: break-word;
+}
+
+/*
+ * Shared pill / tab / chip container:
+ * Wraps items cleanly onto multiple lines instead of clipping items at the right border.
+ */
+.pill-scroll-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  overflow: visible;
+}
+.pill-scroll-row > * {
+  max-width: 100%;
+  white-space: normal;
+}
+
+/* Shared base classes for badges and pills so text never clips */
+.ui-badge,
+.ui-pill {
+  white-space: normal;
+  overflow: visible;
+  overflow-wrap: break-word;
+  word-break: break-word;
+  max-width: 100%;
+}

@@ -87,7 +87,9 @@ export function generateQuotePDF(quote: Quotation, settings: AppSettings, lang: 
   doc.setTextColor(100, 100, 100);
   doc.text(`No. ${quote.quoteNumber}`, pageWidth - margin, 24, { align: 'right' });
   doc.text(`${isEn ? 'Date:' : 'Fecha:'} ${quote.date}`, pageWidth - margin, 29, { align: 'right' });
-  doc.text(`${isEn ? 'Valid Until:' : 'Válido hasta:'} ${quote.validUntil} (${quote.validDays} ${isEn ? 'days' : 'días'})`, pageWidth - margin, 34, { align: 'right' });
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(224, 115, 0);
+  doc.text(`${isEn ? 'Valid Until:' : 'Válido hasta:'} ${quote.validUntil} (${isEn ? '3 DAYS STRICT VALIDITY' : 'VALIDEZ ESTRICTA: 3 DÍAS'})`, pageWidth - margin, 34, { align: 'right' });
 
   // Divider line
   doc.setDrawColor(255, 132, 7); // Brand orange
@@ -269,11 +271,11 @@ export function generateQuotePDF(quote: Quotation, settings: AppSettings, lang: 
   doc.setTextColor(26, 26, 26);
   doc.text(formatCurrency(quote.subtotalProducts), pageWidth - margin - 4, currentTotalY, { align: 'right' });
 
-  // Delivery (Fixed rate, Tax Exempt / No Tax)
+  // Delivery (Tax Exempt / No Tax)
   if (quote.includeDelivery) {
     currentTotalY += 6;
     doc.setTextColor(80, 80, 80);
-    doc.text(isEn ? 'Delivery Fee (No Tax):' : 'Delivery Fijo (No Tax):', summaryX + 4, currentTotalY);
+    doc.text(isEn ? 'Delivery Fee (No Tax):' : 'Delivery (Sin Impuesto):', summaryX + 4, currentTotalY);
     doc.setTextColor(26, 26, 26);
     doc.text(formatCurrency(quote.deliveryCost), pageWidth - margin - 4, currentTotalY, { align: 'right' });
   }
@@ -299,8 +301,8 @@ export function generateQuotePDF(quote: Quotation, settings: AppSettings, lang: 
     currentTotalY += 6;
     doc.setFont('helvetica', 'bold');
     doc.setTextColor(224, 115, 0); // QuickSurfaces orange
-    doc.text(isEn ? 'Card Surcharge (3% Debit/Credit):' : 'Recargo Tarjeta Débito/Crédito (3%):', summaryX + 4, currentTotalY);
-    doc.text(`+${formatCurrency(quote.cardFeeAmount)}`, pageWidth - margin - 4, currentTotalY, { align: 'right' });
+    doc.text(isEn ? 'Card Surcharge (3% on Total + Tax):' : 'Recargo Tarjeta (3% sobre Total + Impuesto):', summaryX + 4, currentTotalY);
+    doc.text(formatCurrency(quote.cardFeeAmount), pageWidth - margin - 4, currentTotalY, { align: 'right' });
     doc.setFont('helvetica', 'normal');
   }
 
@@ -448,8 +450,8 @@ export function generateQuotePDF(quote: Quotation, settings: AppSettings, lang: 
   doc.setTextColor(90, 90, 90);
   
   const legalText = isEn
-    ? `Reference estimate valid for ${quote.validDays} days (until ${quote.validUntil}). Prices & inventory subject to change. Demolition, leveling and labor excluded unless itemized.`
-    : `Estimado referencial válido por ${quote.validDays} días (hasta ${quote.validUntil}). Precios e inventario sujetos a cambio. No incluye demolición o nivelación salvo especificado.`;
+    ? `IMPORTANT (3 DAYS STRICT VALIDITY): Reference estimate valid strictly for 3 days (until ${quote.validUntil}). Prices & inventory subject to change after 3 days. Demolition, leveling and labor excluded unless itemized.`
+    : `IMPORTANTE (VALIDEZ ESTRICTA DE 3 DÍAS): Estimado referencial válido únicamente por 3 días (hasta ${quote.validUntil}). Precios e inventario sujetos a cambio. No incluye demolición o nivelación salvo especificado.`;
   
   const splitLegal = doc.splitTextToSize(legalText, leftBoxWidth - 8);
   doc.text(splitLegal, margin + 4, leftY);
@@ -470,7 +472,7 @@ export function generateWhatsAppMessage(quote: Quotation, lang: Language = 'en')
   let message = `*QUICKSURFACES ${isEn ? 'QUOTATION' : 'COTIZACIÓN'}*\n`;
   message += `📄 ${isEn ? 'Quote' : 'Cotización'}: *#${quote.quoteNumber}*\n`;
   message += `👤 ${isEn ? 'Client' : 'Cliente'}: *${quote.client.name}*\n`;
-  message += `📅 ${isEn ? 'Date' : 'Fecha'}: ${quote.date} (${isEn ? `Valid for ${quote.validDays} days` : `Válido por ${quote.validDays} días`})\n\n`;
+  message += `📅 ${isEn ? 'Date' : 'Fecha'}: ${quote.date} (*${isEn ? 'STRICT 3-DAY VALIDITY' : 'VALIDEZ ESTRICTA: 3 DÍAS'}*)\n\n`;
   
   message += `*${isEn ? 'ITEMIZED BREAKDOWN:' : 'DETALLE DE PRODUCTOS:'}*\n`;
   quote.items.forEach((item) => {
@@ -484,14 +486,14 @@ export function generateWhatsAppMessage(quote: Quotation, lang: Language = 'en')
   message += `\n*${isEn ? 'FINANCIAL SUMMARY:' : 'RESUMEN:'}*\n`;
   message += `▫️ ${isEn ? 'Products Subtotal' : 'Subtotal Materiales'}: ${formatCurrency(quote.subtotalProducts)}\n`;
   if (quote.includeDelivery) {
-    message += `▫️ ${isEn ? 'Delivery' : 'Delivery Fijo'}: ${formatCurrency(quote.deliveryCost)}\n`;
+    message += `▫️ ${isEn ? 'Delivery (No Tax)' : 'Delivery (Sin Impuesto)'}: ${formatCurrency(quote.deliveryCost)}\n`;
   }
   message += `▫️ ${isEn ? 'FL Sales Tax (7%)' : 'Impuesto (7%)'}: ${formatCurrency(quote.taxAmount)}\n`;
   if (quote.installationTotal > 0) {
     message += `▫️ ${isEn ? 'Labor / Services' : 'Instalación/Servicios'}: ${formatCurrency(quote.installationTotal)}\n`;
   }
   if (quote.payWithCard && (quote.cardFeeAmount ?? 0) > 0) {
-    message += `▫️ 💳 ${isEn ? 'Card Surcharge (3% Debit/Credit)' : 'Recargo Tarjeta Débito/Crédito (3%)'}: +${formatCurrency(quote.cardFeeAmount)}\n`;
+    message += `▫️ 💳 ${isEn ? 'Card Surcharge (3% on Total + Tax)' : 'Recargo Tarjeta (3% sobre Total + Impuesto)'}: ${formatCurrency(quote.cardFeeAmount)}\n`;
   }
   message += `\n💰 *TOTAL: ${formatCurrency(quote.total)}*\n\n`;
 

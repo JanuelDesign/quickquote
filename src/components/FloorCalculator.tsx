@@ -195,12 +195,12 @@ export const FloorCalculator: React.FC<FloorCalculatorProps> = ({
             <Layers className="w-4 h-4" />
           </div>
           <div className="min-w-0">
-            <h3 className="text-sm font-bold text-[#181818] leading-tight truncate">
+            <h3 className="text-sm font-bold text-[#181818] leading-snug break-words">
               {currentStep === 1 && (language === 'en' ? '1. Select Flooring Model' : '1. Seleccionar modelo de piso')}
               {currentStep === 2 && (language === 'en' ? '2. Select Color & Finish' : '2. Seleccionar color y acabado')}
               {currentStep === 3 && (language === 'en' ? '3. Quantity & Pricing' : '3. Cantidad y precio')}
             </h3>
-            <p className="text-xs text-[#6B6A63] font-medium leading-normal mt-0.5 truncate">
+            <p className="text-xs text-[#6B6A63] font-medium leading-normal mt-0.5 break-words">
               {currentStep === 1 && `${floorProducts.length} ${language === 'en' ? 'collections available' : 'colecciones disponibles'}`}
               {currentStep === 2 && `${selectedProduct.name} (${selectedProduct.colors?.length || 0} ${(selectedProduct.colors?.length || 0) === 1 ? (language === 'en' ? 'color' : 'color') : (language === 'en' ? 'colors' : 'colores')})`}
               {currentStep === 3 && `${selectedProduct.name}${selectedColor ? ` • ${selectedColor.name}` : ''}`}
@@ -300,19 +300,19 @@ export const FloorCalculator: React.FC<FloorCalculatorProps> = ({
       {/* STEP 2: Select Color & Finish */}
       {currentStep === 2 && selectedProduct.colors && (
         <div className="bg-white rounded-xl p-4 sm:p-5 border border-[#E4E2DA] shadow-xs space-y-4">
-          <div className="flex items-center justify-between pb-3 border-b border-[#E4E2DA]">
-            <div>
-              <span className="text-[10px] font-bold uppercase tracking-wider text-[#9C9A90]">
+          <div className="flex items-center justify-between flex-wrap gap-2 pb-3 border-b border-[#E4E2DA]">
+            <div className="min-w-0">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-[#9C9A90] block">
                 {language === 'en' ? 'Selected Collection:' : 'Colección seleccionada:'}
               </span>
-              <h3 className="text-sm font-bold text-[#181818]">{selectedProduct.name}</h3>
+              <h3 className="text-sm font-bold text-[#181818] leading-snug break-words">{selectedProduct.name}</h3>
             </div>
             {selectedColor && (
-              <div className="text-right">
-                <span className="text-[10px] font-bold uppercase tracking-wider text-[#9C9A90]">
+              <div className="sm:text-right min-w-0">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-[#9C9A90] block">
                   {language === 'en' ? 'Active Color:' : 'Color activo:'}
                 </span>
-                <p className="text-xs font-bold text-[#FF8407]">
+                <p className="text-xs font-bold text-[#FF8407] leading-snug break-words">
                   {selectedColor.code} • {selectedColor.name}
                 </p>
               </div>
@@ -346,7 +346,7 @@ export const FloorCalculator: React.FC<FloorCalculatorProps> = ({
 
                   {/* Full color name without cut off / ellipsis */}
                   <div className="flex-1 min-w-0">
-                    <span className="text-xs font-bold text-[#181818] block leading-tight">
+                    <span className="text-xs font-bold text-[#181818] block leading-snug break-words">
                       {color.name}
                     </span>
                     <span className="text-[10px] text-[#6B6A63] font-mono mt-0.5 block">
@@ -376,15 +376,15 @@ export const FloorCalculator: React.FC<FloorCalculatorProps> = ({
       {currentStep === 3 && (
         <div className="space-y-4">
           {/* Top summary badge */}
-          <div className="bg-[#F2F1EC] border border-[#E4E2DA] rounded-xl px-4 py-2.5 flex items-center justify-between">
-            <div className="flex items-center gap-2 text-xs">
+          <div className="bg-[#F2F1EC] border border-[#E4E2DA] rounded-xl px-4 py-2.5 flex items-center justify-between flex-wrap gap-2">
+            <div className="flex items-center gap-2 flex-wrap text-xs min-w-0">
               <span className="font-bold text-[#181818]">{selectedProduct.name}</span>
               {selectedColor && (
                 <>
                   <span className="text-[#9C9A90]">•</span>
                   <span className="flex items-center gap-1.5 font-medium text-[#6B6A63]">
-                    <span className="w-3.5 h-3.5 rounded-full inline-block border border-black/20" style={{ backgroundColor: selectedColor.hex }}></span>
-                    {selectedColor.name} ({selectedColor.code})
+                    <span className="w-3.5 h-3.5 rounded-full inline-block border border-black/20 shrink-0" style={{ backgroundColor: selectedColor.hex }}></span>
+                    <span>{selectedColor.name} ({selectedColor.code})</span>
                   </span>
                 </>
               )}
@@ -392,7 +392,7 @@ export const FloorCalculator: React.FC<FloorCalculatorProps> = ({
             <button
               type="button"
               onClick={() => setCurrentStep(1)}
-              className="text-[11px] font-bold text-[#FF8407] hover:underline cursor-pointer"
+              className="text-[11px] font-bold text-[#FF8407] hover:underline cursor-pointer shrink-0"
             >
               {language === 'en' ? 'Change Model' : 'Cambiar Modelo'}
             </button>
@@ -401,8 +401,8 @@ export const FloorCalculator: React.FC<FloorCalculatorProps> = ({
           {/* Quick Color Selector directly inside Step 3 for 1-tap switching */}
           {selectedProduct.colors && selectedProduct.colors.length > 0 && (
             <div className="bg-white border border-[#E4E2DA] rounded-xl p-3 space-y-1.5 shadow-xs">
-              <div className="flex items-center justify-between text-[11px]">
-                <span className="font-bold text-[#181818] flex items-center gap-1.5">
+              <div className="flex items-center justify-between flex-wrap gap-1 text-[11px]">
+                <span className="font-bold text-[#181818] flex items-center gap-1.5 flex-wrap">
                   <span>{language === 'en' ? 'Color / Finish:' : 'Color / Acabado:'}</span>
                   {selectedColor && (
                     <span className="text-[#FF8407] font-semibold">
@@ -410,11 +410,11 @@ export const FloorCalculator: React.FC<FloorCalculatorProps> = ({
                     </span>
                   )}
                 </span>
-                <span className="text-[10px] text-[#9C9A90]">
+                <span className="text-[10px] text-[#9C9A90] shrink-0">
                   {selectedProduct.colors.length} {language === 'en' ? 'available' : 'disponibles'}
                 </span>
               </div>
-              <div className="flex items-center gap-1.5 overflow-x-auto pb-1 pt-0.5 scrollbar-thin">
+              <div className="pill-scroll-row gap-1.5 pt-0.5">
                 {selectedProduct.colors.map((c) => {
                   const isCur = selectedColor?.code === c.code;
                   return (
@@ -422,7 +422,7 @@ export const FloorCalculator: React.FC<FloorCalculatorProps> = ({
                       key={c.code}
                       type="button"
                       onClick={() => handleColorSelect(c)}
-                      className={`h-8 px-2.5 rounded-lg border text-xs font-medium flex items-center gap-1.5 shrink-0 transition-all cursor-pointer ${
+                      className={`py-1.5 px-2.5 rounded-lg border text-xs font-medium flex items-center gap-1.5 transition-all cursor-pointer text-left ${
                         isCur
                           ? 'border-[#FF8407] bg-amber-50/50 text-[#181818] ring-1 ring-[#FF8407] font-bold shadow-2xs'
                           : 'border-[#E4E2DA] bg-[#FAFAFA] text-[#6B6A63] hover:border-[#181818]'
@@ -432,7 +432,7 @@ export const FloorCalculator: React.FC<FloorCalculatorProps> = ({
                         className="w-3.5 h-3.5 rounded-full border border-black/15 shrink-0"
                         style={{ backgroundColor: c.hex }}
                       />
-                      <span className="truncate max-w-[120px]">{c.name}</span>
+                      <span className="leading-snug break-words">{c.name}</span>
                     </button>
                   );
                 })}

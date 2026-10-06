@@ -128,19 +128,19 @@ export const CategoryTabs: React.FC<CategoryTabsProps> = ({
               onClick={() => onSelectCategory(cat.id)}
               className={`flex items-center justify-between p-2.5 sm:p-3 rounded-xl text-left transition-all duration-150 cursor-pointer border select-none ${gridSpan} ${buttonStyle}`}
             >
-              <div className="flex items-center gap-2 truncate min-w-0">
+              <div className="flex items-center gap-2 min-w-0">
                 <div
                   className={`w-7 h-7 sm:w-8 sm:h-8 rounded-lg flex items-center justify-center shrink-0 transition-colors ${iconContainerStyle}`}
                 >
                   <Icon className={`w-3.5 h-3.5 sm:w-4 sm:h-4 ${iconStyle}`} />
                 </div>
-                <div className="truncate min-w-0">
-                  <span className={`text-xs sm:text-sm font-bold block truncate leading-tight ${
+                <div className="min-w-0">
+                  <span className={`text-xs sm:text-sm font-bold block leading-tight break-words ${
                     isActive ? 'text-white' : isCustom ? 'text-amber-950' : 'text-[#181818]'
                   }`}>
                     {cat.name}
                   </span>
-                  <span className={`text-[10px] block truncate mt-0.5 ${
+                  <span className={`text-[10px] block leading-snug break-words mt-0.5 ${
                     isActive ? 'text-white/80' : isCustom ? 'text-amber-800/80 font-medium' : 'text-[#9C9A90]'
                   }`}>
                     {isSearching ? `${matchCount} ${language === 'en' ? 'matches' : 'coincidencias'}` : cat.sublabel}

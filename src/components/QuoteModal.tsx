@@ -36,6 +36,8 @@ interface QuoteModalProps {
   onToggleSameAsBilling?: (same: boolean) => void;
   onUpdateQuoteDays: (days: number) => void;
   onToggleDelivery?: (include: boolean) => void;
+  deliveryFee?: number;
+  onUpdateDeliveryFee?: (fee: number) => void;
   onTogglePayWithCard?: (payWithCard: boolean) => void;
   onSaveToHistory: () => void;
   language?: Language;
@@ -52,6 +54,8 @@ export const QuoteModal: React.FC<QuoteModalProps> = ({
   onToggleSameAsBilling,
   onUpdateQuoteDays,
   onToggleDelivery,
+  deliveryFee = 60,
+  onUpdateDeliveryFee,
   onTogglePayWithCard,
   onSaveToHistory,
   language = 'en'
@@ -65,6 +69,20 @@ export const QuoteModal: React.FC<QuoteModalProps> = ({
   const [downloading, setDownloading] = useState(false);
   const [copiedZelle, setCopiedZelle] = useState(false);
   const [successToast, setSuccessToast] = useState<string | null>(null);
+  const [deliveryInput, setDeliveryInput] = useState<string>(Math.max(60, deliveryFee).toString());
+
+  React.useEffect(() => {
+    setDeliveryInput(Math.max(60, deliveryFee).toString());
+  }, [deliveryFee]);
+
+  const handleDeliveryBlur = () => {
+    const parsed = parseFloat(deliveryInput);
+    const clamped = isNaN(parsed) || parsed < 60 ? 60 : Number(parsed.toFixed(2));
+    setDeliveryInput(clamped.toString());
+    if (onUpdateDeliveryFee) {
+      onUpdateDeliveryFee(clamped);
+    }
+  };
 
   const salespersonName = quote.salespersonName || settings.salespersonName;
   const salespersonPhone = quote.salespersonPhone || settings.salespersonPhone;
@@ -266,8 +284,8 @@ export const QuoteModal: React.FC<QuoteModalProps> = ({
                 <p className="text-xs text-[#6B6A63] mt-0.5">
                   {isEn ? 'Date:' : 'Fecha:'} <strong>{quote.date}</strong>
                 </p>
-                <p className="text-xs text-[#6B6A63]">
-                  {isEn ? 'Valid Until:' : 'Válido hasta:'} <strong>{quote.validUntil}</strong> ({quote.validDays} {isEn ? 'days' : 'días'})
+                <p className="text-xs font-bold text-[#181818] bg-amber-50 border border-[#FF8407]/40 px-2 py-0.5 rounded inline-block mt-1">
+                  {isEn ? 'Valid Until:' : 'Válido hasta:'} <strong className="text-[#FF8407]">{quote.validUntil}</strong> ({isEn ? '3 DAYS STRICT VALIDITY' : 'VALIDEZ ESTRICTA: 3 DÍAS'})
                 </p>
               </div>
             </div>
@@ -429,7 +447,7 @@ export const QuoteModal: React.FC<QuoteModalProps> = ({
 
                 {quote.includeDelivery && (
                   <div className="flex justify-between text-zinc-400">
-                    <span>{isEn ? 'Delivery Fee (No Tax):' : 'Delivery Fijo (No Tax):'}</span>
+                    <span>{isEn ? 'Delivery Fee (No Tax):' : 'Delivery (Sin Impuesto):'}</span>
                     <span className="font-mono font-bold text-white">{formatCurrency(quote.deliveryCost)}</span>
                   </div>
                 )}
@@ -442,9 +460,9 @@ export const QuoteModal: React.FC<QuoteModalProps> = ({
                 )}
 
                 {quote.payWithCard && (quote.cardFeeAmount ?? 0) > 0 && (
-                  <div className="flex justify-between text-[#FF8407] bg-black/40 px-2 py-1 rounded border border-[#FF8407]/30">
-                    <span>{isEn ? 'Card Surcharge (3%):' : 'Recargo Tarjeta (3%):'}</span>
-                    <span className="font-mono font-bold">+{formatCurrency(quote.cardFeeAmount)}</span>
+                  <div className="flex justify-between items-center gap-2 text-[#FF8407] bg-black/40 px-2 py-1 rounded border border-[#FF8407]/30">
+                    <span>{isEn ? 'Card Surcharge (3% on Total + Tax):' : 'Recargo Tarjeta (3% sobre Total + Impuesto):'}</span>
+                    <span className="font-mono font-bold shrink-0">{formatCurrency(quote.cardFeeAmount)}</span>
                   </div>
                 )}
 
@@ -507,9 +525,12 @@ export const QuoteModal: React.FC<QuoteModalProps> = ({
             {/* Legal Disclaimer Box (Customer Signature & Date removed completely) */}
             <div className="pt-3 border-t border-zinc-200 text-[11px] text-[#6B6A63]">
               <p>
+                <strong className="text-[#181818] uppercase">
+                  {isEn ? 'IMPORTANT — 3 DAYS STRICT VALIDITY:' : 'IMPORTANTE — VALIDEZ ESTRICTA DE 3 DÍAS:'}
+                </strong>{' '}
                 {isEn
-                  ? `This quote is valid until ${quote.validUntil}. Prices and inventory are subject to change after the validity period. Materials must be inspected prior to installation.`
-                  : `Esta cotización es válida hasta el ${quote.validUntil}. Los precios e inventario están sujetos a cambio luego del período de validez. Inspeccionar materiales antes de instalar.`}
+                  ? `This quote is valid exclusively for 3 days (until ${quote.validUntil}). Prices and inventory are subject to change after the 3-day validity period. Materials must be inspected prior to installation.`
+                  : `Esta cotización tiene una validez única y estricta de 3 días (hasta el ${quote.validUntil}). Los precios e inventario están sujetos a cambio luego de los 3 días de validez. Inspeccionar materiales antes de instalar.`}
               </p>
             </div>
           </div>
@@ -560,33 +581,33 @@ export const QuoteModal: React.FC<QuoteModalProps> = ({
 
         {/* Scrollable Document Container */}
         <div className="flex-1 overflow-y-auto p-4 sm:p-5 bg-[#F9F9F8] space-y-4 text-xs">
-          {/* Validity Chips - Fixed 4-column grid */}
-          <div className="bg-white p-3.5 rounded-xl border border-[#E4E2DA] shadow-xs space-y-2">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-1.5 font-bold text-[#181818] uppercase tracking-wider text-[11px]">
-                <Clock className="w-4 h-4 text-[#FF8407]" />
-                <span>{isEn ? 'Quote Validity Days:' : 'Días de Validez de la Oferta:'}</span>
+          {/* Strict 3-Day Quote Validity Callout (Single emphasized option) */}
+          <div className="bg-[#FFF6EC] p-3.5 rounded-xl border-2 border-[#FF8407] shadow-xs space-y-2">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+              <div className="flex items-center gap-2 font-black text-[#181818] uppercase tracking-wider text-xs">
+                <div className="w-7 h-7 rounded-lg bg-[#181818] text-[#FF8407] flex items-center justify-center shrink-0">
+                  <Clock className="w-4 h-4" />
+                </div>
+                <div>
+                  <span className="block leading-tight">
+                    {isEn ? 'Quote Validity Days: 3 DAYS ONLY' : 'Validez de la Cotización: ÚNICAMENTE 3 DÍAS'}
+                  </span>
+                  <span className="text-[10px] font-semibold text-[#6B6A63] normal-case block">
+                    {isEn 
+                      ? 'Prices & stock guaranteed strictly for 3 calendar days' 
+                      : 'Precios e inventario garantizados estrictamente por 3 días'}
+                  </span>
+                </div>
               </div>
-              <span className="text-[11px] text-[#6B6A63] font-semibold">
-                {isEn ? 'Valid Until' : 'Vence el'}: <strong className="text-[#181818] font-mono">{quote.validUntil}</strong>
-              </span>
-            </div>
 
-            <div className="grid grid-cols-4 gap-2">
-              {[3, 7, 15, 30].map((days) => (
-                <button
-                  key={days}
-                  type="button"
-                  onClick={() => onUpdateQuoteDays(days)}
-                  className={`py-2 rounded-lg font-bold text-xs transition-colors cursor-pointer border ${
-                    quote.validDays === days
-                      ? 'bg-[#181818] text-[#FF8407] border-[#181818] shadow-xs'
-                      : 'bg-[#FAFAFA] text-[#6B6A63] hover:text-[#181818] border-[#E4E2DA]'
-                  }`}
-                >
-                  {days} {isEn ? 'Days' : 'Días'}
-                </button>
-              ))}
+              <div className="flex items-center gap-2 self-start sm:self-center">
+                <span className="px-3 py-1.5 rounded-lg font-black text-xs bg-[#181818] text-[#FF8407] border border-[#181818] shadow-xs uppercase tracking-wider">
+                  3 {isEn ? 'Days' : 'Días'}
+                </span>
+                <span className="text-[11px] text-[#181818] font-semibold bg-white px-2.5 py-1.5 rounded-lg border border-[#FF8407]/40">
+                  {isEn ? 'Expires:' : 'Vence:'} <strong className="font-mono text-[#FF8407]">{quote.validUntil}</strong>
+                </span>
+              </div>
             </div>
           </div>
 
@@ -713,30 +734,59 @@ export const QuoteModal: React.FC<QuoteModalProps> = ({
             {/* Toggles: Delivery & Card */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-1">
               {onToggleDelivery && (
-                <div className={`flex items-center justify-between p-3 rounded-lg border transition-colors ${
+                <div className={`p-3 rounded-lg border transition-colors space-y-2 ${
                   quote.includeDelivery ? 'bg-[#FFF6EC] border-[#FF8407]/50 shadow-2xs' : 'bg-[#F9F9F9] border-[#E4E2DA]'
                 }`}>
-                  <div className="flex items-center gap-2">
-                    <Truck className={`w-4 h-4 shrink-0 ${quote.includeDelivery ? 'text-[#FF8407]' : 'text-zinc-500'}`} />
-                    <div>
-                      <span className="font-bold text-xs text-[#181818] block leading-tight">
-                        {isEn ? 'Include Delivery ($60)' : 'Incluir Delivery ($60)'}
-                      </span>
-                      <span className="text-[10px] text-[#6B6A63] block">
-                        {isEn ? 'Local delivery fee (No Tax)' : 'Flete local (Sin Impuesto)'}
-                      </span>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <Truck className={`w-4 h-4 shrink-0 ${quote.includeDelivery ? 'text-[#FF8407]' : 'text-zinc-500'}`} />
+                      <div>
+                        <span className="font-bold text-xs text-[#181818] block leading-tight">
+                          {isEn ? `Include Delivery (${formatCurrency(Math.max(60, deliveryFee))})` : `Incluir Delivery (${formatCurrency(Math.max(60, deliveryFee))})`}
+                        </span>
+                        <span className="text-[10px] text-[#6B6A63] block">
+                          {isEn ? 'Min. $60.00 • Editable (No Tax)' : 'Mín. $60.00 • Editable (Sin Impuesto)'}
+                        </span>
+                      </div>
                     </div>
+                    <label className="relative inline-flex items-center cursor-pointer shrink-0">
+                      <input
+                        type="checkbox"
+                        id="chk-delivery-checkout"
+                        checked={quote.includeDelivery}
+                        onChange={(e) => onToggleDelivery(e.target.checked)}
+                        className="sr-only peer"
+                      />
+                      <div className="w-9 h-5 bg-zinc-300 peer-focus:outline-hidden rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-[#FF8407]"></div>
+                    </label>
                   </div>
-                  <label className="relative inline-flex items-center cursor-pointer shrink-0">
-                    <input
-                      type="checkbox"
-                      id="chk-delivery-checkout"
-                      checked={quote.includeDelivery}
-                      onChange={(e) => onToggleDelivery(e.target.checked)}
-                      className="sr-only peer"
-                    />
-                    <div className="w-9 h-5 bg-zinc-300 peer-focus:outline-hidden rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-[#FF8407]"></div>
-                  </label>
+
+                  {quote.includeDelivery && onUpdateDeliveryFee && (
+                    <div className="flex items-center justify-between gap-2 pt-2 border-t border-[#FF8407]/20">
+                      <span className="text-[10px] font-bold uppercase text-[#181818]">
+                        {isEn ? 'Delivery Fee (Min $60):' : 'Monto Delivery (Mín $60):'}
+                      </span>
+                      <div className="flex items-center gap-1 bg-white border border-[#FF8407] rounded-md px-2 py-1">
+                        <span className="text-xs font-bold text-[#181818] font-mono">$</span>
+                        <input
+                          type="number"
+                          min={60}
+                          step="5"
+                          value={deliveryInput}
+                          onChange={(e) => {
+                            setDeliveryInput(e.target.value);
+                            const val = parseFloat(e.target.value);
+                            if (!isNaN(val) && val >= 60) {
+                              onUpdateDeliveryFee(Number(val.toFixed(2)));
+                            }
+                          }}
+                          onBlur={handleDeliveryBlur}
+                          onKeyDown={(e) => e.key === 'Enter' && handleDeliveryBlur()}
+                          className="w-16 text-xs font-bold font-mono text-right text-[#181818] outline-none bg-transparent"
+                        />
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
 
@@ -788,7 +838,7 @@ export const QuoteModal: React.FC<QuoteModalProps> = ({
 
               {quote.includeDelivery && (
                 <div className="flex justify-between text-zinc-400">
-                  <span>{isEn ? 'Delivery Fee (No Tax):' : 'Delivery ($60 sin impuesto):'}</span>
+                  <span>{isEn ? 'Delivery Fee (No Tax):' : 'Delivery (Sin impuesto):'}</span>
                   <span className="font-mono font-bold text-white">{formatCurrency(quote.deliveryCost)}</span>
                 </div>
               )}
@@ -801,9 +851,9 @@ export const QuoteModal: React.FC<QuoteModalProps> = ({
               )}
 
               {quote.payWithCard && (quote.cardFeeAmount ?? 0) > 0 && (
-                <div className="flex justify-between text-[#FF8407] bg-black/40 px-2.5 py-1.5 rounded-lg border border-[#FF8407]/30">
-                  <span>{isEn ? 'Card Surcharge (3% Debit/Credit):' : 'Recargo Tarjeta (3%):'}</span>
-                  <span className="font-mono font-bold">+{formatCurrency(quote.cardFeeAmount)}</span>
+                <div className="flex justify-between items-center gap-2 text-[#FF8407] bg-black/40 px-2.5 py-1.5 rounded-lg border border-[#FF8407]/30">
+                  <span>{isEn ? 'Card Surcharge (3% on Total + Tax):' : 'Recargo Tarjeta (3% sobre Total + Impuesto):'}</span>
+                  <span className="font-mono font-bold shrink-0">{formatCurrency(quote.cardFeeAmount)}</span>
                 </div>
               )}
 

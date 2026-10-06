@@ -174,12 +174,12 @@ export const StairsCalculator: React.FC<StairsCalculatorProps> = ({
             <MoveUpRight className="w-4 h-4" />
           </div>
           <div className="min-w-0">
-            <h3 className="text-sm font-bold text-[#181818] leading-tight truncate">
+            <h3 className="text-sm font-bold text-[#181818] leading-snug break-words">
               {currentStep === 1 
                 ? (language === 'en' ? '1. Select Stair Tread Package' : '1. Seleccionar modelo de peldaño')
                 : (language === 'en' ? '2. Steps & Risers Pricing' : '2. Cantidad y precios: Peldaño y Contrahuella')}
             </h3>
-            <p className="text-xs text-[#6B6A63] font-medium leading-normal mt-0.5 truncate">
+            <p className="text-xs text-[#6B6A63] font-medium leading-normal mt-0.5 break-words">
               {currentStep === 1
                 ? `${stairProducts.length} ${language === 'en' ? 'options (12" x 48" format)' : 'opciones (formato 12" x 48")'}`
                 : `${selectedProduct.name} • ${selectedProduct.size || '12" x 48"'}`}
@@ -257,8 +257,8 @@ export const StairsCalculator: React.FC<StairsCalculatorProps> = ({
       {currentStep === 2 && (
         <div className="space-y-4">
           {/* Top selected model badge */}
-          <div className="bg-[#F2F1EC] border border-[#E4E2DA] rounded-xl px-4 py-2.5 flex items-center justify-between">
-            <div className="flex items-center gap-2 text-xs">
+          <div className="bg-[#F2F1EC] border border-[#E4E2DA] rounded-xl px-4 py-2.5 flex items-center justify-between flex-wrap gap-2">
+            <div className="flex items-center gap-2 flex-wrap text-xs min-w-0">
               <span className="font-bold text-[#181818]">{selectedProduct.name}</span>
               <span className="text-[#9C9A90]">•</span>
               <span className="text-[#6B6A63] font-medium">{selectedProduct.size || '12" x 48"'}</span>
@@ -266,7 +266,7 @@ export const StairsCalculator: React.FC<StairsCalculatorProps> = ({
             <button
               type="button"
               onClick={() => setCurrentStep(1)}
-              className="text-[11px] font-bold text-[#FF8407] hover:underline cursor-pointer"
+              className="text-[11px] font-bold text-[#FF8407] hover:underline cursor-pointer shrink-0"
             >
               {language === 'en' ? 'Change Model' : 'Cambiar Modelo'}
             </button>
@@ -523,7 +523,7 @@ export const StairsCalculator: React.FC<StairsCalculatorProps> = ({
               <div className="flex items-center justify-between p-2.5 bg-white rounded-lg border border-[#E4E2DA]">
                 <div className="flex items-center gap-2 min-w-0">
                   <span className="w-5 h-5 rounded-full bg-[#181818] text-white flex items-center justify-center text-[10px] font-bold shrink-0">1</span>
-                  <div className="truncate">
+                  <div className="min-w-0 leading-snug break-words">
                     <span className="font-bold text-[#181818]">{selectedProduct.name} (Huella / Tread)</span>
                     <span className="text-[#6B6A63] text-[11px] ml-2">
                       ({stepCount} unidades @ <strong className="text-[#181818] font-mono">{formatCurrency(stepUnitPrice)}</strong> c/u)
@@ -543,7 +543,7 @@ export const StairsCalculator: React.FC<StairsCalculatorProps> = ({
                   <span className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold shrink-0 ${
                     includeRiser ? 'bg-[#FF8407] text-white' : 'bg-zinc-300 text-zinc-600'
                   }`}>2</span>
-                  <div className="truncate">
+                  <div className="min-w-0 leading-snug break-words">
                     <span className={`font-bold ${includeRiser ? 'text-[#181818]' : 'text-zinc-500'}`}>
                       {riserStyle === 'white' 
                         ? 'Contrahuella (Riser Plank White Laminate)' 

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Product, ProductCategory, ProductColor } from '../types';
+import { Badge } from './ui/Badge';
 import { 
   X, 
   Save, 
@@ -192,14 +193,14 @@ export const ProductEditModal: React.FC<ProductEditModalProps> = ({
 
     try {
       await onSave(productToSave);
-      setSuccessMessage('¡Producto y variantes guardados en Firestore exitosamente!');
+      setSuccessMessage('¡Producto y variantes guardados exitosamente!');
       setTimeout(() => {
         setSuccessMessage(null);
         onClose();
       }, 1100);
     } catch (err: any) {
       console.error('Error al guardar producto:', err);
-      setErrorMessage(`Error al sincronizar con Firestore: ${err.message || 'Error de conexión'}`);
+      setErrorMessage(`Error al guardar cambios: ${err.message || 'Error de conexión'}`);
     } finally {
       setIsSaving(false);
     }
@@ -212,26 +213,26 @@ export const ProductEditModal: React.FC<ProductEditModalProps> = ({
       <div className="relative w-full max-w-4xl bg-white rounded-2xl shadow-2xl border border-zinc-200 overflow-hidden flex flex-col my-auto max-h-[92vh]">
         
         {/* MODAL HEADER - QuickSurfaces Black Header */}
-        <div className="bg-black text-white px-5 py-4 flex items-center justify-between shrink-0 border-b border-zinc-800">
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-[#FF8407] text-white flex items-center justify-center shadow-xs">
+        <div className="bg-black text-white px-4 sm:px-5 py-4 flex items-start justify-between gap-2 shrink-0 border-b border-zinc-800">
+          <div className="flex items-start gap-3 min-w-0">
+            <div className="w-9 h-9 rounded-xl bg-[#FF8407] text-white flex items-center justify-center shadow-xs shrink-0 mt-0.5">
               <Palette className="w-5 h-5" />
             </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <h3 className="text-base font-bold text-white tracking-wide">
+            <div className="min-w-0">
+              <div className="flex items-center gap-2 flex-wrap">
+                <h3 className="text-sm sm:text-base font-bold text-white tracking-wide leading-tight">
                   Editar Producto & Variantes
                 </h3>
-                <span className="px-2 py-0.5 rounded bg-zinc-800 text-[#FF8407] text-[10px] font-mono uppercase font-bold tracking-wider">
+                <Badge variant="brand" className="uppercase font-mono tracking-wider">
                   {formData.category}
-                </span>
+                </Badge>
                 {formData.badge && (
-                  <span className="px-2 py-0.5 rounded bg-amber-500/20 text-amber-300 text-[10px] uppercase font-bold">
+                  <Badge variant="amber" className="uppercase">
                     {formData.badge}
-                  </span>
+                  </Badge>
                 )}
               </div>
-              <p className="text-xs text-zinc-400 truncate max-w-md">
+              <p className="text-xs text-zinc-400 leading-snug break-words mt-1">
                 {formData.name || 'Sin nombre'} · ID: <span className="font-mono text-zinc-300">{formData.id}</span>
               </p>
             </div>
@@ -240,39 +241,39 @@ export const ProductEditModal: React.FC<ProductEditModalProps> = ({
           <button
             type="button"
             onClick={onClose}
-            className="p-2 rounded-xl text-zinc-400 hover:text-white hover:bg-zinc-800 transition-colors cursor-pointer"
+            className="p-2 rounded-xl text-zinc-400 hover:text-white hover:bg-zinc-800 transition-colors cursor-pointer shrink-0"
             title="Cerrar editor"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
-        {/* NAVIGATION TABS */}
-        <div className="bg-[#F8F8F8] px-5 py-2.5 border-b border-[#E5E5E5] flex items-center justify-between gap-2 shrink-0">
-          <div className="flex items-center gap-2">
+        {/* NAVIGATION TABS — wraps cleanly so tabs never clip on mobile */}
+        <div className="bg-[#F8F8F8] px-4 sm:px-5 py-2.5 border-b border-[#E5E5E5] shrink-0">
+          <div className="pill-scroll-row gap-2">
             <button
               type="button"
               onClick={() => setActiveSection('specs')}
-              className={`px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-wider flex items-center gap-2 transition-all cursor-pointer ${
+              className={`px-3.5 py-2 rounded-lg text-xs font-bold uppercase tracking-wider flex items-center gap-2 transition-all cursor-pointer ${
                 activeSection === 'specs'
                   ? 'bg-black text-white shadow-xs'
                   : 'bg-white text-zinc-600 border border-zinc-300 hover:border-black'
               }`}
             >
-              <Layers className="w-3.5 h-3.5 text-[#FF8407]" />
+              <Layers className="w-3.5 h-3.5 text-[#FF8407] shrink-0" />
               <span>1. Especificaciones y Precios</span>
             </button>
 
             <button
               type="button"
               onClick={() => setActiveSection('variants')}
-              className={`px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-wider flex items-center gap-2 transition-all cursor-pointer ${
+              className={`px-3.5 py-2 rounded-lg text-xs font-bold uppercase tracking-wider flex items-center gap-2 transition-all cursor-pointer ${
                 activeSection === 'variants'
                   ? 'bg-black text-white shadow-xs'
                   : 'bg-white text-zinc-600 border border-zinc-300 hover:border-black'
               }`}
             >
-              <Palette className="w-3.5 h-3.5 text-[#FF8407]" />
+              <Palette className="w-3.5 h-3.5 text-[#FF8407] shrink-0" />
               <span>2. Colores y Acabados ({colorVariants.length})</span>
             </button>
           </div>
@@ -576,18 +577,18 @@ export const ProductEditModal: React.FC<ProductEditModalProps> = ({
               
               {/* Variants Section Banner */}
               <div className="p-4 rounded-xl bg-black text-white flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                <div>
-                  <div className="flex items-center gap-2">
-                    <Palette className="w-4 h-4 text-[#FF8407]" />
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <Palette className="w-4 h-4 text-[#FF8407] shrink-0" />
                     <h4 className="text-xs font-bold uppercase tracking-wider text-white">
                       Colores y Acabados de la Colección
                     </h4>
-                    <span className="px-2 py-0.5 rounded-full bg-[#FF8407] text-white text-[10px] font-bold">
+                    <span className="px-2 py-0.5 rounded-full bg-[#FF8407] text-white text-[10px] font-bold shrink-0">
                       {colorVariants.length} variantes
                     </span>
                   </div>
                   <p className="text-[11px] text-zinc-400 mt-1 leading-relaxed">
-                    Gestiona los colores disponibles para los vendedores al cotizar pisos y wall panels. Se guardan en Firestore en tiempo real sin romper cotizaciones anteriores.
+                    Gestiona los colores disponibles para los vendedores al cotizar pisos y wall panels. Los cambios se sincronizan en tiempo real sin romper cotizaciones anteriores.
                   </p>
                 </div>
 
@@ -852,7 +853,7 @@ export const ProductEditModal: React.FC<ProductEditModalProps> = ({
                     return (
                       <div
                         key={index}
-                        className={`p-2.5 rounded-xl border transition-all flex items-center justify-between gap-3 ${
+                        className={`p-3 rounded-xl border transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 ${
                           isConfirmingDelete 
                             ? 'bg-red-50 border-red-300' 
                             : 'bg-white hover:bg-zinc-50 border-zinc-200 shadow-2xs'
@@ -885,12 +886,12 @@ export const ProductEditModal: React.FC<ProductEditModalProps> = ({
                           </div>
 
                           {/* Code and Name */}
-                          <div className="min-w-0">
+                          <div className="min-w-0 flex-1">
                             <div className="flex items-center gap-1.5 flex-wrap">
-                              <span className="px-1.5 py-0.5 rounded bg-black text-white text-[10px] font-mono font-bold">
+                              <Badge variant="dark" className="font-mono">
                                 {variant.code}
-                              </span>
-                              <span className="text-xs font-bold text-black truncate">
+                              </Badge>
+                              <span className="text-xs font-bold text-black leading-snug break-words">
                                 {variant.name}
                               </span>
                             </div>
@@ -983,7 +984,7 @@ export const ProductEditModal: React.FC<ProductEditModalProps> = ({
         </div>
 
         {/* MODAL FOOTER */}
-        <div className="bg-[#F8F8F8] px-5 py-3.5 border-t border-[#E5E5E5] flex flex-col sm:flex-row items-center justify-between gap-3 shrink-0">
+        <div className="bg-[#F8F8F8] px-4 sm:px-5 py-3.5 border-t border-[#E5E5E5] flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 shrink-0">
           {onDeleteProduct ? (
             <button
               type="button"
@@ -992,22 +993,22 @@ export const ProductEditModal: React.FC<ProductEditModalProps> = ({
               className="px-3.5 py-2 text-xs font-bold text-red-600 hover:text-red-700 bg-red-50 hover:bg-red-100 border border-red-200 rounded-lg transition-colors flex items-center gap-1.5 cursor-pointer uppercase tracking-wider w-full sm:w-auto justify-center"
               title="Eliminar este producto del catálogo permanentemente"
             >
-              <Trash2 className="w-3.5 h-3.5 text-red-500" />
-              <span>Eliminar producto completo</span>
+              <Trash2 className="w-3.5 h-3.5 text-red-500 shrink-0" />
+              <span>Eliminar producto</span>
             </button>
           ) : (
             <div className="text-[11px] text-zinc-500 flex items-center gap-1.5">
-              <Info className="w-3.5 h-3.5 text-[#FF8407]" />
-              <span>Al guardar, los cambios se replican en tiempo real en la nube Firestore.</span>
+              <Info className="w-3.5 h-3.5 text-[#FF8407] shrink-0" />
+              <span>Los cambios se sincronizan automáticamente.</span>
             </div>
           )}
 
-          <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
+          <div className="flex items-center gap-2 flex-wrap w-full sm:w-auto justify-end">
             <button
               type="button"
               disabled={isSaving}
               onClick={onClose}
-              className="px-4 py-2 text-xs font-bold text-zinc-600 hover:text-black border border-zinc-300 hover:border-black rounded-lg transition-colors cursor-pointer uppercase tracking-wider"
+              className="flex-1 sm:flex-initial px-4 py-2 text-xs font-bold text-zinc-600 hover:text-black border border-zinc-300 hover:border-black rounded-lg transition-colors cursor-pointer uppercase tracking-wider"
             >
               Cancelar
             </button>
@@ -1016,17 +1017,17 @@ export const ProductEditModal: React.FC<ProductEditModalProps> = ({
               type="button"
               disabled={isSaving}
               onClick={() => handleSubmit()}
-              className="px-5 py-2 bg-[#FF8407] hover:bg-[#E07300] disabled:bg-zinc-400 text-white text-xs font-bold rounded-lg transition-all flex items-center justify-center gap-2 cursor-pointer shadow-xs uppercase tracking-wider"
+              className="flex-1 sm:flex-initial px-5 py-2 bg-[#FF8407] hover:bg-[#E07300] disabled:bg-zinc-400 text-white text-xs font-bold rounded-lg transition-all flex items-center justify-center gap-2 cursor-pointer shadow-xs uppercase tracking-wider whitespace-nowrap"
             >
               {isSaving ? (
                 <>
-                  <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                  <span>Guardando en Firestore...</span>
+                  <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin shrink-0"></div>
+                  <span>Guardando...</span>
                 </>
               ) : (
                 <>
-                  <Save className="w-4 h-4" />
-                  <span>Guardar Producto y Variantes</span>
+                  <Save className="w-4 h-4 shrink-0" />
+                  <span>Guardar Cambios</span>
                 </>
               )}
             </button>

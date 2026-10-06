@@ -1060,7 +1060,7 @@ export const INITIAL_PRODUCTS: Product[] = [
 export const DEFAULT_SETTINGS: AppSettings = {
   salespersonName: 'Januel Design',
   salespersonPhone: '+1 (786) 555-0199',
-  defaultValidDays: 15,
+  defaultValidDays: 3,
   companyAddress: 'Miami, FL',
   companyPhone: '+1 (786) 555-0100',
   companyEmail: 'sales@quicksurfaces.com',

@@ -178,21 +178,21 @@ export const CustomItemCalculator: React.FC<CustomItemCalculatorProps> = ({
   return (
     <div className="bg-white rounded-2xl border border-amber-200/90 shadow-sm overflow-hidden animate-in fade-in duration-200">
       {/* Top Banner with distinct amber accent */}
-      <div className="p-4 sm:p-5 bg-gradient-to-r from-amber-500/10 via-amber-50 to-white border-b border-amber-200/80 flex items-center justify-between gap-3">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-amber-500 text-white flex items-center justify-center shadow-xs shrink-0">
+      <div className="p-4 sm:p-5 bg-gradient-to-r from-amber-500/10 via-amber-50 to-white border-b border-amber-200/80 flex items-start sm:items-center justify-between gap-3">
+        <div className="flex items-start gap-3 min-w-0">
+          <div className="w-10 h-10 rounded-xl bg-amber-500 text-white flex items-center justify-center shadow-xs shrink-0 mt-0.5">
             <Wrench className="w-5 h-5" />
           </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <h2 className="text-base sm:text-lg font-black text-amber-950 tracking-tight">
+          <div className="min-w-0">
+            <div className="flex items-center gap-2 flex-wrap">
+              <h2 className="text-base sm:text-lg font-black text-amber-950 tracking-tight leading-tight">
                 {isEn ? 'Custom Item / Labor Calculator' : 'Calculador de Ítem / Mano de Obra'}
               </h2>
               <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 border border-amber-300 shrink-0">
                 {isEn ? 'DIRECT 1-STEP' : '1 SOLO PASO'}
               </span>
             </div>
-            <p className="text-xs text-amber-900/80 mt-0.5">
+            <p className="text-xs text-amber-900/80 mt-1 leading-relaxed">
               {isEn 
                 ? 'Add installation labor, custom services, or non-catalog items with flexible units and tax control.' 
                 : 'Agrega mano de obra de instalación, servicios especiales o materiales no listados con control de impuestos.'}
@@ -410,8 +410,8 @@ export const CustomItemCalculator: React.FC<CustomItemCalculatorProps> = ({
                 </span>
                 <p className="text-[11px] text-[#6B6A63] mt-1 leading-relaxed">
                   {isEn 
-                    ? 'Saves this item to Cloud Firestore so all sales team members can select it on any device.' 
-                    : 'Guarda este ítem en la base de datos de Firebase para que todo el equipo pueda volver a usarlo.'}
+                    ? 'Saves this item to the shared catalog so all sales team members can select it on any device.' 
+                    : 'Guarda este ítem en el catálogo compartido para que todo el equipo pueda volver a usarlo.'}
                 </p>
               </div>
             </label>

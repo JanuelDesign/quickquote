@@ -197,12 +197,12 @@ export const WallPanelsCalculator: React.FC<WallPanelsCalculatorProps> = ({
             <LayoutGrid className="w-4 h-4" />
           </div>
           <div className="min-w-0">
-            <h3 className="text-sm font-bold text-[#181818] leading-tight truncate">
+            <h3 className="text-sm font-bold text-[#181818] leading-snug break-words">
               {currentStep === 1 
                 ? (language === 'en' ? '1. Select Wall Panel Model' : '1. Selecciona el Modelo de Wall Panel') 
                 : (language === 'en' ? '2. Dimensions, Color & Pricing' : '2. Cantidad, Color & Precios')}
             </h3>
-            <p className="text-xs text-[#6B6A63] font-medium leading-normal mt-0.5 truncate">
+            <p className="text-xs text-[#6B6A63] font-medium leading-normal mt-0.5 break-words">
               {currentStep === 1
                 ? `${panelProducts.length} ${language === 'en' ? 'decorative panel models available' : 'modelos de paneles decorativos disponibles'}`
                 : selectedProduct.name}
@@ -355,11 +355,11 @@ export const WallPanelsCalculator: React.FC<WallPanelsCalculatorProps> = ({
                         className="w-6 h-6 rounded-full border border-zinc-300 shrink-0 shadow-2xs"
                         style={{ backgroundColor: c.hex }}
                       />
-                      <div className="truncate">
-                        <span className="text-[11px] font-bold text-black block truncate">
+                      <div className="min-w-0 flex-1">
+                        <span className="text-[11px] font-bold text-black block leading-snug break-words">
                           {c.code}
                         </span>
-                        <span className="text-[10px] text-zinc-500 block truncate">
+                        <span className="text-[10px] text-zinc-500 block leading-snug break-words">
                           {c.name}
                         </span>
                       </div>

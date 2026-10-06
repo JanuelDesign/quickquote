@@ -105,68 +105,69 @@ export const ClientModal: React.FC<ClientModalProps> = ({
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="p-5 border-b border-[#E5E5E5] bg-black text-white flex items-center justify-between">
-          <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-md bg-zinc-900 border border-zinc-800 text-[#FF8407] flex items-center justify-center">
+        <div className="p-4 sm:p-5 border-b border-[#E5E5E5] bg-black text-white flex items-start justify-between gap-2">
+          <div className="flex items-start gap-2.5 min-w-0">
+            <div className="w-8 h-8 rounded-md bg-zinc-900 border border-zinc-800 text-[#FF8407] flex items-center justify-center shrink-0 mt-0.5">
               <Users className="w-4 h-4" />
             </div>
-            <div>
-              <h2 className="text-sm sm:text-base font-bold text-white tracking-wide">
-                {t.clientsModalTitle}
-              </h2>
-              <p className="text-[11px] text-[#8C8C8C] flex items-center gap-1.5 mt-0.5">
-                <span>{t.clientsModalSubtitle}</span>
-                <span>•</span>
-                <span className="text-emerald-400 font-semibold flex items-center gap-1">
+            <div className="min-w-0">
+              <div className="flex items-center gap-2 flex-wrap">
+                <h2 className="text-sm sm:text-base font-bold text-white tracking-wide leading-tight">
+                  {t.clientsModalTitle}
+                </h2>
+                <span className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-full shrink-0">
                   <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-                  {language === 'en' ? 'Cloud Synced' : 'En la nube (Firestore)'}
+                  <span>{language === 'en' ? 'Synced' : 'Sincronizado'}</span>
                 </span>
+              </div>
+              <p className="text-[11px] text-[#8C8C8C] mt-1 leading-relaxed">
+                {t.clientsModalSubtitle}
               </p>
             </div>
           </div>
 
           <button
             onClick={onClose}
-            className="w-8 h-8 rounded-md hover:bg-zinc-800 text-[#8C8C8C] hover:text-white flex items-center justify-center transition-colors cursor-pointer"
+            className="w-8 h-8 rounded-md hover:bg-zinc-800 text-[#8C8C8C] hover:text-white flex items-center justify-center transition-colors cursor-pointer shrink-0"
           >
             <X className="w-4 h-4" />
           </button>
         </div>
 
         {/* Tab switcher */}
-        <div className="p-3 bg-[#F9F9F9] border-b border-[#E5E5E5] flex gap-2">
+        <div className="p-3 bg-[#F9F9F9] border-b border-[#E5E5E5] flex flex-wrap gap-2">
           <button
             id="tab-client-list"
             onClick={() => setActiveTab('list')}
-            className={`flex-1 py-2 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer uppercase tracking-wider ${
+            className={`flex-1 min-w-[140px] py-2 px-3 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer uppercase tracking-wider ${
               activeTab === 'list'
                 ? 'bg-black text-white shadow-xs'
                 : 'bg-white border border-[#E5E5E5] text-zinc-600 hover:border-black'
             }`}
           >
-            <Users className="w-3.5 h-3.5 text-[#FF8407]" />
+            <Users className="w-3.5 h-3.5 text-[#FF8407] shrink-0" />
             <span>{t.savedTab} ({clients.length})</span>
           </button>
 
           <button
             id="tab-client-create"
             onClick={() => setActiveTab('create')}
-            className={`flex-1 py-2 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer uppercase tracking-wider ${
+            className={`flex-1 min-w-[140px] py-2 px-3 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer uppercase tracking-wider ${
               activeTab === 'create'
                 ? 'bg-[#FF8407] text-white shadow-xs'
                 : 'bg-white border border-[#E5E5E5] text-zinc-600 hover:border-black'
             }`}
           >
-            <UserPlus className="w-3.5 h-3.5" />
+            <UserPlus className="w-3.5 h-3.5 shrink-0" />
             <span>{t.newClientTab}</span>
           </button>
         </div>
 
         {/* Tab 1: Client List & Search */}
         {activeTab === 'list' ? (
-          <div className="p-5 space-y-4">
+          <div className="p-4 sm:p-5 space-y-4">
             {/* Search bar & Type filter */}
-            <div className="space-y-2">
+            <div className="space-y-2.5">
               <div className="relative">
                 <Search className="w-4 h-4 text-[#8C8C8C] absolute left-3 top-1/2 -translate-y-1/2" />
                 <input
@@ -178,12 +179,12 @@ export const ClientModal: React.FC<ClientModalProps> = ({
                 />
               </div>
 
-              {/* Quick filter pills by client type */}
-              <div className="flex items-center gap-1.5 overflow-x-auto pb-1 no-scrollbar text-[11px]">
+              {/* Quick filter pills by client type — wraps cleanly so pills never clip */}
+              <div className="pill-scroll-row gap-1.5 text-[11px]">
                 <button
                   type="button"
                   onClick={() => setSelectedTypeFilter('all')}
-                  className={`px-2.5 py-1 rounded-full font-bold whitespace-nowrap transition-colors cursor-pointer text-[10px] uppercase tracking-wider ${
+                  className={`px-3 py-1.5 rounded-full font-bold transition-colors cursor-pointer text-[10px] uppercase tracking-wider ${
                     selectedTypeFilter === 'all'
                       ? 'bg-black text-white'
                       : 'bg-[#F2F1EC] text-zinc-600 hover:text-black hover:bg-zinc-200'
@@ -199,7 +200,7 @@ export const ClientModal: React.FC<ClientModalProps> = ({
                       key={cat}
                       type="button"
                       onClick={() => setSelectedTypeFilter(selectedTypeFilter === cat ? 'all' : cat)}
-                      className={`px-2.5 py-1 rounded-full font-bold whitespace-nowrap transition-colors cursor-pointer text-[10px] flex items-center gap-1 ${
+                      className={`px-3 py-1.5 rounded-full font-bold transition-colors cursor-pointer text-[10px] flex items-center gap-1 ${
                         selectedTypeFilter === cat
                           ? 'bg-[#FF8407] text-white'
                           : 'bg-[#F2F1EC] text-zinc-700 hover:text-black hover:bg-zinc-200'
@@ -239,16 +240,16 @@ export const ClientModal: React.FC<ClientModalProps> = ({
                           : 'border-[#E5E5E5] hover:border-zinc-400 bg-white'
                       }`}
                     >
-                      <div className="flex items-start gap-3 min-w-0">
+                      <div className="flex items-start gap-3 min-w-0 flex-1">
                         <div className={`w-8 h-8 rounded-md flex items-center justify-center font-bold text-xs shrink-0 ${
                           isSelected ? 'bg-black text-[#FF8407]' : 'bg-zinc-100 text-zinc-700'
                         }`}>
                           {client.name.charAt(0).toUpperCase()}
                         </div>
 
-                        <div className="truncate">
+                        <div className="min-w-0 flex-1">
                           <div className="flex items-center gap-2 flex-wrap">
-                            <h4 className="text-xs sm:text-sm font-bold text-black truncate">
+                            <h4 className="text-xs sm:text-sm font-bold text-black leading-snug break-words">
                               {client.name}
                             </h4>
                             {client.clientType && (
@@ -261,20 +262,20 @@ export const ClientModal: React.FC<ClientModalProps> = ({
                           <div className="flex flex-wrap gap-x-3 gap-y-0.5 text-[11px] text-[#8C8C8C] mt-0.5">
                             {client.phone && (
                               <span className="flex items-center gap-1">
-                                <Phone className="w-3 h-3 text-[#8C8C8C]" />
-                                {client.phone}
+                                <Phone className="w-3 h-3 text-[#8C8C8C] shrink-0" />
+                                <span>{client.phone}</span>
                               </span>
                             )}
                             {client.email && (
-                              <span className="flex items-center gap-1 truncate max-w-[160px]">
-                                <Mail className="w-3 h-3 text-[#8C8C8C]" />
-                                {client.email}
+                              <span className="flex items-center gap-1 min-w-0 break-all">
+                                <Mail className="w-3 h-3 text-[#8C8C8C] shrink-0" />
+                                <span>{client.email}</span>
                               </span>
                             )}
                           </div>
 
                           {client.address && (
-                            <p className="text-[10px] text-[#8C8C8C] truncate mt-0.5">
+                            <p className="text-[10px] text-[#8C8C8C] leading-snug break-words mt-0.5">
                               {client.address}
                             </p>
                           )}

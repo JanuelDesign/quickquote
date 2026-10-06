@@ -19,6 +19,8 @@ interface CartSummaryProps {
   client?: Client | null;
   includeDelivery: boolean;
   onToggleDelivery: (include: boolean) => void;
+  deliveryFee?: number;
+  onUpdateDeliveryFee?: (newFee: number) => void;
   payWithCard?: boolean;
   onTogglePayWithCard?: (include: boolean) => void;
   cardFeeAmount?: number;
@@ -44,6 +46,8 @@ export const CartSummary: React.FC<CartSummaryProps> = ({
   client,
   includeDelivery,
   onToggleDelivery,
+  deliveryFee = 60,
+  onUpdateDeliveryFee,
   payWithCard = false,
   onTogglePayWithCard,
   cardFeeAmount = 0,
@@ -65,6 +69,20 @@ export const CartSummary: React.FC<CartSummaryProps> = ({
   const t = translations[language];
   const [editingItemId, setEditingItemId] = useState<string | null>(null);
   const [editPriceInput, setEditPriceInput] = useState<string>('');
+  const [deliveryInput, setDeliveryInput] = useState<string>(Math.max(60, deliveryFee).toString());
+
+  React.useEffect(() => {
+    setDeliveryInput(Math.max(60, deliveryFee).toString());
+  }, [deliveryFee]);
+
+  const handleDeliveryBlur = () => {
+    const parsed = parseFloat(deliveryInput);
+    const clamped = isNaN(parsed) || parsed < 60 ? 60 : Number(parsed.toFixed(2));
+    setDeliveryInput(clamped.toString());
+    if (onUpdateDeliveryFee) {
+      onUpdateDeliveryFee(clamped);
+    }
+  };
 
   const handleStartEditPrice = (item: CartItem) => {
     setEditingItemId(item.id);
@@ -125,15 +143,15 @@ export const CartSummary: React.FC<CartSummaryProps> = ({
           {/* Client Card */}
           <div 
             onClick={onOpenClientModal}
-            className="bg-white border border-[#E5E5E5] p-3 rounded-lg flex items-center justify-between cursor-pointer hover:border-black transition-colors shadow-2xs group"
+            className="bg-white border border-[#E5E5E5] p-3 rounded-lg flex items-center justify-between gap-2 cursor-pointer hover:border-black transition-colors shadow-2xs group"
           >
-            <div className="flex items-center gap-2.5 truncate">
+            <div className="flex items-center gap-2.5 min-w-0 flex-1">
               <div className="w-8 h-8 rounded-md bg-black text-[#FF8407] flex items-center justify-center font-bold text-xs shrink-0">
                 {client ? client.name.charAt(0).toUpperCase() : <User className="w-4 h-4 text-[#FF8407]" />}
               </div>
-              <div className="truncate">
-                <div className="flex items-center gap-1.5 truncate">
-                  <span className="text-xs font-bold text-black block truncate">
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  <span className="text-xs font-bold text-black block leading-snug break-words">
                     {client ? client.name : t.unassignedClient}
                   </span>
                   {client?.clientType && (
@@ -142,7 +160,7 @@ export const CartSummary: React.FC<CartSummaryProps> = ({
                     </span>
                   )}
                 </div>
-                <span className="text-[10px] text-[#8C8C8C] truncate block">
+                <span className="text-[10px] text-[#8C8C8C] leading-snug break-words block mt-0.5">
                   {client?.phone || client?.email || (language === 'en' ? 'Click to select or register client' : 'Click para seleccionar o registrar')}
                 </span>
               </div>
@@ -182,7 +200,7 @@ export const CartSummary: React.FC<CartSummaryProps> = ({
                           {item.category}
                         </span>
                         {item.color && (
-                          <span className="text-[9px] font-semibold text-[#FF8407] bg-amber-500/10 px-1.5 py-0.5 rounded border border-[#FF8407]/20 truncate">
+                          <span className="text-[9px] font-semibold text-[#FF8407] bg-amber-500/10 px-1.5 py-0.5 rounded border border-[#FF8407]/20 leading-snug break-words">
                             {item.color.name}
                           </span>
                         )}
@@ -274,23 +292,55 @@ export const CartSummary: React.FC<CartSummaryProps> = ({
         {/* Financial Calculation & Checkout Area */}
         <div className="bg-white border-t border-[#E5E5E5] p-5 lg:rounded-b-xl space-y-3.5">
           <div className="space-y-2">
-            {/* Delivery Checkbox */}
-            <div className="flex items-center justify-between bg-[#F9F9F9] border border-[#E5E5E5] p-2.5 rounded-lg">
-              <div className="flex items-center gap-2">
-                <input 
-                  type="checkbox" 
-                  id="checkbox-delivery-elegant"
-                  checked={includeDelivery}
-                  onChange={(e) => onToggleDelivery(e.target.checked)}
-                  className="w-4 h-4 accent-[#FF8407] cursor-pointer rounded"
-                />
-                <label htmlFor="checkbox-delivery-elegant" className="text-xs font-bold text-black cursor-pointer">
-                  {t.includeDelivery}
-                </label>
+            {/* Delivery Checkbox + Editable Delivery Amount (Min $60) */}
+            <div className={`border p-2.5 rounded-lg transition-colors space-y-2 ${
+              includeDelivery ? 'bg-[#FFF6EC] border-[#FF8407]/40' : 'bg-[#F9F9F9] border-[#E5E5E5]'
+            }`}>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <input 
+                    type="checkbox" 
+                    id="checkbox-delivery-elegant"
+                    checked={includeDelivery}
+                    onChange={(e) => onToggleDelivery(e.target.checked)}
+                    className="w-4 h-4 accent-[#FF8407] cursor-pointer rounded"
+                  />
+                  <label htmlFor="checkbox-delivery-elegant" className="text-xs font-bold text-black cursor-pointer flex items-center gap-1.5">
+                    <Truck className={`w-3.5 h-3.5 ${includeDelivery ? 'text-[#FF8407]' : 'text-zinc-500'}`} />
+                    <span>{language === 'en' ? `Include Delivery (${formatCurrency(Math.max(60, deliveryFee))})` : `Incluir Delivery (${formatCurrency(Math.max(60, deliveryFee))})`}</span>
+                  </label>
+                </div>
+                <span className="text-[10px] uppercase font-bold text-[#8C8C8C]">
+                  {language === 'en' ? 'Min $60 • No Tax' : 'Mín $60 • Sin Impuesto'}
+                </span>
               </div>
-              <span className="text-[10px] uppercase font-bold text-[#8C8C8C]">
-                {t.deliverySubtext}
-              </span>
+
+              {includeDelivery && onUpdateDeliveryFee && (
+                <div className="flex items-center justify-between gap-2 pt-1.5 border-t border-[#FF8407]/20">
+                  <span className="text-[11px] font-semibold text-[#6B6A63]">
+                    {language === 'en' ? 'Delivery Amount (Min. $60):' : 'Monto de Delivery (Mín. $60):'}
+                  </span>
+                  <div className="flex items-center gap-1 bg-white border border-[#FF8407] rounded-md px-2 py-1">
+                    <span className="text-xs font-bold text-[#181818] font-mono">$</span>
+                    <input
+                      type="number"
+                      min={60}
+                      step="5"
+                      value={deliveryInput}
+                      onChange={(e) => {
+                        setDeliveryInput(e.target.value);
+                        const val = parseFloat(e.target.value);
+                        if (!isNaN(val) && val >= 60) {
+                          onUpdateDeliveryFee(Number(val.toFixed(2)));
+                        }
+                      }}
+                      onBlur={handleDeliveryBlur}
+                      onKeyDown={(e) => e.key === 'Enter' && handleDeliveryBlur()}
+                      className="w-16 text-xs font-bold font-mono text-right text-[#181818] outline-none bg-transparent"
+                    />
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Card Payment Checkbox (+3%) */}
@@ -330,7 +380,7 @@ export const CartSummary: React.FC<CartSummaryProps> = ({
 
             {includeDelivery && (
               <div className="flex justify-between items-center">
-                <span className="text-[#8C8C8C]">{language === 'en' ? 'Delivery (Fixed rate, no tax):' : 'Delivery ($60 sin impuesto):'}</span>
+                <span className="text-[#8C8C8C]">{language === 'en' ? 'Delivery (No tax):' : 'Delivery (Sin impuesto):'}</span>
                 <span className="font-semibold text-black font-mono">{formatCurrency(deliveryTotal)}</span>
               </div>
             )}
@@ -350,12 +400,12 @@ export const CartSummary: React.FC<CartSummaryProps> = ({
             )}
 
             {payWithCard && cardFeeAmount > 0 && (
-              <div className="flex justify-between items-center text-[#FF8407] bg-[#FFF6EC] px-2 py-1 rounded border border-[#FF8407]/20">
-                <span className="flex items-center gap-1 font-semibold">
-                  <CreditCard className="w-3 h-3 text-[#FF8407]" />
-                  {language === 'en' ? 'Card Surcharge (3%):' : 'Recargo Tarjeta (3%):'}
+              <div className="flex justify-between items-center gap-2 text-[#FF8407] bg-[#FFF6EC] px-2 py-1 rounded border border-[#FF8407]/20">
+                <span className="flex items-center gap-1 font-semibold leading-snug">
+                  <CreditCard className="w-3 h-3 text-[#FF8407] shrink-0" />
+                  <span>{language === 'en' ? 'Card Surcharge (3% on Total + Tax):' : 'Recargo Tarjeta (3% sobre Total + Impuesto):'}</span>
                 </span>
-                <span className="font-bold font-mono">+{formatCurrency(cardFeeAmount)}</span>
+                <span className="font-bold font-mono shrink-0">{formatCurrency(cardFeeAmount)}</span>
               </div>
             )}
 

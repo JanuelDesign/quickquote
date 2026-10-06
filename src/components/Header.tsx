@@ -12,7 +12,8 @@ import {
   ShieldCheck,
   Mail,
   User as UserIcon,
-  X
+  X,
+  BarChart3
 } from 'lucide-react';
 import { Client, Language, UserProfile } from '../types';
 import { translations } from '../utils/translations';
@@ -33,6 +34,7 @@ interface HeaderProps {
   onOpenHistory?: () => void;
   onOpenPriceManager?: () => void;
   onOpenUsersManager?: () => void;
+  onOpenKpiDashboard?: () => void;
   onNewQuote?: () => void;
   onToggleCart?: () => void;
   onOpenCart?: () => void;
@@ -53,6 +55,7 @@ export const Header: React.FC<HeaderProps> = ({
   onOpenHistory,
   onOpenPriceManager,
   onOpenUsersManager,
+  onOpenKpiDashboard,
   onNewQuote,
   onLogout
 }) => {
@@ -83,6 +86,11 @@ export const Header: React.FC<HeaderProps> = ({
   const handleUsersManagerClick = () => {
     setIsMenuOpen(false);
     if (onOpenUsersManager) onOpenUsersManager();
+  };
+
+  const handleKpiDashboardClick = () => {
+    setIsMenuOpen(false);
+    if (onOpenKpiDashboard) onOpenKpiDashboard();
   };
 
   const handleNewQuoteClick = () => {
@@ -184,7 +192,7 @@ export const Header: React.FC<HeaderProps> = ({
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-1.5 flex-wrap">
-                    <span className="font-bold text-white text-sm truncate">
+                    <span className="font-bold text-white text-sm leading-snug break-words">
                       {currentUser.displayName}
                     </span>
                     <span className={`text-[9px] font-black uppercase px-1.5 py-0.5 rounded tracking-wider shrink-0 ${
@@ -193,7 +201,7 @@ export const Header: React.FC<HeaderProps> = ({
                       {isAdmin ? 'ADMIN' : 'VENDEDOR'}
                     </span>
                   </div>
-                  <span className="text-[11px] text-zinc-400 font-mono truncate block mt-0.5">
+                  <span className="text-[11px] text-zinc-400 font-mono break-all block mt-0.5">
                     {currentUser.email}
                   </span>
                   {currentUser.phone && (
@@ -297,7 +305,25 @@ export const Header: React.FC<HeaderProps> = ({
                       <span>{isEn ? 'Catalog & Price List' : 'Catálogo y Lista de Precios'}</span>
                     </div>
                     <span className="text-[10px] font-mono text-[#FF8407] uppercase bg-amber-500/10 px-1.5 py-0.5 rounded border border-[#FF8407]/20">
-                      EDIT
+                      {isAdmin ? 'EDIT' : (isEn ? '+ ADD ONLY' : '+ AGREGAR')}
+                    </span>
+                  </button>
+                )}
+
+                {/* Admin Only: KPI & Sales Metrics Module */}
+                {isAdmin && onOpenKpiDashboard && (
+                  <button
+                    type="button"
+                    id="btn-menu-kpis"
+                    onClick={handleKpiDashboardClick}
+                    className="w-full px-3 py-2.5 rounded-xl hover:bg-[#F2F1EC] bg-[#FAFAFA] border border-[#E4E2DA] text-left flex items-center justify-between text-xs font-bold text-[#181818] transition-colors cursor-pointer"
+                  >
+                    <div className="flex items-center gap-2.5">
+                      <BarChart3 className="w-4 h-4 text-emerald-600" />
+                      <span>{isEn ? 'KPIs & Sales Analytics' : 'Módulo de KPIs & Métricas'}</span>
+                    </div>
+                    <span className="text-[10px] font-mono text-emerald-700 uppercase bg-emerald-500/10 px-1.5 py-0.5 rounded border border-emerald-500/20">
+                      ADMIN
                     </span>
                   </button>
                 )}

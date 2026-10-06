@@ -181,12 +181,12 @@ export const UnderlaymentCalculator: React.FC<UnderlaymentCalculatorProps> = ({
             <ShieldCheck className="w-4 h-4" />
           </div>
           <div className="min-w-0">
-            <h3 className="text-sm font-bold text-[#181818] leading-tight truncate">
+            <h3 className="text-sm font-bold text-[#181818] leading-snug break-words">
               {currentStep === 1 
                 ? (language === 'en' ? '1. Select Underlayment / Moisture Barrier' : '1. Selecciona Aislante o Barrera de Vapor') 
                 : (language === 'en' ? '2. Roll Quantity & Pricing' : '2. Cantidad de Rollos & Precios')}
             </h3>
-            <p className="text-xs text-[#6B6A63] font-medium leading-normal mt-0.5 truncate">
+            <p className="text-xs text-[#6B6A63] font-medium leading-normal mt-0.5 break-words">
               {currentStep === 1
                 ? `${underlaymentProducts.length} ${language === 'en' ? 'acoustic & moisture barrier options' : 'tipos de aislantes acústicos y barreras contra humedad'}`
                 : selectedProduct.name}

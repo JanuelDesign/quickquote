@@ -46,6 +46,7 @@ import { QuotesHistoryModal } from './components/QuotesHistoryModal';
 import { CustomItemCalculator } from './components/CustomItemCalculator';
 import { LoginScreen } from './components/LoginScreen';
 import { UsersModal } from './components/UsersModal';
+import { AdminKpiModal } from './components/AdminKpiModal';
 import { QuickSurfacesLogo } from './components/QuickSurfacesLogo';
 import { matchesProductSearch, getCategoryMatchCounts, getCategoryDisplayName } from './utils/productSearch';
 import { fetchGoogleSheetsCatalog, DEFAULT_GOOGLE_SHEET_URL } from './utils/tsvExporter';
@@ -163,9 +164,14 @@ export default function App() {
   // Current Quotation Working State
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const [includeDelivery, setIncludeDelivery] = useState<boolean>(false);
+  const [deliveryFee, setDeliveryFee] = useState<number>(60);
   const [payWithCard, setPayWithCard] = useState<boolean>(false);
   const [activeCategory, setActiveCategory] = useState<ProductCategory>('piso');
-  const [quoteValidDays, setQuoteValidDays] = useState<number>(settings.defaultValidDays || 3);
+  const [quoteValidDays, setQuoteValidDays] = useState<number>(3);
+
+  const handleUpdateDeliveryFee = (newFee: number) => {
+    setDeliveryFee(Math.max(60, Number(newFee.toFixed(2))));
+  };
   
   // Sales representative is strictly bound to the authenticated user's profile
   const activeSalespersonName = currentUser?.displayName || 'Vendedor';
@@ -223,6 +229,7 @@ export default function App() {
   const [isQuoteModalOpen, setIsQuoteModalOpen] = useState(false);
   const [isPriceManagerOpen, setIsPriceManagerOpen] = useState(false);
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
+  const [isKpiModalOpen, setIsKpiModalOpen] = useState(false);
 
   // Authentication State Listener
   useEffect(() => {
@@ -356,11 +363,12 @@ export default function App() {
     setLanguage(prev => (prev === 'en' ? 'es' : 'en'));
   };
 
-  // Financial calculations (with 7% tax calculated on Subtotal Products and optional 3% card fee)
+  // Financial calculations (with 7% tax calculated on Subtotal Products and optional 3% card fee on baseTotal)
+  const effectiveDeliveryFee = Math.max(60, deliveryFee);
   const { subtotalProducts, taxableBase, taxAmount, installationTotal, deliveryTotal, baseTotal, cardFeeAmount, total } = calculateQuoteTotals(
     cartItems,
     includeDelivery,
-    settings.deliveryFee,
+    effectiveDeliveryFee,
     settings.taxRate,
     payWithCard,
     0.03
@@ -762,8 +770,8 @@ export default function App() {
     id: `quote-${Date.now()}`,
     quoteNumber: `QS-${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`,
     date: new Date().toLocaleDateString(language === 'en' ? 'en-US' : 'es-ES', { day: '2-digit', month: 'short', year: 'numeric' }),
-    validDays: quoteValidDays,
-    validUntil: getValidUntilDate(quoteValidDays),
+    validDays: 3,
+    validUntil: getValidUntilDate(3, language),
     client: currentClient || {
       id: 'default',
       name: language === 'en' ? 'General Client' : 'Cliente General',
@@ -817,11 +825,12 @@ export default function App() {
   const handleLoadQuoteFromHistory = (quote: Quotation) => {
     setCartItems(quote.items);
     setIncludeDelivery(quote.includeDelivery);
+    setDeliveryFee(Math.max(60, quote.deliveryCost || 60));
     if (quote.payWithCard !== undefined) {
       setPayWithCard(quote.payWithCard);
     }
     setCurrentClient(quote.client);
-    setQuoteValidDays(quote.validDays);
+    setQuoteValidDays(3);
     if (quote.shippingAddress) {
       setShippingAddress(quote.shippingAddress);
     }
@@ -838,11 +847,12 @@ export default function App() {
     }));
     setCartItems(clonedItems);
     setIncludeDelivery(quote.includeDelivery);
+    setDeliveryFee(Math.max(60, quote.deliveryCost || 60));
     if (quote.payWithCard !== undefined) {
       setPayWithCard(quote.payWithCard);
     }
     setCurrentClient(quote.client);
-    setQuoteValidDays(quote.validDays || 15);
+    setQuoteValidDays(3);
     if (quote.shippingAddress) {
       setShippingAddress(quote.shippingAddress);
     }
@@ -936,13 +946,17 @@ export default function App() {
         currentUser={currentUser}
         onLogout={handleLogout}
         onOpenUsersManager={() => setIsUsersModalOpen(true)}
+        onOpenKpiDashboard={currentUser.role === 'admin' ? () => setIsKpiModalOpen(true) : undefined}
         cartItemsCount={cartItems.length}
         cartTotal={total}
         onOpenCart={() => setIsCartOpen(true)}
         onOpenClientModal={() => setIsClientModalOpen(true)}
         onOpenPriceManager={() => setIsPriceManagerOpen(true)}
         onOpenHistory={() => setIsHistoryOpen(true)}
-        onNewQuote={() => setCartItems([])}
+        onNewQuote={() => {
+          setCartItems([]);
+          setDeliveryFee(60);
+        }}
         language={language}
         onToggleLanguage={toggleLanguage}
       />
@@ -956,16 +970,16 @@ export default function App() {
               <User className="w-5 h-5" />
             </div>
             <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2 min-w-0">
+              <div className="flex items-center gap-2 flex-wrap min-w-0">
                 <span className="text-[10px] font-bold uppercase tracking-wider text-[#9C9A90] shrink-0">
                   {t.quotingFor}:
                 </span>
-                <span className="text-sm font-bold text-[#181818] truncate">
+                <span className="text-sm font-bold text-[#181818] break-words leading-snug">
                   {currentClient?.name || t.unassignedClient}
                 </span>
               </div>
               {currentClient?.phone && (
-                <p className="text-[11px] text-[#6B6A63] font-mono truncate">
+                <p className="text-[11px] text-[#6B6A63] font-mono break-words leading-snug mt-0.5">
                   Tel: {currentClient.phone} {currentClient.address && `• ${currentClient.address}`}
                 </p>
               )}
@@ -1183,6 +1197,8 @@ export default function App() {
               client={currentClient}
               includeDelivery={includeDelivery}
               onToggleDelivery={setIncludeDelivery}
+              deliveryFee={effectiveDeliveryFee}
+              onUpdateDeliveryFee={handleUpdateDeliveryFee}
               payWithCard={payWithCard}
               onTogglePayWithCard={setPayWithCard}
               cardFeeAmount={cardFeeAmount}
@@ -1228,12 +1244,12 @@ export default function App() {
             </div>
 
             <div className="min-w-0">
-              <div className="flex items-center gap-1.5">
-                <span className="text-[10px] text-[#9C9A90] uppercase font-bold tracking-wider truncate">
+              <div className="flex items-center gap-1.5 flex-wrap">
+                <span className="text-[10px] text-[#9C9A90] uppercase font-bold tracking-wider leading-tight break-words">
                   {language === 'en' ? 'Cart Total' : 'Total Carrito'} ({cartItems.length} {cartItems.length === 1 ? (language === 'en' ? 'item' : 'ítem') : (language === 'en' ? 'items' : 'ítems')}):
                 </span>
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 flex-wrap">
                 {/* Price and Chevron on the exact same line, never wrapped */}
                 <div className="inline-flex items-center gap-1.5 shrink-0">
                   <span className="text-lg sm:text-xl font-black text-[#181818] font-mono leading-tight whitespace-nowrap">
@@ -1248,7 +1264,7 @@ export default function App() {
                 </div>
 
                 {subtotalProducts > 0 && (
-                  <span className="text-[10px] text-[#6B6A63] hidden md:inline font-normal truncate">
+                  <span className="text-[10px] text-[#6B6A63] hidden md:inline font-normal">
                     ({language === 'en' ? 'Prod' : 'Prod'}: {formatCurrency(subtotalProducts)} + 7% Tax)
                   </span>
                 )}
@@ -1289,6 +1305,8 @@ export default function App() {
           client={currentClient}
           includeDelivery={includeDelivery}
           onToggleDelivery={setIncludeDelivery}
+          deliveryFee={effectiveDeliveryFee}
+          onUpdateDeliveryFee={handleUpdateDeliveryFee}
           payWithCard={payWithCard}
           onTogglePayWithCard={setPayWithCard}
           cardFeeAmount={cardFeeAmount}
@@ -1350,8 +1368,10 @@ export default function App() {
           onUpdateShippingAddress={setShippingAddress}
           sameAsBillingAddress={sameAsBillingAddress}
           onToggleSameAsBilling={setSameAsBillingAddress}
-          onUpdateQuoteDays={setQuoteValidDays}
+          onUpdateQuoteDays={() => setQuoteValidDays(3)}
           onToggleDelivery={setIncludeDelivery}
+          deliveryFee={effectiveDeliveryFee}
+          onUpdateDeliveryFee={handleUpdateDeliveryFee}
           onTogglePayWithCard={setPayWithCard}
           onSaveToHistory={handleSaveQuoteToHistory}
           language={language}
@@ -1363,6 +1383,7 @@ export default function App() {
           isOpen={isPriceManagerOpen}
           onClose={() => setIsPriceManagerOpen(false)}
           products={products}
+          userRole={currentUser.role}
           onUpdateProducts={async (newProducts) => {
             setProducts(newProducts);
             localStorage.setItem('qs_products_catalog', JSON.stringify(newProducts));
@@ -1384,6 +1405,16 @@ export default function App() {
         />
       )}
 
+      {currentUser.role === 'admin' && isKpiModalOpen && (
+        <AdminKpiModal
+          isOpen={isKpiModalOpen}
+          onClose={() => setIsKpiModalOpen(false)}
+          history={quotesHistory}
+          onUpdateQuoteStatus={handleUpdateQuoteStatus}
+          language={language}
+        />
+      )}
+
       {isHistoryOpen && (
         <QuotesHistoryModal
           isOpen={isHistoryOpen}
@@ -1393,6 +1424,7 @@ export default function App() {
           onLoadQuote={handleLoadQuoteFromHistory}
           onDuplicateQuote={handleDuplicateQuoteFromHistory}
           onUpdateQuoteStatus={handleUpdateQuoteStatus}
+          onOpenKpiDashboard={currentUser.role === 'admin' ? () => setIsKpiModalOpen(true) : undefined}
           onDeleteQuote={async (id) => {
             setQuotesHistory(prev => prev.filter(q => q.id !== id));
             try {
