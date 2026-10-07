@@ -64,18 +64,28 @@ input[type="number"] {
 }
 
 /*
- * Shared pill / tab / chip container:
- * Wraps items cleanly onto multiple lines instead of clipping items at the right border.
+ * Shared horizontal slider container for filter pills, tabs, and category chips:
+ * Scrolls smoothly horizontally in a single line (slider) without stacking vertically
+ * and without truncating any button's text.
  */
 .pill-scroll-row {
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   align-items: center;
-  overflow: visible;
+  overflow-x: auto;
+  overflow-y: hidden;
+  -webkit-overflow-scrolling: touch;
+  scroll-snap-type: x proximity;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.pill-scroll-row::-webkit-scrollbar {
+  display: none;
 }
 .pill-scroll-row > * {
-  max-width: 100%;
-  white-space: normal;
+  flex-shrink: 0;
+  white-space: nowrap;
+  scroll-snap-align: start;
 }
 
 /* Shared base classes for badges and pills so text never clips */

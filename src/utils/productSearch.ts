@@ -1,4 +1,4 @@
-import { Product, ProductCategory, Language } from '../types';
+import { Product, ProductColor, ProductCategory, Language } from '../types';
 
 /**
  * Normalizes a string by converting to lowercase and stripping accents/diacritics
@@ -143,4 +143,15 @@ export function getCategoryDisplayName(category: ProductCategory, language: Lang
   const cat = CATEGORY_SEARCH_SYNONYMS[category];
   if (!cat) return category;
   return language === 'en' ? cat.en : cat.es;
+}
+
+/**
+ * Returns color variants of a product that match the given query
+ */
+export function getMatchingColorsForProduct(product: Product, rawQuery: string): ProductColor[] {
+  const query = normalizeSearchText(rawQuery);
+  if (!query || !product.colors || product.colors.length === 0) return [];
+  return product.colors.filter(
+    (c) => normalizeSearchText(c.name).includes(query) || normalizeSearchText(c.code).includes(query)
+  );
 }

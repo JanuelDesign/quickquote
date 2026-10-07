@@ -75,6 +75,7 @@ export function createFloorCartItem(
     unitPrice: boxUnitPrice,
     pricingMode: 'per_box',
     pricePerSqft: pricePerSqft,
+    sqftPerBox: sqftPerBox,
     baseListPrice: product.basePrice,
     subtotal,
     isTaxable: true,
@@ -111,6 +112,7 @@ export function createBaseboardCartItem(
     unitPrice: stripUnitPrice,
     pricingMode: 'per_strip',
     pricePerLinearFt: pricePerLinearFt,
+    stripLengthFeet: stripLength,
     baseListPrice: product.basePrice,
     subtotal,
     isTaxable: true,
@@ -457,12 +459,13 @@ export function getItemUnitPriceDetail(item: CartItem, lang: 'en' | 'es' = 'es')
     }
 
     if (item.stepIncludesRiser && item.riserUnitPrice) {
-      const stepRate = item.unitPrice - item.riserUnitPrice;
+      const stepRate = Number((item.unitPrice - item.riserUnitPrice).toFixed(2));
+      const effectiveStepRate = stepRate > 0 ? stepRate : item.unitPrice;
       return {
-        primaryRate: `${formatCurrency(stepRate > 0 ? stepRate : item.unitPrice)} / ${isEn ? 'step' : 'escalón'}`,
+        primaryRate: `${formatCurrency(effectiveStepRate)} / ${isEn ? 'step' : 'escalón'}`,
         packagingRate: `+ ${formatCurrency(item.riserUnitPrice)} / ${isEn ? 'riser' : 'contrahuella'}`,
         displayUnit: isEn ? 'step' : 'escalón',
-        unitPriceValue: item.unitPrice
+        unitPriceValue: effectiveStepRate
       };
     }
 

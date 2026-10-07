@@ -17,6 +17,7 @@ interface StairsCalculatorProps {
   products: Product[];
   language?: Language;
   initialProductId?: string;
+  initialSelectionKey?: number;
   onAddToCart: (
     product: Product,
     stepCount: number,
@@ -33,6 +34,7 @@ export const StairsCalculator: React.FC<StairsCalculatorProps> = ({
   products,
   language = 'en',
   initialProductId,
+  initialSelectionKey,
   onAddToCart
 }) => {
   const t = translations[language];
@@ -59,7 +61,7 @@ export const StairsCalculator: React.FC<StairsCalculatorProps> = ({
         scrollToCalculatorTop();
       }
     }
-  }, [initialProductId]);
+  }, [initialProductId, initialSelectionKey]);
 
   // Live synchronization
   React.useEffect(() => {

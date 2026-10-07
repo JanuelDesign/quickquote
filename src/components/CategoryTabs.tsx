@@ -83,10 +83,22 @@ export const CategoryTabs: React.FC<CategoryTabsProps> = ({
     }
   ];
 
+  const sliderRef = React.useRef<HTMLDivElement>(null);
+
+  React.useEffect(() => {
+    const activeChip = document.getElementById(`cat-chip-${activeCategory}`);
+    if (activeChip && sliderRef.current) {
+      activeChip.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+    }
+  }, [activeCategory]);
+
   return (
     <div className="w-full">
-      {/* Responsive grid fitting all categories comfortably */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-7 gap-2 sm:gap-2.5">
+      {/* Single-row horizontal slider for all categories (Flooring, Baseboard, Profiles, Stairs, Wall Panels, Underlayment, Custom Labor) */}
+      <div
+        ref={sliderRef}
+        className="flex flex-nowrap items-stretch gap-2.5 overflow-x-auto no-scrollbar snap-x snap-mandatory py-1 px-0.5"
+      >
         {categories.map((cat) => {
           const Icon = cat.icon;
           const isActive = activeCategory === cat.id;
@@ -116,31 +128,27 @@ export const CategoryTabs: React.FC<CategoryTabsProps> = ({
             ? 'text-amber-600'
             : 'text-[#FF8407]';
 
-          const gridSpan = isCustom
-            ? 'col-span-2 sm:col-span-3 lg:col-span-2 xl:col-span-1'
-            : '';
-
           return (
             <button
               key={cat.id}
               type="button"
               id={`cat-chip-${cat.id}`}
               onClick={() => onSelectCategory(cat.id)}
-              className={`flex items-center justify-between p-2.5 sm:p-3 rounded-xl text-left transition-all duration-150 cursor-pointer border select-none ${gridSpan} ${buttonStyle}`}
+              className={`shrink-0 snap-start flex items-center justify-between gap-2.5 px-3.5 py-2.5 sm:py-3 rounded-xl text-left transition-all duration-150 cursor-pointer border select-none min-w-[155px] sm:min-w-[172px] ${buttonStyle}`}
             >
-              <div className="flex items-center gap-2 min-w-0">
+              <div className="flex items-center gap-2.5 min-w-0">
                 <div
                   className={`w-7 h-7 sm:w-8 sm:h-8 rounded-lg flex items-center justify-center shrink-0 transition-colors ${iconContainerStyle}`}
                 >
                   <Icon className={`w-3.5 h-3.5 sm:w-4 sm:h-4 ${iconStyle}`} />
                 </div>
                 <div className="min-w-0">
-                  <span className={`text-xs sm:text-sm font-bold block leading-tight break-words ${
+                  <span className={`text-xs sm:text-sm font-bold block leading-tight whitespace-nowrap ${
                     isActive ? 'text-white' : isCustom ? 'text-amber-950' : 'text-[#181818]'
                   }`}>
                     {cat.name}
                   </span>
-                  <span className={`text-[10px] block leading-snug break-words mt-0.5 ${
+                  <span className={`text-[10px] block leading-snug whitespace-nowrap mt-0.5 ${
                     isActive ? 'text-white/80' : isCustom ? 'text-amber-800/80 font-medium' : 'text-[#9C9A90]'
                   }`}>
                     {isSearching ? `${matchCount} ${language === 'en' ? 'matches' : 'coincidencias'}` : cat.sublabel}
@@ -152,7 +160,7 @@ export const CategoryTabs: React.FC<CategoryTabsProps> = ({
               {isSearching ? (
                 matchCount > 0 && (
                   <span
-                    className={`ml-1.5 px-1.5 py-0.5 text-[10px] sm:text-[11px] font-black rounded-full shrink-0 flex items-center justify-center ${
+                    className={`ml-1 px-1.5 py-0.5 text-[10px] sm:text-[11px] font-black rounded-full shrink-0 flex items-center justify-center ${
                       isActive
                         ? 'bg-white text-[#FF8407] shadow-2xs'
                         : isCustom
@@ -167,7 +175,7 @@ export const CategoryTabs: React.FC<CategoryTabsProps> = ({
               ) : (
                 count > 0 && (
                   <span
-                    className={`ml-1.5 px-1.5 py-0.5 text-[10px] sm:text-[11px] font-black rounded-full shrink-0 flex items-center justify-center ${
+                    className={`ml-1 px-1.5 py-0.5 text-[10px] sm:text-[11px] font-black rounded-full shrink-0 flex items-center justify-center ${
                       isActive
                         ? 'bg-white text-[#FF8407] shadow-2xs'
                         : isCustom

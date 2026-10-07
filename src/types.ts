@@ -63,7 +63,9 @@ export interface CartItem {
   unitPrice: number;           // Editable price per unit (per box, per strip, per step, etc.)
   pricingMode: 'per_box' | 'per_sqft' | 'per_strip' | 'per_piece' | 'fixed';
   pricePerSqft?: number;       // For floors
+  sqftPerBox?: number;         // Box coverage for floors
   pricePerLinearFt?: number;   // For baseboards
+  stripLengthFeet?: number;    // Strip length for baseboards
   baseListPrice: number;       // Original base price for reference
   
   // Subtotal & Tax

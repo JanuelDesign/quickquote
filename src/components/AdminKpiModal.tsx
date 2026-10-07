@@ -503,167 +503,76 @@ export const AdminKpiModal: React.FC<AdminKpiModalProps> = ({
           </div>
         </div>
 
-        {/* 2. COLLAPSED FILTERS BAR + 3. NON-TRUNCATING HORIZONTAL TABS */}
-        <div ref={filterBarRef} className="bg-white border-b border-[#E4E2DA] shrink-0 relative">
-          {/* Single Compact Row for Collapsed Period & Salesperson Selectors */}
-          <div className="px-3.5 py-2.5 flex items-center gap-2">
-            {/* Collapsed Period Selector */}
-            <div className="relative flex-1 min-w-0">
-              <button
-                type="button"
-                onClick={() => setOpenFilterMenu((prev) => (prev === 'period' ? null : 'period'))}
-                className={`w-full px-3 py-2 rounded-xl border text-xs font-bold flex items-center justify-between gap-1.5 transition-colors cursor-pointer ${
-                  openFilterMenu === 'period' || datePreset !== 'all'
-                    ? 'bg-[#181818] text-white border-[#181818]'
-                    : 'bg-[#FAFAFA] text-[#181818] border-[#E4E2DA] hover:bg-[#F2F1EC]'
-                }`}
-              >
-                <span className="flex items-center gap-1.5 truncate">
-                  <Calendar className="w-3.5 h-3.5 text-[#FF8407] shrink-0" />
-                  <span className="truncate">{activePresetLabel}</span>
-                </span>
-                <ChevronDown
-                  className={`w-3.5 h-3.5 shrink-0 transition-transform ${
-                    openFilterMenu === 'period' ? 'rotate-180 text-[#FF8407]' : ' opacity-70'
-                  }`}
-                />
-              </button>
-
-              {/* Desktop Popover / Mobile Bottom Sheet for Period Options */}
-              {openFilterMenu === 'period' && (
-                <>
-                  <div
-                    className="fixed inset-0 bg-black/50 z-40 sm:hidden"
-                    onClick={() => setOpenFilterMenu(null)}
-                  />
-                  <div className="fixed bottom-0 left-0 right-0 z-50 bg-white rounded-t-2xl border-t border-[#E4E2DA] p-4 shadow-2xl space-y-1.5 sm:absolute sm:bottom-auto sm:left-0 sm:right-auto sm:top-11 sm:w-64 sm:rounded-xl sm:border sm:p-2 animate-in fade-in duration-150">
-                    <div className="flex items-center justify-between pb-2 mb-1 border-b border-[#E4E2DA] sm:hidden">
-                      <span className="text-xs font-black uppercase tracking-wider text-[#181818]">
-                        {isEn ? 'Filter by Period' : 'Filtrar por Período'}
-                      </span>
-                      <button
-                        type="button"
-                        onClick={() => setOpenFilterMenu(null)}
-                        className="p-1 rounded-lg bg-zinc-100 text-zinc-600"
-                      >
-                        <X className="w-4 h-4" />
-                      </button>
-                    </div>
-                    {DATE_PRESET_OPTIONS.map((preset) => {
-                      const isSelected = datePreset === preset.id;
-                      return (
-                        <button
-                          key={preset.id}
-                          type="button"
-                          onClick={() => {
-                            setDatePreset(preset.id);
-                            setOpenFilterMenu(null);
-                          }}
-                          className={`w-full px-3 py-2.5 sm:py-2 rounded-xl text-left text-xs font-bold flex items-center justify-between transition-colors cursor-pointer ${
-                            isSelected
-                              ? 'bg-[#181818] text-[#FF8407]'
-                              : 'text-[#181818] hover:bg-[#F2F1EC]'
-                          }`}
-                        >
-                          <span>{isEn ? preset.en : preset.es}</span>
-                          {isSelected && <Check className="w-4 h-4 text-[#FF8407]" />}
-                        </button>
-                      );
-                    })}
-                  </div>
-                </>
-              )}
+        {/* 2. HORIZONTAL SLIDER FILTERS BAR + 3. HORIZONTAL SLIDER TABS */}
+        <div ref={filterBarRef} className="bg-white border-b border-[#E4E2DA] shrink-0 space-y-2 py-2.5 px-3.5">
+          {/* Period Filter Slider Row */}
+          <div className="flex items-center gap-2">
+            <span className="inline-flex items-center gap-1 text-[10px] font-black uppercase tracking-wider text-[#9C9A90] shrink-0">
+              <Calendar className="w-3.5 h-3.5 text-[#FF8407]" />
+              <span className="hidden sm:inline">{isEn ? 'Period:' : 'Período:'}</span>
+            </span>
+            <div className="pill-scroll-row gap-1.5 flex-1">
+              {DATE_PRESET_OPTIONS.map((preset) => {
+                const isSelected = datePreset === preset.id;
+                return (
+                  <button
+                    key={preset.id}
+                    type="button"
+                    onClick={() => setDatePreset(preset.id)}
+                    className={`shrink-0 snap-start px-3 py-1.5 rounded-full text-[11px] font-bold transition-all cursor-pointer border whitespace-nowrap ${
+                      isSelected
+                        ? 'bg-[#181818] text-[#FF8407] border-[#181818] shadow-2xs'
+                        : 'bg-[#FAFAFA] text-[#6B6A63] border-[#E4E2DA] hover:bg-[#F2F1EC] hover:text-[#181818]'
+                    }`}
+                  >
+                    {isEn ? preset.en : preset.es}
+                  </button>
+                );
+              })}
             </div>
+          </div>
 
-            {/* Collapsed Salesperson Selector */}
-            <div className="relative flex-1 min-w-0">
+          {/* Salesperson Filter Slider Row */}
+          <div className="flex items-center gap-2">
+            <span className="inline-flex items-center gap-1 text-[10px] font-black uppercase tracking-wider text-[#9C9A90] shrink-0">
+              <Users className="w-3.5 h-3.5 text-[#FF8407]" />
+              <span className="hidden sm:inline">{isEn ? 'Seller:' : 'Vendedor:'}</span>
+            </span>
+            <div className="pill-scroll-row gap-1.5 flex-1">
               <button
                 type="button"
-                onClick={() => setOpenFilterMenu((prev) => (prev === 'salesperson' ? null : 'salesperson'))}
-                className={`w-full px-3 py-2 rounded-xl border text-xs font-bold flex items-center justify-between gap-1.5 transition-colors cursor-pointer ${
-                  openFilterMenu === 'salesperson' || selectedSalesperson !== 'all'
-                    ? 'bg-[#181818] text-white border-[#181818]'
-                    : 'bg-[#FAFAFA] text-[#181818] border-[#E4E2DA] hover:bg-[#F2F1EC]'
+                onClick={() => setSelectedSalesperson('all')}
+                className={`shrink-0 snap-start px-3 py-1.5 rounded-full text-[11px] font-bold transition-all cursor-pointer border whitespace-nowrap ${
+                  selectedSalesperson === 'all'
+                    ? 'bg-[#181818] text-[#FF8407] border-[#181818] shadow-2xs'
+                    : 'bg-[#FAFAFA] text-[#6B6A63] border-[#E4E2DA] hover:bg-[#F2F1EC] hover:text-[#181818]'
                 }`}
               >
-                <span className="flex items-center gap-1.5 truncate">
-                  <Users className="w-3.5 h-3.5 text-[#FF8407] shrink-0" />
-                  <span className="truncate">{activeSalespersonLabel}</span>
-                </span>
-                <ChevronDown
-                  className={`w-3.5 h-3.5 shrink-0 transition-transform ${
-                    openFilterMenu === 'salesperson' ? 'rotate-180 text-[#FF8407]' : 'opacity-70'
-                  }`}
-                />
+                {isEn ? 'All salespeople' : 'Todos los vendedores'}
               </button>
-
-              {/* Desktop Popover / Mobile Bottom Sheet for Salesperson Options */}
-              {openFilterMenu === 'salesperson' && (
-                <>
-                  <div
-                    className="fixed inset-0 bg-black/50 z-40 sm:hidden"
-                    onClick={() => setOpenFilterMenu(null)}
-                  />
-                  <div className="fixed bottom-0 left-0 right-0 z-50 bg-white rounded-t-2xl border-t border-[#E4E2DA] p-4 shadow-2xl space-y-1.5 max-h-[70vh] overflow-y-auto sm:absolute sm:bottom-auto sm:right-0 sm:left-auto sm:top-11 sm:w-64 sm:rounded-xl sm:border sm:p-2 animate-in fade-in duration-150">
-                    <div className="flex items-center justify-between pb-2 mb-1 border-b border-[#E4E2DA] sm:hidden">
-                      <span className="text-xs font-black uppercase tracking-wider text-[#181818]">
-                        {isEn ? 'Filter by Salesperson' : 'Filtrar por Vendedor'}
-                      </span>
-                      <button
-                        type="button"
-                        onClick={() => setOpenFilterMenu(null)}
-                        className="p-1 rounded-lg bg-zinc-100 text-zinc-600"
-                      >
-                        <X className="w-4 h-4" />
-                      </button>
-                    </div>
-
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setSelectedSalesperson('all');
-                        setOpenFilterMenu(null);
-                      }}
-                      className={`w-full px-3 py-2.5 sm:py-2 rounded-xl text-left text-xs font-bold flex items-center justify-between transition-colors cursor-pointer ${
-                        selectedSalesperson === 'all'
-                          ? 'bg-[#181818] text-[#FF8407]'
-                          : 'text-[#181818] hover:bg-[#F2F1EC]'
-                      }`}
-                    >
-                      <span>{isEn ? 'All salespeople' : 'Todos los vendedores'}</span>
-                      {selectedSalesperson === 'all' && <Check className="w-4 h-4 text-[#FF8407]" />}
-                    </button>
-
-                    {salespeopleList.map((sp) => {
-                      const isSelected = selectedSalesperson === sp;
-                      return (
-                        <button
-                          key={sp}
-                          type="button"
-                          onClick={() => {
-                            setSelectedSalesperson(sp);
-                            setOpenFilterMenu(null);
-                          }}
-                          className={`w-full px-3 py-2.5 sm:py-2 rounded-xl text-left text-xs font-bold flex items-center justify-between transition-colors cursor-pointer ${
-                            isSelected
-                              ? 'bg-[#181818] text-[#FF8407]'
-                              : 'text-[#181818] hover:bg-[#F2F1EC]'
-                          }`}
-                        >
-                          <span className="truncate">{sp}</span>
-                          {isSelected && <Check className="w-4 h-4 text-[#FF8407]" />}
-                        </button>
-                      );
-                    })}
-                  </div>
-                </>
-              )}
+              {salespeopleList.map((sp) => {
+                const isSelected = selectedSalesperson === sp;
+                return (
+                  <button
+                    key={sp}
+                    type="button"
+                    onClick={() => setSelectedSalesperson(sp)}
+                    className={`shrink-0 snap-start px-3 py-1.5 rounded-full text-[11px] font-bold transition-all cursor-pointer border whitespace-nowrap ${
+                      isSelected
+                        ? 'bg-[#181818] text-[#FF8407] border-[#181818] shadow-2xs'
+                        : 'bg-[#FAFAFA] text-[#6B6A63] border-[#E4E2DA] hover:bg-[#F2F1EC] hover:text-[#181818]'
+                    }`}
+                  >
+                    {sp}
+                  </button>
+                );
+              })}
             </div>
           </div>
 
           {/* Custom Date Range Inputs (only shown when 'custom' preset is active) */}
           {datePreset === 'custom' && (
-            <div className="px-3.5 pb-2.5 flex flex-wrap items-center gap-2 animate-in fade-in duration-150">
+            <div className="pt-1 flex flex-wrap items-center gap-2 animate-in fade-in duration-150">
               <div className="flex items-center gap-1.5 flex-1 min-w-[140px]">
                 <label className="text-[10px] font-bold text-[#6B6A63] uppercase shrink-0">
                   {isEn ? 'From:' : 'Desde:'}
@@ -703,8 +612,8 @@ export const AdminKpiModal: React.FC<AdminKpiModalProps> = ({
             </div>
           )}
 
-          {/* 3. NON-TRUNCATING TABS — wraps cleanly so no tab is ever cut off at the right border */}
-          <div className="px-3.5 py-2 border-t border-zinc-100 pill-scroll-row gap-1.5">
+          {/* 3. HORIZONTAL SLIDER TABS */}
+          <div className="pt-2 border-t border-zinc-100 pill-scroll-row gap-1.5">
             {(
               [
                 { id: 'overview', es: 'Resumen General & Embudo', en: 'Overview & Funnel', icon: TrendingUp },
@@ -719,14 +628,14 @@ export const AdminKpiModal: React.FC<AdminKpiModalProps> = ({
                   key={tab.id}
                   type="button"
                   onClick={() => setActiveTab(tab.id)}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer ${
+                  className={`shrink-0 snap-start px-3.5 py-1.5 rounded-full text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer whitespace-nowrap ${
                     activeTab === tab.id
-                      ? 'bg-[#FF8407] text-white shadow-2xs'
+                      ? 'bg-[#FF8407] text-white shadow-2xs border border-[#FF8407]'
                       : 'bg-[#FAFAFA] text-[#6B6A63] hover:bg-[#F2F1EC] hover:text-[#181818] border border-[#E4E2DA]'
                   }`}
                 >
                   <Icon className="w-3.5 h-3.5 shrink-0" />
-                  <span>{isEn ? tab.en : tab.es}</span>
+                  <span className="whitespace-nowrap">{isEn ? tab.en : tab.es}</span>
                 </button>
               );
             })}

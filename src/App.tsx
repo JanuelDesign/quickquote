@@ -162,6 +162,10 @@ export default function App() {
   });
 
   // Current Quotation Working State
+  const [activeQuoteId, setActiveQuoteId] = useState<string>(() => `quote-${Date.now()}`);
+  const [activeQuoteNumber, setActiveQuoteNumber] = useState<string>(
+    () => `QS-${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`
+  );
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const [includeDelivery, setIncludeDelivery] = useState<boolean>(false);
   const [deliveryFee, setDeliveryFee] = useState<number>(60);
@@ -184,6 +188,8 @@ export default function App() {
   const [productSearchTerm, setProductSearchTerm] = useState<string>('');
   const [isViewingAllSearchResults, setIsViewingAllSearchResults] = useState<boolean>(false);
   const [targetProductId, setTargetProductId] = useState<string | undefined>(undefined);
+  const [targetColor, setTargetColor] = useState<ProductColor | undefined>(undefined);
+  const [targetSelectionKey, setTargetSelectionKey] = useState<number>(0);
 
   const isSearching = productSearchTerm.trim().length > 0;
 
@@ -204,10 +210,13 @@ export default function App() {
     return allMatchingProducts.filter(p => p.category === activeCategory);
   }, [allMatchingProducts, activeCategory, isSearching, products]);
 
-  // Handler when selecting a product from cross-category search results
-  const handleSelectSearchedProduct = (product: Product) => {
+  // Handler when selecting a product from the search modal or cross-category results
+  const handleSelectSearchedProduct = (product: Product, chosenColor?: ProductColor) => {
     setActiveCategory(product.category);
     setTargetProductId(product.id);
+    setTargetColor(chosenColor || product.colors?.[0]);
+    setTargetSelectionKey(Date.now());
+    setProductSearchTerm('');
     setIsViewingAllSearchResults(false);
     setTimeout(() => {
       const target = document.getElementById('active-calculator-container') || document.getElementById('category-tabs-container');
@@ -501,45 +510,59 @@ export default function App() {
   const handleUpdateItemQuantity = (itemId: string, newQuantity: number) => {
     setCartItems(prev => prev.map(item => {
       if (item.id === itemId) {
+        const matchedProduct = products.find(p => p.id === item.productId);
         if (item.category === 'piso') {
-          return createFloorCartItem(
+          const sqftRate = item.pricePerSqft ?? (item.baseListPrice > 0 ? item.baseListPrice : 2.50);
+          const updated = createFloorCartItem(
             {
               id: item.productId,
               name: item.productName,
               category: 'piso',
-              basePrice: item.unitPrice,
-              sqftPerBox: item.sqftPerBox || 20,
+              subcategory: item.subcategory,
+              thickness: item.thickness,
+              size: item.size,
+              basePrice: item.baseListPrice || sqftRate,
+              sqftPerBox: item.sqftPerBox || matchedProduct?.sqftPerBox || 24.26,
               priceUnit: 'sqft'
             },
             newQuantity,
-            item.unitPrice,
+            sqftRate,
             item.color,
             item.notes
           );
+          return { ...updated, id: item.id };
         }
         if (item.category === 'rodapie') {
-          return createBaseboardCartItem(
+          const lfRate = item.pricePerLinearFt ?? (item.baseListPrice > 0 ? item.baseListPrice : 1.50);
+          const updated = createBaseboardCartItem(
             {
               id: item.productId,
               name: item.productName,
               category: 'rodapie',
-              basePrice: item.unitPrice,
-              stripLengthFeet: item.stripLengthFeet || 16,
+              subcategory: item.subcategory,
+              thickness: item.thickness,
+              size: item.size,
+              basePrice: item.baseListPrice || lfRate,
+              stripLengthFeet: item.stripLengthFeet || matchedProduct?.stripLengthFeet || 16,
               priceUnit: 'linear_ft'
             },
             newQuantity,
-            item.unitPrice,
+            lfRate,
             item.color,
             item.notes
           );
+          return { ...updated, id: item.id };
         }
         if (item.category === 'perfiles') {
-          return createProfileCartItem(
+          const updated = createProfileCartItem(
             {
               id: item.productId,
               name: item.productName,
               category: 'perfiles',
-              basePrice: item.unitPrice,
+              subcategory: item.subcategory,
+              thickness: item.thickness,
+              size: item.size,
+              basePrice: item.baseListPrice || item.unitPrice,
               priceUnit: 'piece'
             },
             newQuantity,
@@ -547,6 +570,7 @@ export default function App() {
             item.color,
             item.notes
           );
+          return { ...updated, id: item.id };
         }
         if (item.category === 'escalones') {
           const isRiser = item.subcategory === 'Stair Risers' || 
@@ -565,12 +589,15 @@ export default function App() {
           }
 
           if (item.stepIncludesRiser) {
-            return createStairsCartItem(
+            const updated = createStairsCartItem(
               {
                 id: item.productId,
                 name: item.productName,
                 category: 'escalones',
-                basePrice: item.unitPrice,
+                subcategory: item.subcategory,
+                thickness: item.thickness,
+                size: item.size,
+                basePrice: item.baseListPrice || item.unitPrice,
                 priceUnit: 'piece'
               },
               newQuantity,
@@ -580,6 +607,7 @@ export default function App() {
               item.color,
               item.notes
             );
+            return { ...updated, id: item.id };
           }
 
           return {
@@ -591,12 +619,15 @@ export default function App() {
           };
         }
         if (item.category === 'wall_panels') {
-          return createWallPanelCartItem(
+          const updated = createWallPanelCartItem(
             {
               id: item.productId,
               name: item.productName,
               category: 'wall_panels',
-              basePrice: item.unitPrice,
+              subcategory: item.subcategory,
+              thickness: item.thickness,
+              size: item.size,
+              basePrice: item.baseListPrice || item.unitPrice,
               priceUnit: 'piece'
             },
             newQuantity,
@@ -604,20 +635,25 @@ export default function App() {
             item.color,
             item.notes
           );
+          return { ...updated, id: item.id };
         }
         if (item.category === 'underlayment') {
-          return createUnderlaymentCartItem(
+          const updated = createUnderlaymentCartItem(
             {
               id: item.productId,
               name: item.productName,
               category: 'underlayment',
-              basePrice: item.unitPrice,
+              subcategory: item.subcategory,
+              thickness: item.thickness,
+              size: item.size,
+              basePrice: item.baseListPrice || item.unitPrice,
               priceUnit: 'unit'
             },
             newQuantity,
             item.unitPrice,
             item.notes
           );
+          return { ...updated, id: item.id };
         }
         // Custom item update
         const sub = Number((newQuantity * item.unitPrice).toFixed(2));
@@ -634,14 +670,18 @@ export default function App() {
   const handleUpdateItemPrice = (itemId: string, newPrice: number) => {
     setCartItems(prev => prev.map(item => {
       if (item.id === itemId) {
+        const matchedProduct = products.find(p => p.id === item.productId);
         if (item.category === 'piso') {
-          return createFloorCartItem(
+          const updated = createFloorCartItem(
             {
               id: item.productId,
               name: item.productName,
               category: 'piso',
-              basePrice: newPrice,
-              sqftPerBox: item.sqftPerBox || 20,
+              subcategory: item.subcategory,
+              thickness: item.thickness,
+              size: item.size,
+              basePrice: item.baseListPrice || newPrice,
+              sqftPerBox: item.sqftPerBox || matchedProduct?.sqftPerBox || 24.26,
               priceUnit: 'sqft'
             },
             item.userEnteredQuantity,
@@ -649,15 +689,19 @@ export default function App() {
             item.color,
             item.notes
           );
+          return { ...updated, id: item.id };
         }
         if (item.category === 'rodapie') {
-          return createBaseboardCartItem(
+          const updated = createBaseboardCartItem(
             {
               id: item.productId,
               name: item.productName,
               category: 'rodapie',
-              basePrice: newPrice,
-              stripLengthFeet: item.stripLengthFeet || 16,
+              subcategory: item.subcategory,
+              thickness: item.thickness,
+              size: item.size,
+              basePrice: item.baseListPrice || newPrice,
+              stripLengthFeet: item.stripLengthFeet || matchedProduct?.stripLengthFeet || 16,
               priceUnit: 'linear_ft'
             },
             item.userEnteredQuantity,
@@ -665,14 +709,18 @@ export default function App() {
             item.color,
             item.notes
           );
+          return { ...updated, id: item.id };
         }
         if (item.category === 'perfiles') {
-          return createProfileCartItem(
+          const updated = createProfileCartItem(
             {
               id: item.productId,
               name: item.productName,
               category: 'perfiles',
-              basePrice: newPrice,
+              subcategory: item.subcategory,
+              thickness: item.thickness,
+              size: item.size,
+              basePrice: item.baseListPrice || newPrice,
               priceUnit: 'piece'
             },
             item.userEnteredQuantity,
@@ -680,6 +728,7 @@ export default function App() {
             item.color,
             item.notes
           );
+          return { ...updated, id: item.id };
         }
         if (item.category === 'escalones') {
           const isRiser = item.subcategory === 'Stair Risers' || 
@@ -691,18 +740,20 @@ export default function App() {
             return {
               ...item,
               unitPrice: newPrice,
-              baseListPrice: newPrice,
               subtotal: Number((item.userEnteredQuantity * newPrice).toFixed(2))
             };
           }
 
           if (item.stepIncludesRiser) {
-            return createStairsCartItem(
+            const updated = createStairsCartItem(
               {
                 id: item.productId,
                 name: item.productName,
                 category: 'escalones',
-                basePrice: newPrice,
+                subcategory: item.subcategory,
+                thickness: item.thickness,
+                size: item.size,
+                basePrice: item.baseListPrice || newPrice,
                 priceUnit: 'piece'
               },
               item.userEnteredQuantity,
@@ -712,22 +763,25 @@ export default function App() {
               item.color,
               item.notes
             );
+            return { ...updated, id: item.id };
           }
 
           return {
             ...item,
             unitPrice: newPrice,
-            baseListPrice: newPrice,
             subtotal: Number((item.userEnteredQuantity * newPrice).toFixed(2))
           };
         }
         if (item.category === 'wall_panels') {
-          return createWallPanelCartItem(
+          const updated = createWallPanelCartItem(
             {
               id: item.productId,
               name: item.productName,
               category: 'wall_panels',
-              basePrice: newPrice,
+              subcategory: item.subcategory,
+              thickness: item.thickness,
+              size: item.size,
+              basePrice: item.baseListPrice || newPrice,
               priceUnit: 'piece'
             },
             item.userEnteredQuantity,
@@ -735,20 +789,25 @@ export default function App() {
             item.color,
             item.notes
           );
+          return { ...updated, id: item.id };
         }
         if (item.category === 'underlayment') {
-          return createUnderlaymentCartItem(
+          const updated = createUnderlaymentCartItem(
             {
               id: item.productId,
               name: item.productName,
               category: 'underlayment',
-              basePrice: newPrice,
+              subcategory: item.subcategory,
+              thickness: item.thickness,
+              size: item.size,
+              basePrice: item.baseListPrice || newPrice,
               priceUnit: 'unit'
             },
             item.userEnteredQuantity,
             newPrice,
             item.notes
           );
+          return { ...updated, id: item.id };
         }
         const sub = Number((item.userEnteredQuantity * newPrice).toFixed(2));
         return {
@@ -765,10 +824,26 @@ export default function App() {
     setCartItems([]);
   };
 
+  const handleStartNewQuote = () => {
+    setCartItems([]);
+    setIncludeDelivery(false);
+    setDeliveryFee(60);
+    setPayWithCard(false);
+    setShippingAddress('');
+    setSameAsBillingAddress(true);
+    setTargetProductId(undefined);
+    setTargetColor(undefined);
+    setProductSearchTerm('');
+    setActiveQuoteId(`quote-${Date.now()}`);
+    setActiveQuoteNumber(`QS-${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`);
+    setIsQuoteModalOpen(false);
+    setIsCartOpen(false);
+  };
+
   // Active Quote object for modal/export
   const activeQuote: Quotation = {
-    id: `quote-${Date.now()}`,
-    quoteNumber: `QS-${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`,
+    id: activeQuoteId,
+    quoteNumber: activeQuoteNumber,
     date: new Date().toLocaleDateString(language === 'en' ? 'en-US' : 'es-ES', { day: '2-digit', month: 'short', year: 'numeric' }),
     validDays: 3,
     validUntil: getValidUntilDate(3, language),
@@ -809,12 +884,18 @@ export default function App() {
     }
   };
 
-  const handleSaveQuoteToHistory = async () => {
+  const handleSaveQuoteToHistory = async (customQuote?: Quotation) => {
+    const baseQuote = customQuote || activeQuote;
+    const existing = quotesHistory.find(q => q.id === baseQuote.id || q.quoteNumber === baseQuote.quoteNumber);
     const quoteToSave: Quotation = {
-      ...activeQuote,
-      status: activeQuote.status === 'approved' ? 'approved' : 'sent'
+      ...baseQuote,
+      id: existing ? existing.id : baseQuote.id,
+      status: existing?.status === 'approved' ? 'approved' : 'sent'
     };
-    setQuotesHistory(prev => [quoteToSave, ...prev.filter(q => q.quoteNumber !== quoteToSave.quoteNumber)]);
+    setQuotesHistory(prev => [
+      quoteToSave,
+      ...prev.filter(q => q.id !== quoteToSave.id && q.quoteNumber !== quoteToSave.quoteNumber)
+    ]);
     try {
       await saveQuotationToDb(quoteToSave);
     } catch (err) {
@@ -823,6 +904,8 @@ export default function App() {
   };
 
   const handleLoadQuoteFromHistory = (quote: Quotation) => {
+    setActiveQuoteId(quote.id);
+    setActiveQuoteNumber(quote.quoteNumber);
     setCartItems(quote.items);
     setIncludeDelivery(quote.includeDelivery);
     setDeliveryFee(Math.max(60, quote.deliveryCost || 60));
@@ -845,6 +928,8 @@ export default function App() {
       ...item,
       id: `item-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`
     }));
+    setActiveQuoteId(`quote-${Date.now()}`);
+    setActiveQuoteNumber(`QS-${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`);
     setCartItems(clonedItems);
     setIncludeDelivery(quote.includeDelivery);
     setDeliveryFee(Math.max(60, quote.deliveryCost || 60));
@@ -953,10 +1038,7 @@ export default function App() {
         onOpenClientModal={() => setIsClientModalOpen(true)}
         onOpenPriceManager={() => setIsPriceManagerOpen(true)}
         onOpenHistory={() => setIsHistoryOpen(true)}
-        onNewQuote={() => {
-          setCartItems([]);
-          setDeliveryFee(60);
-        }}
+        onNewQuote={handleStartNewQuote}
         language={language}
         onToggleLanguage={toggleLanguage}
       />
@@ -1010,6 +1092,7 @@ export default function App() {
               setProductSearchTerm('');
               setIsViewingAllSearchResults(false);
               setTargetProductId(undefined);
+              setTargetColor(undefined);
             }}
             totalProductsCount={products.length}
             totalMatchesCount={allMatchingProducts.length}
@@ -1022,6 +1105,8 @@ export default function App() {
             }}
             onViewAllResults={() => setIsViewingAllSearchResults(prev => !prev)}
             isViewingAllResults={isViewingAllSearchResults}
+            products={products}
+            onSelectProduct={handleSelectSearchedProduct}
             language={language}
           />
 
@@ -1130,6 +1215,8 @@ export default function App() {
                   <FloorCalculator
                     products={allMatchingProducts}
                     initialProductId={targetProductId}
+                    initialColor={targetColor}
+                    initialSelectionKey={targetSelectionKey}
                     onAddToCart={handleAddFloor}
                     language={language}
                   />
@@ -1139,6 +1226,7 @@ export default function App() {
                   <BaseboardCalculator
                     products={allMatchingProducts}
                     initialProductId={targetProductId}
+                    initialSelectionKey={targetSelectionKey}
                     onAddToCart={handleAddBaseboard}
                     language={language}
                   />
@@ -1148,6 +1236,8 @@ export default function App() {
                   <ProfilesCalculator
                     products={allMatchingProducts}
                     initialProductId={targetProductId}
+                    initialColor={targetColor}
+                    initialSelectionKey={targetSelectionKey}
                     onAddToCart={handleAddProfile}
                     language={language}
                   />
@@ -1157,6 +1247,7 @@ export default function App() {
                   <StairsCalculator
                     products={allMatchingProducts}
                     initialProductId={targetProductId}
+                    initialSelectionKey={targetSelectionKey}
                     onAddToCart={handleAddStairs}
                     language={language}
                   />
@@ -1166,6 +1257,8 @@ export default function App() {
                   <WallPanelsCalculator
                     products={allMatchingProducts}
                     initialProductId={targetProductId}
+                    initialColor={targetColor}
+                    initialSelectionKey={targetSelectionKey}
                     onAddToCart={handleAddWallPanel}
                     language={language}
                   />
@@ -1175,6 +1268,7 @@ export default function App() {
                   <UnderlaymentCalculator
                     products={allMatchingProducts}
                     initialProductId={targetProductId}
+                    initialSelectionKey={targetSelectionKey}
                     onAddToCart={handleAddUnderlayment}
                     language={language}
                   />
@@ -1374,6 +1468,8 @@ export default function App() {
           onUpdateDeliveryFee={handleUpdateDeliveryFee}
           onTogglePayWithCard={setPayWithCard}
           onSaveToHistory={handleSaveQuoteToHistory}
+          onStartNewQuote={handleStartNewQuote}
+          onOpenHistory={() => setIsHistoryOpen(true)}
           language={language}
         />
       )}

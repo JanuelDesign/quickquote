@@ -21,7 +21,10 @@ import {
   Building,
   Zap,
   Banknote,
-  Loader2
+  Loader2,
+  PlusCircle,
+  Edit3,
+  History
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 
@@ -39,7 +42,9 @@ interface QuoteModalProps {
   deliveryFee?: number;
   onUpdateDeliveryFee?: (fee: number) => void;
   onTogglePayWithCard?: (payWithCard: boolean) => void;
-  onSaveToHistory: () => void;
+  onSaveToHistory: (savedQuote?: Quotation) => void;
+  onStartNewQuote?: () => void;
+  onOpenHistory?: () => void;
   language?: Language;
 }
 
@@ -58,6 +63,8 @@ export const QuoteModal: React.FC<QuoteModalProps> = ({
   onUpdateDeliveryFee,
   onTogglePayWithCard,
   onSaveToHistory,
+  onStartNewQuote,
+  onOpenHistory,
   language = 'en'
 }) => {
   const currentLang: Language = language === 'es' ? 'es' : 'en';
@@ -69,7 +76,9 @@ export const QuoteModal: React.FC<QuoteModalProps> = ({
   const [downloading, setDownloading] = useState(false);
   const [copiedZelle, setCopiedZelle] = useState(false);
   const [successToast, setSuccessToast] = useState<string | null>(null);
+  const [postExportAction, setPostExportAction] = useState<'downloaded' | 'shared' | null>(null);
   const [deliveryInput, setDeliveryInput] = useState<string>(Math.max(60, deliveryFee).toString());
+  const deliveryInputRef = React.useRef<HTMLInputElement>(null);
 
   React.useEffect(() => {
     setDeliveryInput(Math.max(60, deliveryFee).toString());
@@ -82,6 +91,12 @@ export const QuoteModal: React.FC<QuoteModalProps> = ({
     if (onUpdateDeliveryFee) {
       onUpdateDeliveryFee(clamped);
     }
+  };
+
+  const handleDeliverySubmit = (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    handleDeliveryBlur();
+    deliveryInputRef.current?.blur();
   };
 
   const salespersonName = quote.salespersonName || settings.salespersonName;
@@ -115,13 +130,14 @@ export const QuoteModal: React.FC<QuoteModalProps> = ({
         origin: { y: 0.8 }
       });
 
-      onSaveToHistory();
+      onSaveToHistory(quoteWithShipping);
+      setPostExportAction('downloaded');
 
       // Visible confirmation toast
       showToast(
         isEn 
-          ? '✓ PDF downloaded — check your Downloads folder' 
-          : '✓ PDF descargado — revisa tus Descargas'
+          ? '✓ PDF downloaded & saved to Quote History' 
+          : '✓ PDF descargado y guardado en el Historial'
       );
     } catch (err) {
       console.error('Error generating PDF:', err);
@@ -147,8 +163,9 @@ export const QuoteModal: React.FC<QuoteModalProps> = ({
             text: summaryText,
             files: [pdfFile]
           });
-          onSaveToHistory();
-          showToast(isEn ? '✓ Shared successfully!' : '✓ ¡Compartido con éxito!');
+          onSaveToHistory(quoteWithShipping);
+          setPostExportAction('shared');
+          showToast(isEn ? '✓ Shared & saved to Quote History!' : '✓ ¡Compartido y guardado en el Historial!');
           return;
         }
 
@@ -157,8 +174,9 @@ export const QuoteModal: React.FC<QuoteModalProps> = ({
           title: `QuickQuote - ${quote.quoteNumber}`,
           text: summaryText
         });
-        onSaveToHistory();
-        showToast(isEn ? '✓ Shared successfully!' : '✓ ¡Compartido con éxito!');
+        onSaveToHistory(quoteWithShipping);
+        setPostExportAction('shared');
+        showToast(isEn ? '✓ Shared & saved to Quote History!' : '✓ ¡Compartido y guardado en el Historial!');
         return;
       } catch (err: any) {
         if (err.name === 'AbortError') return; // User cancelled share dialog
@@ -169,8 +187,9 @@ export const QuoteModal: React.FC<QuoteModalProps> = ({
     // Fallback: Copy to clipboard
     try {
       await navigator.clipboard.writeText(summaryText);
-      onSaveToHistory();
-      showToast(isEn ? '✓ Summary copied to clipboard' : '✓ Resumen copiado al portapapeles');
+      onSaveToHistory(quoteWithShipping);
+      setPostExportAction('shared');
+      showToast(isEn ? '✓ Summary copied & saved to Quote History' : '✓ Resumen copiado y guardado en el Historial');
     } catch (clipErr) {
       console.error('Clipboard copy failed:', clipErr);
     }
@@ -195,6 +214,141 @@ export const QuoteModal: React.FC<QuoteModalProps> = ({
           <div className="fixed top-16 sm:top-20 left-1/2 -translate-x-1/2 z-60 bg-emerald-600 text-white px-5 sm:px-6 py-3 sm:py-3.5 rounded-2xl shadow-2xl font-bold text-xs sm:text-sm flex items-center gap-2.5 animate-in fade-in slide-in-from-top-4 duration-200 border border-emerald-400">
             <Check className="w-5 h-5 text-white shrink-0 stroke-[3]" />
             <span>{successToast}</span>
+          </div>
+        )}
+
+        {/* Post-Download / Post-Share Decision Modal */}
+        {postExportAction && (
+          <div
+            className="fixed inset-0 z-70 bg-black/80 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in duration-150"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="bg-white rounded-2xl w-full max-w-md shadow-2xl border border-[#E4E2DA] overflow-hidden animate-in zoom-in-95 duration-150">
+              <div className="p-5 bg-[#181818] text-white flex items-center justify-between border-b border-zinc-800">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-emerald-500/20 border border-emerald-500/40 text-emerald-400 flex items-center justify-center shrink-0">
+                    <Check className="w-5 h-5 stroke-[2.5]" />
+                  </div>
+                  <div>
+                    <span className="text-[10px] font-black uppercase tracking-wider text-emerald-400 block">
+                      {postExportAction === 'downloaded'
+                        ? (isEn ? 'PDF Downloaded & Saved' : 'PDF Descargado y Guardado')
+                        : (isEn ? 'Quote Shared & Saved' : 'Cotización Compartida y Guardada')}
+                    </span>
+                    <h3 className="text-base font-bold text-white leading-tight">
+                      {isEn ? 'Saved in Quote History' : 'Registrada en el Historial'}
+                    </h3>
+                  </div>
+                </div>
+                <span className="font-mono text-xs font-bold text-[#FF8407] px-2.5 py-1 rounded-lg bg-zinc-900 border border-zinc-800">
+                  #{quote.quoteNumber}
+                </span>
+              </div>
+
+              <div className="p-5 space-y-4 text-xs text-[#181818]">
+                <div className="bg-[#F9F8F5] p-3.5 rounded-xl border border-[#E4E2DA] flex items-center justify-between gap-2">
+                  <div>
+                    <span className="text-[10px] font-bold uppercase text-[#9C9A90] block">
+                      {isEn ? 'Client' : 'Cliente'}
+                    </span>
+                    <span className="font-bold text-sm text-[#181818] block">
+                      {quote.client.name}
+                    </span>
+                  </div>
+                  <div className="text-right">
+                    <span className="text-[10px] font-bold uppercase text-[#9C9A90] block">
+                      {isEn ? 'Total Quoted' : 'Total Cotizado'}
+                    </span>
+                    <span className="font-mono font-black text-base text-[#FF8407] block">
+                      {formatCurrency(quote.total)}
+                    </span>
+                  </div>
+                </div>
+
+                <p className="text-xs text-[#6B6A63] leading-relaxed">
+                  {isEn
+                    ? 'This quote is now saved in your Quote History. Would you like to start a brand new quote from scratch or continue editing/correcting this quote?'
+                    : 'Esta cotización ya quedó guardada en el Historial de Cotizaciones. ¿Deseas iniciar una nueva cotización desde cero o necesitas corregir la cotización actual?'}
+                </p>
+
+                <div className="space-y-2.5 pt-1">
+                  {/* Option 1: Start New Quote from Scratch */}
+                  <button
+                    type="button"
+                    id="btn-post-export-new-quote"
+                    onClick={() => {
+                      setPostExportAction(null);
+                      setIsFullPreviewOpen(false);
+                      if (onStartNewQuote) {
+                        onStartNewQuote();
+                      } else {
+                        onClose();
+                      }
+                    }}
+                    className="w-full p-3.5 rounded-xl bg-[#FF8407] hover:bg-[#E07300] active:scale-[0.99] text-white font-bold flex items-center justify-between gap-3 shadow-md transition-all cursor-pointer text-left"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 rounded-lg bg-black/20 flex items-center justify-center shrink-0">
+                        <PlusCircle className="w-4 h-4 text-white" />
+                      </div>
+                      <div>
+                        <span className="text-xs sm:text-sm font-black uppercase tracking-wide block">
+                          {isEn ? 'Start New Quote (From Zero)' : 'Hacer Nueva Cotización (Desde Cero)'}
+                        </span>
+                        <span className="text-[11px] text-white/85 font-normal block">
+                          {isEn ? 'Clears cart & resets all fields for a new client' : 'Limpia el carrito y reinicia todo para cotizar de nuevo'}
+                        </span>
+                      </div>
+                    </div>
+                    <ArrowRight className="w-4 h-4 shrink-0" />
+                  </button>
+
+                  {/* Option 2: Correct / Keep Editing Current Quote */}
+                  <button
+                    type="button"
+                    id="btn-post-export-edit-current"
+                    onClick={() => {
+                      setPostExportAction(null);
+                      setIsFullPreviewOpen(false);
+                      onClose();
+                    }}
+                    className="w-full p-3.5 rounded-xl bg-[#181818] hover:bg-black active:scale-[0.99] text-white font-bold flex items-center justify-between gap-3 transition-all cursor-pointer text-left"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 rounded-lg bg-zinc-800 text-[#FF8407] flex items-center justify-center shrink-0">
+                        <Edit3 className="w-4 h-4" />
+                      </div>
+                      <div>
+                        <span className="text-xs sm:text-sm font-bold uppercase tracking-wide block">
+                          {isEn ? 'Correct / Edit Current Quote' : 'Corregir / Editar la Descargada'}
+                        </span>
+                        <span className="text-[11px] text-zinc-400 font-normal block">
+                          {isEn ? 'Keep current items to modify quantities or prices' : 'Mantiene los productos actuales para hacer ajustes'}
+                        </span>
+                      </div>
+                    </div>
+                  </button>
+
+                  {/* Option 3: View in Quote History */}
+                  {onOpenHistory && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setPostExportAction(null);
+                        setIsFullPreviewOpen(false);
+                        if (onStartNewQuote) onStartNewQuote();
+                        onClose();
+                        onOpenHistory();
+                      }}
+                      className="w-full py-2.5 px-3 rounded-xl bg-[#F2F1EC] hover:bg-[#E4E2DA] text-[#181818] font-bold text-xs flex items-center justify-center gap-2 transition-colors cursor-pointer"
+                    >
+                      <History className="w-3.5 h-3.5 text-[#FF8407]" />
+                      <span>{isEn ? 'Start New & View in Quote History' : 'Reiniciar y Ver en Historial de Cotizaciones'}</span>
+                    </button>
+                  )}
+                </div>
+              </div>
+            </div>
           </div>
         )}
 
@@ -762,14 +916,20 @@ export const QuoteModal: React.FC<QuoteModalProps> = ({
                   </div>
 
                   {quote.includeDelivery && onUpdateDeliveryFee && (
-                    <div className="flex items-center justify-between gap-2 pt-2 border-t border-[#FF8407]/20">
+                    <form
+                      onSubmit={handleDeliverySubmit}
+                      className="flex items-center justify-between gap-2 pt-2 border-t border-[#FF8407]/20"
+                    >
                       <span className="text-[10px] font-bold uppercase text-[#181818]">
                         {isEn ? 'Delivery Fee (Min $60):' : 'Monto Delivery (Mín $60):'}
                       </span>
-                      <div className="flex items-center gap-1 bg-white border border-[#FF8407] rounded-md px-2 py-1">
+                      <div className="flex items-center gap-1 bg-white border border-[#FF8407] rounded-md pl-2 pr-1 py-0.5">
                         <span className="text-xs font-bold text-[#181818] font-mono">$</span>
                         <input
+                          ref={deliveryInputRef}
                           type="number"
+                          inputMode="decimal"
+                          enterKeyHint="done"
                           min={60}
                           step="5"
                           value={deliveryInput}
@@ -781,11 +941,28 @@ export const QuoteModal: React.FC<QuoteModalProps> = ({
                             }
                           }}
                           onBlur={handleDeliveryBlur}
-                          onKeyDown={(e) => e.key === 'Enter' && handleDeliveryBlur()}
-                          className="w-16 text-xs font-bold font-mono text-right text-[#181818] outline-none bg-transparent"
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter' || e.keyCode === 13) {
+                              e.preventDefault();
+                              handleDeliveryBlur();
+                              e.currentTarget.blur();
+                            }
+                          }}
+                          className="w-14 text-xs font-bold font-mono text-right text-[#181818] outline-none bg-transparent py-0.5"
                         />
+                        <button
+                          type="submit"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            handleDeliverySubmit();
+                          }}
+                          className="p-1 rounded bg-[#181818] text-[#FF8407] hover:bg-black transition-colors cursor-pointer shrink-0"
+                          title={isEn ? 'Apply delivery amount' : 'Aplicar monto de delivery'}
+                        >
+                          <Check className="w-3 h-3" />
+                        </button>
                       </div>
-                    </div>
+                    </form>
                   )}
                 </div>
               )}

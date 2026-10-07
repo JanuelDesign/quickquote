@@ -18,6 +18,8 @@ interface WallPanelsCalculatorProps {
   products: Product[];
   language?: Language;
   initialProductId?: string;
+  initialColor?: ProductColor;
+  initialSelectionKey?: number;
   onAddToCart: (
     product: Product,
     pieceCount: number,
@@ -31,6 +33,8 @@ export const WallPanelsCalculator: React.FC<WallPanelsCalculatorProps> = ({
   products,
   language = 'en',
   initialProductId,
+  initialColor,
+  initialSelectionKey,
   onAddToCart
 }) => {
   const t = translations[language];
@@ -56,12 +60,12 @@ export const WallPanelsCalculator: React.FC<WallPanelsCalculatorProps> = ({
       if (match) {
         setSelectedProduct(match);
         setUnitPrice(match.basePrice || 17.00);
-        setSelectedColor(match.colors?.[0]);
+        setSelectedColor(initialColor || match.colors?.[0]);
         setCurrentStep(2);
         scrollToCalculatorTop();
       }
     }
-  }, [initialProductId]);
+  }, [initialProductId, initialSelectionKey]);
 
   // Live synchronization: when products change via Firestore, Admin updates, or search filter
   React.useEffect(() => {

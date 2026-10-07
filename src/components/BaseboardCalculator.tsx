@@ -13,6 +13,7 @@ interface BaseboardCalculatorProps {
   products: Product[];
   language?: Language;
   initialProductId?: string;
+  initialSelectionKey?: number;
   onAddToCart: (
     product: Product,
     linearFeet: number,
@@ -26,6 +27,7 @@ export const BaseboardCalculator: React.FC<BaseboardCalculatorProps> = ({
   products,
   language = 'en',
   initialProductId,
+  initialSelectionKey,
   onAddToCart
 }) => {
   const t = translations[language];
@@ -49,7 +51,7 @@ export const BaseboardCalculator: React.FC<BaseboardCalculatorProps> = ({
         scrollToCalculatorTop();
       }
     }
-  }, [initialProductId]);
+  }, [initialProductId, initialSelectionKey]);
 
   // Live synchronization
   React.useEffect(() => {

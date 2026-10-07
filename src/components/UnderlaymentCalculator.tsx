@@ -18,6 +18,7 @@ interface UnderlaymentCalculatorProps {
   products: Product[];
   language?: Language;
   initialProductId?: string;
+  initialSelectionKey?: number;
   onAddToCart: (
     product: Product,
     rollCount: number,
@@ -30,6 +31,7 @@ export const UnderlaymentCalculator: React.FC<UnderlaymentCalculatorProps> = ({
   products,
   language = 'en',
   initialProductId,
+  initialSelectionKey,
   onAddToCart
 }) => {
   const t = translations[language];
@@ -56,7 +58,7 @@ export const UnderlaymentCalculator: React.FC<UnderlaymentCalculatorProps> = ({
         scrollToCalculatorTop();
       }
     }
-  }, [initialProductId]);
+  }, [initialProductId, initialSelectionKey]);
 
   // Live synchronization
   React.useEffect(() => {

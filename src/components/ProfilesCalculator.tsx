@@ -14,6 +14,8 @@ interface ProfilesCalculatorProps {
   products: Product[];
   language?: Language;
   initialProductId?: string;
+  initialColor?: ProductColor;
+  initialSelectionKey?: number;
   onAddToCart: (
     product: Product,
     pieceCount: number,
@@ -27,6 +29,8 @@ export const ProfilesCalculator: React.FC<ProfilesCalculatorProps> = ({
   products,
   language = 'en',
   initialProductId,
+  initialColor,
+  initialSelectionKey,
   onAddToCart
 }) => {
   const t = translations[language];
@@ -49,12 +53,12 @@ export const ProfilesCalculator: React.FC<ProfilesCalculatorProps> = ({
       if (match) {
         setSelectedProduct(match);
         setUnitPrice(match.basePrice || 30.00);
-        setSelectedColor(match.colors?.[0]);
+        setSelectedColor(initialColor || match.colors?.[0]);
         setCurrentStep(2);
         scrollToCalculatorTop();
       }
     }
-  }, [initialProductId]);
+  }, [initialProductId, initialSelectionKey]);
 
   // Live synchronization
   React.useEffect(() => {

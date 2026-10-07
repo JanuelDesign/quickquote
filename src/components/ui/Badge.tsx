@@ -64,12 +64,12 @@ export const FilterPill: React.FC<FilterPillProps> = ({
     <button
       type="button"
       onClick={onClick}
-      className={`ui-pill px-2.5 py-1.5 rounded-lg font-bold text-[11px] leading-snug transition-colors cursor-pointer border inline-flex items-center gap-1.5 min-w-0 max-w-full whitespace-normal text-left ${
+      className={`px-3 py-1.5 rounded-full font-bold text-[11px] leading-snug transition-all cursor-pointer border inline-flex items-center gap-1.5 shrink-0 snap-start whitespace-nowrap select-none ${
         active ? activeClassName : inactiveClassName
       } ${className}`}
     >
       {dotColor && <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${dotColor}`} />}
-      <span className="min-w-0 break-words">{children}</span>
+      <span className="whitespace-nowrap">{children}</span>
     </button>
   );
 };

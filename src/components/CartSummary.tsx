@@ -75,6 +75,8 @@ export const CartSummary: React.FC<CartSummaryProps> = ({
     setDeliveryInput(Math.max(60, deliveryFee).toString());
   }, [deliveryFee]);
 
+  const deliveryInputRef = React.useRef<HTMLInputElement>(null);
+
   const handleDeliveryBlur = () => {
     const parsed = parseFloat(deliveryInput);
     const clamped = isNaN(parsed) || parsed < 60 ? 60 : Number(parsed.toFixed(2));
@@ -84,15 +86,24 @@ export const CartSummary: React.FC<CartSummaryProps> = ({
     }
   };
 
-  const handleStartEditPrice = (item: CartItem) => {
-    setEditingItemId(item.id);
-    setEditPriceInput(item.unitPrice.toString());
+  const handleDeliverySubmit = (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    handleDeliveryBlur();
+    deliveryInputRef.current?.blur();
   };
 
-  const handleSavePrice = (itemId: string) => {
+  const handleStartEditPrice = (item: CartItem) => {
+    const currentLang: 'en' | 'es' = language === 'es' ? 'es' : 'en';
+    const priceDetail = getItemUnitPriceDetail(item, currentLang);
+    setEditingItemId(item.id);
+    setEditPriceInput(priceDetail.unitPriceValue.toString());
+  };
+
+  const handleSavePrice = (itemId: string, e?: React.FormEvent) => {
+    if (e) e.preventDefault();
     const val = parseFloat(editPriceInput);
     if (!isNaN(val) && val >= 0) {
-      onUpdateItemPrice(itemId, val);
+      onUpdateItemPrice(itemId, Number(val.toFixed(2)));
     }
     setEditingItemId(null);
   };
@@ -239,24 +250,50 @@ export const CartSummary: React.FC<CartSummaryProps> = ({
                   {/* Price adjustment sub-row */}
                   <div className="flex items-center justify-between text-[11px] text-[#8C8C8C] pt-1">
                     {isEditingPrice ? (
-                      <div className="flex items-center gap-1">
-                        <span className="font-bold">$</span>
+                      <form
+                        onSubmit={(e) => handleSavePrice(item.id, e)}
+                        className="flex items-center gap-1.5"
+                      >
+                        <span className="font-bold text-[#181818]">$</span>
                         <input
                           type="number"
+                          inputMode="decimal"
+                          enterKeyHint="done"
+                          step="0.01"
+                          min="0"
                           value={editPriceInput}
                           onChange={(e) => setEditPriceInput(e.target.value)}
-                          onKeyDown={(e) => e.key === 'Enter' && handleSavePrice(item.id)}
-                          className="w-16 px-1.5 py-0.5 text-xs font-bold border border-[#FF8407] rounded bg-white font-mono"
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter' || e.keyCode === 13) {
+                              e.preventDefault();
+                              handleSavePrice(item.id);
+                              e.currentTarget.blur();
+                            } else if (e.key === 'Escape') {
+                              setEditingItemId(null);
+                            }
+                          }}
+                          className="w-20 px-2 py-0.5 text-xs font-bold border border-[#FF8407] rounded bg-white text-[#181818] font-mono outline-none"
                           autoFocus
                         />
+                        <span className="text-[10px] font-semibold text-[#6B6A63]">
+                          / {getItemUnitPriceDetail(item, language === 'es' ? 'es' : 'en').displayUnit}
+                        </span>
                         <button
-                          type="button"
-                          onClick={() => handleSavePrice(item.id)}
-                          className="p-1 bg-black text-white rounded text-[9px] font-bold"
+                          type="submit"
+                          className="p-1 bg-black text-white rounded text-[9px] font-bold cursor-pointer hover:bg-zinc-800"
+                          title={language === 'en' ? 'Apply price' : 'Aplicar precio'}
                         >
                           <Check className="w-3 h-3 text-[#FF8407]" />
                         </button>
-                      </div>
+                        <button
+                          type="button"
+                          onClick={() => setEditingItemId(null)}
+                          className="p-1 bg-zinc-200 text-zinc-600 rounded text-[9px] font-bold cursor-pointer hover:bg-zinc-300"
+                          title={language === 'en' ? 'Cancel' : 'Cancelar'}
+                        >
+                          <X className="w-3 h-3" />
+                        </button>
+                      </form>
                     ) : (
                       <div className="flex items-center gap-1.5 flex-wrap">
                         {(() => {
@@ -316,14 +353,20 @@ export const CartSummary: React.FC<CartSummaryProps> = ({
               </div>
 
               {includeDelivery && onUpdateDeliveryFee && (
-                <div className="flex items-center justify-between gap-2 pt-1.5 border-t border-[#FF8407]/20">
+                <form
+                  onSubmit={handleDeliverySubmit}
+                  className="flex items-center justify-between gap-2 pt-1.5 border-t border-[#FF8407]/20"
+                >
                   <span className="text-[11px] font-semibold text-[#6B6A63]">
                     {language === 'en' ? 'Delivery Amount (Min. $60):' : 'Monto de Delivery (Mín. $60):'}
                   </span>
-                  <div className="flex items-center gap-1 bg-white border border-[#FF8407] rounded-md px-2 py-1">
+                  <div className="flex items-center gap-1 bg-white border border-[#FF8407] rounded-md pl-2 pr-1 py-0.5">
                     <span className="text-xs font-bold text-[#181818] font-mono">$</span>
                     <input
+                      ref={deliveryInputRef}
                       type="number"
+                      inputMode="decimal"
+                      enterKeyHint="done"
                       min={60}
                       step="5"
                       value={deliveryInput}
@@ -335,11 +378,28 @@ export const CartSummary: React.FC<CartSummaryProps> = ({
                         }
                       }}
                       onBlur={handleDeliveryBlur}
-                      onKeyDown={(e) => e.key === 'Enter' && handleDeliveryBlur()}
-                      className="w-16 text-xs font-bold font-mono text-right text-[#181818] outline-none bg-transparent"
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' || e.keyCode === 13) {
+                          e.preventDefault();
+                          handleDeliveryBlur();
+                          e.currentTarget.blur();
+                        }
+                      }}
+                      className="w-14 text-xs font-bold font-mono text-right text-[#181818] outline-none bg-transparent py-0.5"
                     />
+                    <button
+                      type="submit"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        handleDeliverySubmit();
+                      }}
+                      className="p-1 rounded bg-[#181818] text-[#FF8407] hover:bg-black transition-colors cursor-pointer shrink-0"
+                      title={language === 'en' ? 'Apply delivery amount' : 'Aplicar monto de delivery'}
+                    >
+                      <Check className="w-3 h-3" />
+                    </button>
                   </div>
-                </div>
+                </form>
               )}
             </div>
 

@@ -248,7 +248,7 @@ export const Header: React.FC<HeaderProps> = ({
                         : 'text-[#6B6A63] hover:text-black'
                     }`}
                   >
-                    English (EN)
+                    EN
                   </button>
                   <button
                     type="button"
@@ -259,7 +259,7 @@ export const Header: React.FC<HeaderProps> = ({
                         : 'text-[#6B6A63] hover:text-black'
                     }`}
                   >
-                    Español (ES)
+                    ES
                   </button>
                 </div>
               </div>

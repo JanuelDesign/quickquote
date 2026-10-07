@@ -14,6 +14,8 @@ interface FloorCalculatorProps {
   products: Product[];
   language?: Language;
   initialProductId?: string;
+  initialColor?: ProductColor;
+  initialSelectionKey?: number;
   onAddToCart: (
     product: Product,
     sqftRequired: number,
@@ -27,6 +29,8 @@ export const FloorCalculator: React.FC<FloorCalculatorProps> = ({
   products,
   language = 'en',
   initialProductId,
+  initialColor,
+  initialSelectionKey,
   onAddToCart
 }) => {
   const t = translations[language];
@@ -43,23 +47,19 @@ export const FloorCalculator: React.FC<FloorCalculatorProps> = ({
   const [notes, setNotes] = useState<string>('');
   const [addedSuccess, setAddedSuccess] = useState(false);
 
-  // Jump to specific product if passed via search selection
+  // Jump directly to Step 3 (Quantity & Pricing) when a product is chosen from the search modal
   React.useEffect(() => {
     if (initialProductId) {
       const match = floorProducts.find(p => p.id === initialProductId);
       if (match) {
         setSelectedProduct(match);
         setPricePerSqft(match.basePrice || 1.49);
-        if (match.colors && match.colors.length > 0) {
-          setSelectedColor(match.colors[0]);
-          setCurrentStep(2);
-        } else {
-          setCurrentStep(3);
-        }
+        setSelectedColor(initialColor || match.colors?.[0]);
+        setCurrentStep(3);
         scrollToCalculatorTop();
       }
     }
-  }, [initialProductId]);
+  }, [initialProductId, initialSelectionKey]);
 
   // Live synchronization: when products change via Firestore, Admin updates, or search filter
   React.useEffect(() => {
