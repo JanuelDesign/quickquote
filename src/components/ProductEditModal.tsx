@@ -35,13 +35,20 @@ export const ProductEditModal: React.FC<ProductEditModalProps> = ({
   onSave,
   onDeleteProduct
 }) => {
+  // Detect if creating a new product from scratch
+  const isNew = !product?.id || product.id === 'new' || product.id.startsWith('new-');
+
   // Form state for all base fields
-  const [formData, setFormData] = useState<Product>(() => product || {
-    id: '',
+  const [formData, setFormData] = useState<Product>(() => product ? {
+    ...product,
+    isStock: product.isStock !== undefined ? product.isStock : true
+  } : {
+    id: `new-${Date.now()}`,
     name: '',
     category: 'piso',
     basePrice: 0,
     priceUnit: 'sqft',
+    isStock: true,
     colors: []
   });
   
@@ -80,7 +87,10 @@ export const ProductEditModal: React.FC<ProductEditModalProps> = ({
   // Reset form when product prop changes
   useEffect(() => {
     if (product) {
-      setFormData({ ...product });
+      setFormData({
+        ...product,
+        isStock: product.isStock !== undefined ? product.isStock : true
+      });
       setColorVariants(product.colors ? [...product.colors] : []);
       setIsAddingVariant(false);
       setEditingVariantIndex(null);
@@ -173,9 +183,12 @@ export const ProductEditModal: React.FC<ProductEditModalProps> = ({
     setErrorMessage(null);
     setSuccessMessage(null);
 
+    const finalId = formData.id && !formData.id.startsWith('new-') ? formData.id : `prod-${Date.now()}`;
     const productToSave: Product = {
       ...formData,
+      id: finalId,
       name: formData.name.trim(),
+      category: formData.category,
       subcategory: formData.subcategory?.trim() || undefined,
       model: formData.model?.trim() || undefined,
       badge: formData.badge?.trim() || undefined,
@@ -184,16 +197,18 @@ export const ProductEditModal: React.FC<ProductEditModalProps> = ({
       size: formData.size?.trim() || undefined,
       dimensions: formData.dimensions?.trim() || undefined,
       description: formData.description?.trim() || undefined,
+      yieldPerUnit: formData.yieldPerUnit?.trim() || undefined,
       sqftPerBox: formData.sqftPerBox ? Number(formData.sqftPerBox) : undefined,
       planksPerBox: formData.planksPerBox ? Number(formData.planksPerBox) : undefined,
       stripLengthFeet: formData.stripLengthFeet ? Number(formData.stripLengthFeet) : undefined,
       basePrice: Number(formData.basePrice),
+      isStock: formData.isStock !== undefined ? formData.isStock : true,
       colors: colorVariants.length > 0 ? colorVariants : []
     };
 
     try {
       await onSave(productToSave);
-      setSuccessMessage('¡Producto y variantes guardados exitosamente!');
+      setSuccessMessage(isNew ? '¡Producto creado y sincronizado exitosamente!' : '¡Producto y variantes guardados exitosamente!');
       setTimeout(() => {
         setSuccessMessage(null);
         onClose();
@@ -221,7 +236,7 @@ export const ProductEditModal: React.FC<ProductEditModalProps> = ({
             <div className="min-w-0">
               <div className="flex items-center gap-2 flex-wrap">
                 <h3 className="text-sm sm:text-base font-bold text-white tracking-wide leading-tight">
-                  Editar Producto & Variantes
+                  {isNew ? 'Crear Nuevo Producto & Variantes' : 'Editar Producto & Variantes'}
                 </h3>
                 <Badge variant="brand" className="uppercase font-mono tracking-wider">
                   {formData.category}
@@ -345,7 +360,7 @@ export const ProductEditModal: React.FC<ProductEditModalProps> = ({
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mt-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 mt-3">
                   {/* Colección / Subcategoría */}
                   <div>
                     <label className="text-[11px] font-bold uppercase tracking-[1px] text-[#8C8C8C] block mb-1">
@@ -386,6 +401,21 @@ export const ProductEditModal: React.FC<ProductEditModalProps> = ({
                       placeholder="Ej. BEST SELLER, PREMIUM, NUEVO..."
                       className="w-full text-xs bg-white border border-[#E5E5E5] focus:border-black rounded-lg p-2.5 outline-none font-semibold text-[#FF8407]"
                     />
+                  </div>
+
+                  {/* Disponibilidad / Stock */}
+                  <div>
+                    <label className="text-[11px] font-bold uppercase tracking-[1px] text-[#8C8C8C] block mb-1">
+                      Disponibilidad / Stock
+                    </label>
+                    <select
+                      value={formData.isStock === false ? 'order' : 'stock'}
+                      onChange={(e) => setFormData({ ...formData, isStock: e.target.value === 'stock' })}
+                      className="w-full text-xs font-bold bg-white border border-[#E5E5E5] focus:border-black rounded-lg p-2.5 outline-none"
+                    >
+                      <option value="stock">✓ En Stock (Inmediato)</option>
+                      <option value="order">⏳ Por Pedido (Lead Time)</option>
+                    </select>
                   </div>
                 </div>
               </div>
@@ -985,7 +1015,7 @@ export const ProductEditModal: React.FC<ProductEditModalProps> = ({
 
         {/* MODAL FOOTER */}
         <div className="bg-[#F8F8F8] px-4 sm:px-5 py-3.5 border-t border-[#E5E5E5] flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 shrink-0">
-          {onDeleteProduct ? (
+          {!isNew && onDeleteProduct ? (
             <button
               type="button"
               disabled={isSaving}
@@ -999,7 +1029,7 @@ export const ProductEditModal: React.FC<ProductEditModalProps> = ({
           ) : (
             <div className="text-[11px] text-zinc-500 flex items-center gap-1.5">
               <Info className="w-3.5 h-3.5 text-[#FF8407] shrink-0" />
-              <span>Los cambios se sincronizan automáticamente.</span>
+              <span>{isNew ? 'El nuevo producto se añadirá al catálogo en Firestore.' : 'Los cambios se sincronizan automáticamente.'}</span>
             </div>
           )}
 
@@ -1022,12 +1052,12 @@ export const ProductEditModal: React.FC<ProductEditModalProps> = ({
               {isSaving ? (
                 <>
                   <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin shrink-0"></div>
-                  <span>Guardando...</span>
+                  <span>{isNew ? 'Creando...' : 'Guardando...'}</span>
                 </>
               ) : (
                 <>
                   <Save className="w-4 h-4 shrink-0" />
-                  <span>Guardar Cambios</span>
+                  <span>{isNew ? 'Crear Producto en Catálogo' : 'Guardar Cambios'}</span>
                 </>
               )}
             </button>

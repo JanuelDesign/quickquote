@@ -103,12 +103,29 @@ export const PriceListManager: React.FC<PriceListManagerProps> = ({
     const matchesSearch = 
       p.name.toLowerCase().includes(term) ||
       (p.subcategory && p.subcategory.toLowerCase().includes(term)) ||
+      (p.model && p.model.toLowerCase().includes(term)) ||
+      (p.badge && p.badge.toLowerCase().includes(term)) ||
+      (p.description && p.description.toLowerCase().includes(term)) ||
       (p.thickness && p.thickness.toLowerCase().includes(term)) ||
+      (p.size && p.size.toLowerCase().includes(term)) ||
       (p.category && p.category.toLowerCase().includes(term)) ||
       (p.colors && p.colors.some(c => c.name.toLowerCase().includes(term) || c.code.toLowerCase().includes(term)));
 
     return matchesCat && matchesSearch;
   });
+
+  // Open Full Editor to create a new product from scratch
+  const handleOpenCreateFullProduct = () => {
+    setModalEditingProduct({
+      id: `new-${Date.now()}`,
+      name: '',
+      category: (filterCategory !== 'all' ? filterCategory : 'piso') as ProductCategory,
+      basePrice: 1.49,
+      priceUnit: 'sqft',
+      isStock: true,
+      colors: []
+    });
+  };
 
   // Handle Quick Add Product
   const handleAddNewProduct = async (e: React.FormEvent) => {
@@ -124,6 +141,7 @@ export const PriceListManager: React.FC<PriceListManagerProps> = ({
       size: newSize.trim() || undefined,
       basePrice: Number(newBasePrice) || 0,
       priceUnit: newPriceUnit,
+      isStock: true,
       sqftPerBox: newCategory === 'piso' ? Number(newSqftBox) || 20 : undefined,
       stripLengthFeet: newCategory === 'rodapie' ? Number(newStripLength) || 16 : undefined,
       colors: newColors
@@ -142,6 +160,11 @@ export const PriceListManager: React.FC<PriceListManagerProps> = ({
       setNewColors([]);
       setTempColorName('');
       setTempColorCode('');
+      // Make newly added product immediately visible in the active view
+      if (filterCategory !== 'all' && filterCategory !== newProd.category) {
+        setFilterCategory('all');
+      }
+      setSearchTerm('');
     } catch (err) {
       console.error('Error guardando producto:', err);
       showFeedback('error', 'Error al sincronizar el producto.');
@@ -536,17 +559,30 @@ export const PriceListManager: React.FC<PriceListManagerProps> = ({
             </select>
           </div>
 
-          {/* Buttons: + Agregar Producto & ⋯ Más opciones */}
-          <div className="flex items-center gap-2 shrink-0">
-            {/* Primary Action Button */}
+          {/* Buttons: + Crear Producto Completo, + Rápido & ⋯ Más opciones */}
+          <div className="flex items-center gap-2 shrink-0 flex-wrap sm:flex-nowrap">
+            {isAdmin && (
+              <button
+                type="button"
+                id="btn-open-create-full-product"
+                onClick={handleOpenCreateFullProduct}
+                className="px-3.5 py-2.5 rounded-xl bg-black hover:bg-zinc-800 active:scale-95 text-white text-xs font-bold uppercase tracking-wider flex items-center gap-1.5 shadow-xs transition-all cursor-pointer whitespace-nowrap"
+                title="Crear un nuevo producto con editor completo, fotos y variantes de color"
+              >
+                <Plus className="w-4 h-4 text-[#FF8407]" />
+                <span>+ Crear Producto Completo</span>
+              </button>
+            )}
+
+            {/* Quick Add Toggle Button */}
             <button
               type="button"
               id="btn-open-add-product"
               onClick={() => setIsAddingNew(prev => !prev)}
-              className="px-4 py-2.5 rounded-xl bg-[#FF8407] hover:bg-[#E07300] active:scale-95 text-white text-xs font-bold uppercase tracking-wider flex items-center gap-1.5 shadow-xs transition-all cursor-pointer"
+              className="px-3.5 py-2.5 rounded-xl bg-[#FF8407] hover:bg-[#E07300] active:scale-95 text-white text-xs font-bold uppercase tracking-wider flex items-center gap-1.5 shadow-xs transition-all cursor-pointer whitespace-nowrap"
             >
               <Plus className="w-4 h-4" />
-              <span>{isAddingNew ? 'Cancelar' : '+ Agregar Producto'}</span>
+              <span>{isAddingNew ? 'Cancelar' : '+ Rápido'}</span>
             </button>
 
             {/* Hidden CSV File Input */}
@@ -916,10 +952,29 @@ export const PriceListManager: React.FC<PriceListManagerProps> = ({
                               {p.badge}
                             </Badge>
                           )}
+                          {p.isStock === false ? (
+                            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-zinc-100 text-zinc-600 border border-zinc-200 shrink-0">
+                              Por Pedido
+                            </span>
+                          ) : (
+                            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 shrink-0">
+                              En Stock
+                            </span>
+                          )}
+                          {p.model && (
+                            <span className="text-[10px] font-mono text-[#6B6A63] bg-zinc-100 border border-zinc-200 px-1.5 py-0.5 rounded shrink-0">
+                              Mod: {p.model}
+                            </span>
+                          )}
                         </div>
                         <h4 className="text-sm sm:text-base font-bold text-[#181818] leading-snug break-words">
                           {p.name}
                         </h4>
+                        {p.description && (
+                          <p className="text-[11px] text-[#6B6A63] line-clamp-2 leading-relaxed mt-0.5">
+                            {p.description}
+                          </p>
+                        )}
                       </div>
 
                       {/* Base Price formatted */}
@@ -945,7 +1000,8 @@ export const PriceListManager: React.FC<PriceListManagerProps> = ({
                       {/* Coverage / Yield — wraps to 2 lines cleanly via shared SpecValue */}
                       <SpecValue
                         label="Rendimiento"
-                        primary={p.sqftPerBox ? `${p.sqftPerBox} sqft/caja` : p.stripLengthFeet ? `Tira ${p.stripLengthFeet} ft` : 'Por unidad'}
+                        primary={p.yieldPerUnit || (p.sqftPerBox ? `${p.sqftPerBox} sqft/caja` : p.stripLengthFeet ? `Tira ${p.stripLengthFeet} ft` : 'Por unidad')}
+                        secondary={p.planksPerBox ? `${p.planksPerBox} tablas/caja` : undefined}
                         mono
                       />
 
@@ -1042,10 +1098,17 @@ export const PriceListManager: React.FC<PriceListManagerProps> = ({
           product={modalEditingProduct}
           onSave={async (updated) => {
             await saveProductToDb(updated);
-            const newCatalog = products.map((p) => (p.id === updated.id ? updated : p));
+            const isExisting = products.some((p) => p.id === updated.id);
+            const newCatalog = isExisting
+              ? products.map((p) => (p.id === updated.id ? updated : p))
+              : [updated, ...products];
             onUpdateProducts(newCatalog);
             setModalEditingProduct(null);
-            showFeedback('success', `Producto "${updated.name}" actualizado.`);
+            showFeedback('success', `Producto "${updated.name}" guardado.`);
+            if (filterCategory !== 'all' && filterCategory !== updated.category) {
+              setFilterCategory('all');
+            }
+            setSearchTerm('');
           }}
           onDeleteProduct={async (prodId, prodName) => {
             await handleDeleteProduct(prodId, prodName);

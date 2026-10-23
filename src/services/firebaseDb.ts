@@ -127,12 +127,16 @@ export function subscribeToProducts(
 }
 
 export async function saveProductToDb(product: Product): Promise<void> {
+  if (!product?.id) {
+    product.id = `prod-${Date.now()}`;
+  }
   const docRef = doc(db, PRODUCTS_COLLECTION, product.id);
   const cleaned = cleanForFirestore(product);
-  await setDoc(docRef, cleaned);
+  await setDoc(docRef, cleaned, { merge: true });
 }
 
 export async function deleteProductFromDb(productId: string): Promise<void> {
+  if (!productId) return;
   const docRef = doc(db, PRODUCTS_COLLECTION, productId);
   await deleteDoc(docRef);
 }
@@ -140,8 +144,9 @@ export async function deleteProductFromDb(productId: string): Promise<void> {
 export async function batchSaveProductsToDb(products: Product[]): Promise<void> {
   const batch = writeBatch(db);
   for (const prod of products) {
+    if (!prod?.id) continue;
     const docRef = doc(db, PRODUCTS_COLLECTION, prod.id);
-    batch.set(docRef, cleanForFirestore(prod));
+    batch.set(docRef, cleanForFirestore(prod), { merge: true });
   }
   await batch.commit();
 }

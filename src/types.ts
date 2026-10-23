@@ -41,6 +41,7 @@ export interface Product {
   badge?: string; // e.g. "Best Seller", "Premium"
   description?: string;
   isCustom?: boolean;
+  isStock?: boolean;
 }
 
 export interface CartItem {
