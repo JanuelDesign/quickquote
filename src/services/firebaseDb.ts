@@ -1,6 +1,7 @@
 import { initializeApp, getApps, getApp } from 'firebase/app';
 import { 
   getFirestore, 
+  initializeFirestore,
   collection, 
   doc, 
   getDocs, 
@@ -19,10 +20,20 @@ import { INITIAL_PRODUCTS, INITIAL_CLIENTS, DEFAULT_SETTINGS } from '../data/ini
 // Initialize Firebase App
 export const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
 
-// Initialize Firestore with custom Database ID if present
-export const db = firebaseConfig.firestoreDatabaseId 
-  ? getFirestore(app, firebaseConfig.firestoreDatabaseId)
-  : getFirestore(app);
+// Initialize Firestore with ignoreUndefinedProperties to prevent unhandled undefined field rejections
+function getInitializedDb() {
+  try {
+    return firebaseConfig.firestoreDatabaseId 
+      ? initializeFirestore(app, { ignoreUndefinedProperties: true }, firebaseConfig.firestoreDatabaseId)
+      : initializeFirestore(app, { ignoreUndefinedProperties: true });
+  } catch (e) {
+    return firebaseConfig.firestoreDatabaseId 
+      ? getFirestore(app, firebaseConfig.firestoreDatabaseId)
+      : getFirestore(app);
+  }
+}
+
+export const db = getInitializedDb();
 
 // Initialize Auth
 export const auth = getAuth(app);
@@ -53,7 +64,9 @@ const SETTINGS_COLLECTION = 'settings';
 export function cleanForFirestore<T>(data: T): any {
   if (data === null || data === undefined) return null;
   if (Array.isArray(data)) {
-    return data.map((item) => (typeof item === 'object' ? cleanForFirestore(item) : item));
+    return data
+      .filter((item) => item !== undefined)
+      .map((item) => (typeof item === 'object' && item !== null ? cleanForFirestore(item) : item));
   }
   if (typeof data === 'object' && !(data instanceof Date)) {
     const cleaned: Record<string, any> = {};
@@ -180,8 +193,12 @@ export function subscribeToClients(
 }
 
 export async function saveClientToDb(client: Client): Promise<void> {
+  if (!client || !client.id) {
+    throw new Error('No se puede guardar un cliente sin un ID válido');
+  }
   const docRef = doc(db, CLIENTS_COLLECTION, client.id);
-  await setDoc(docRef, client, { merge: true });
+  const cleaned = cleanForFirestore(client);
+  await setDoc(docRef, cleaned, { merge: true });
 }
 
 export async function deleteClientFromDb(clientId: string): Promise<void> {
@@ -219,8 +236,12 @@ export function subscribeToQuotations(
 }
 
 export async function saveQuotationToDb(quote: Quotation): Promise<void> {
+  if (!quote || !quote.id) {
+    throw new Error('No se puede guardar una cotización sin un ID válido');
+  }
   const docRef = doc(db, QUOTATIONS_COLLECTION, quote.id);
-  await setDoc(docRef, quote, { merge: true });
+  const cleaned = cleanForFirestore(quote);
+  await setDoc(docRef, cleaned, { merge: true });
 }
 
 export async function deleteQuotationFromDb(quoteId: string): Promise<void> {
@@ -242,7 +263,7 @@ export function subscribeToSettings(
       onSuccess(docSnap.data() as AppSettings);
     } else {
       // Seed default settings
-      setDoc(docRef, DEFAULT_SETTINGS).catch(() => {});
+      setDoc(docRef, cleanForFirestore(DEFAULT_SETTINGS)).catch(() => {});
       onSuccess(DEFAULT_SETTINGS);
     }
   });
@@ -250,5 +271,6 @@ export function subscribeToSettings(
 
 export async function saveSettingsToDb(settings: AppSettings): Promise<void> {
   const docRef = doc(db, SETTINGS_COLLECTION, 'general');
-  await setDoc(docRef, settings, { merge: true });
+  const cleaned = cleanForFirestore(settings);
+  await setDoc(docRef, cleaned, { merge: true });
 }

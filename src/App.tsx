@@ -960,18 +960,30 @@ export default function App() {
   };
 
   const handleSaveClient = async (client: Client) => {
+    const sanitizedClient: Client = {
+      ...client,
+      name: client.name.trim(),
+      phone: client.phone.trim(),
+      email: client.email?.trim() || '',
+      address: client.address?.trim() || '',
+      notes: client.notes?.trim() || '',
+      createdAt: client.createdAt || new Date().toISOString()
+    };
+
     setClients(prev => {
-      const exists = prev.some(c => c.id === client.id);
+      const exists = prev.some(c => c.id === sanitizedClient.id);
       if (exists) {
-        return prev.map(c => c.id === client.id ? client : c);
+        return prev.map(c => c.id === sanitizedClient.id ? sanitizedClient : c);
       }
-      return [client, ...prev];
+      return [sanitizedClient, ...prev];
     });
-    setCurrentClient(client);
+    setCurrentClient(sanitizedClient);
+
     try {
-      await saveClientToDb(client);
+      await saveClientToDb(sanitizedClient);
     } catch (err) {
-      console.warn('Error guardando cliente en Firestore:', err);
+      console.error('Error guardando cliente en Firestore:', err);
+      throw err;
     }
   };
 
@@ -983,7 +995,8 @@ export default function App() {
     try {
       await deleteClientFromDb(clientId);
     } catch (err) {
-      console.warn('Error eliminando cliente en Firestore:', err);
+      console.error('Error eliminando cliente en Firestore:', err);
+      throw err;
     }
   };
 

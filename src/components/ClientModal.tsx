@@ -10,7 +10,10 @@ import {
   X, 
   Trash2,
   Tag,
-  ChevronDown
+  ChevronDown,
+  Edit2,
+  Loader2,
+  AlertCircle
 } from 'lucide-react';
 import { translations } from '../utils/translations';
 
@@ -20,8 +23,8 @@ interface ClientModalProps {
   clients: Client[];
   currentClient: Client | null;
   onSelectClient: (client: Client) => void;
-  onSaveClient: (client: Client) => void;
-  onDeleteClient: (clientId: string) => void;
+  onSaveClient: (client: Client) => Promise<void> | void;
+  onDeleteClient: (clientId: string) => Promise<void> | void;
   quotesHistory: Quotation[];
   language?: Language;
 }
@@ -43,13 +46,48 @@ export const ClientModal: React.FC<ClientModalProps> = ({
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedTypeFilter, setSelectedTypeFilter] = useState<string>('all');
 
-  // New Client Form state
+  // Editing Client state
+  const [editingClient, setEditingClient] = useState<Client | null>(null);
+
+  // Form state
   const [name, setName] = useState('');
   const [clientType, setClientType] = useState<ClientCategory>('Contractor');
   const [phone, setPhone] = useState('');
   const [email, setEmail] = useState('');
   const [address, setAddress] = useState('');
   const [notes, setNotes] = useState('');
+
+  // Status state
+  const [isSaving, setIsSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
+
+  const resetForm = () => {
+    setName('');
+    setClientType('Contractor');
+    setPhone('');
+    setEmail('');
+    setAddress('');
+    setNotes('');
+    setEditingClient(null);
+    setSaveError(null);
+  };
+
+  const handleStartCreate = () => {
+    resetForm();
+    setActiveTab('create');
+  };
+
+  const handleStartEdit = (client: Client) => {
+    setEditingClient(client);
+    setName(client.name);
+    setClientType((client.clientType as ClientCategory) || 'Contractor');
+    setPhone(client.phone || '');
+    setEmail(client.email || '');
+    setAddress(client.address || '');
+    setNotes(client.notes || '');
+    setSaveError(null);
+    setActiveTab('create');
+  };
 
   const filteredClients = clients.filter(c => {
     const matchesSearch = 
@@ -63,33 +101,55 @@ export const ClientModal: React.FC<ClientModalProps> = ({
     return matchesSearch && matchesType;
   });
 
-  const handleCreateSubmit = (e: React.FormEvent) => {
+  const handleCreateSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!name.trim()) return;
 
-    const newClient: Client = {
-      id: `client-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
+    setIsSaving(true);
+    setSaveError(null);
+
+    // Explicitly clean fields: strings are trimmed, no undefined properties
+    const clientToSave: Client = {
+      id: editingClient?.id || `client-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
       name: name.trim(),
       clientType: clientType,
       phone: phone.trim(),
-      email: email.trim() || undefined,
-      address: address.trim() || undefined,
-      notes: notes.trim() || undefined,
-      createdAt: new Date().toISOString()
+      email: email.trim() || '',
+      address: address.trim() || '',
+      notes: notes.trim() || '',
+      createdAt: editingClient?.createdAt || new Date().toISOString()
     };
 
-    onSaveClient(newClient);
-    onSelectClient(newClient);
-    onClose();
+    try {
+      await onSaveClient(clientToSave);
+      onSelectClient(clientToSave);
+      resetForm();
+      setActiveTab('list');
+      onClose();
+    } catch (err: any) {
+      console.error('Error saving client to cloud:', err);
+      setSaveError(
+        language === 'en'
+          ? `Could not save client to cloud: ${err?.message || 'Check connection'}`
+          : `No se pudo guardar el cliente en la nube: ${err?.message || 'Verifica la conexión'}`
+      );
+    } finally {
+      setIsSaving(false);
+    }
+  };
 
-    // Reset fields
-    setName('');
-    setClientType('Contractor');
-    setPhone('');
-    setEmail('');
-    setAddress('');
-    setNotes('');
-    setActiveTab('list');
+  const handleDeleteWithConfirm = async (client: Client) => {
+    const confirmMsg = language === 'en'
+      ? `Are you sure you want to delete client "${client.name}"?`
+      : `¿Estás seguro de eliminar al cliente "${client.name}"?`;
+    
+    if (window.confirm(confirmMsg)) {
+      try {
+        await onDeleteClient(client.id);
+      } catch (err) {
+        console.error('Error deleting client:', err);
+      }
+    }
   };
 
   const getClientQuoteCount = (clientId: string) => {
@@ -138,7 +198,10 @@ export const ClientModal: React.FC<ClientModalProps> = ({
         <div className="p-3 bg-[#F9F9F9] border-b border-[#E5E5E5] flex flex-wrap gap-2">
           <button
             id="tab-client-list"
-            onClick={() => setActiveTab('list')}
+            onClick={() => {
+              setActiveTab('list');
+              setSaveError(null);
+            }}
             className={`flex-1 min-w-[140px] py-2 px-3 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer uppercase tracking-wider ${
               activeTab === 'list'
                 ? 'bg-black text-white shadow-xs'
@@ -151,7 +214,7 @@ export const ClientModal: React.FC<ClientModalProps> = ({
 
           <button
             id="tab-client-create"
-            onClick={() => setActiveTab('create')}
+            onClick={handleStartCreate}
             className={`flex-1 min-w-[140px] py-2 px-3 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer uppercase tracking-wider ${
               activeTab === 'create'
                 ? 'bg-[#FF8407] text-white shadow-xs'
@@ -159,7 +222,7 @@ export const ClientModal: React.FC<ClientModalProps> = ({
             }`}
           >
             <UserPlus className="w-3.5 h-3.5 shrink-0" />
-            <span>{t.newClientTab}</span>
+            <span>{editingClient ? (language === 'en' ? 'Edit Client' : 'Editar Cliente') : t.newClientTab}</span>
           </button>
         </div>
 
@@ -179,12 +242,12 @@ export const ClientModal: React.FC<ClientModalProps> = ({
                 />
               </div>
 
-              {/* Quick filter pills by client type — wraps cleanly so pills never clip */}
+              {/* Quick filter pills by client type */}
               <div className="pill-scroll-row gap-1.5 text-[11px]">
                 <button
                   type="button"
                   onClick={() => setSelectedTypeFilter('all')}
-                  className={`px-3 py-1.5 rounded-full font-bold transition-colors cursor-pointer text-[10px] uppercase tracking-wider ${
+                  className={`px-3 py-1.5 rounded-full font-bold transition-colors cursor-pointer text-[10px] uppercase tracking-wider shrink-0 ${
                     selectedTypeFilter === 'all'
                       ? 'bg-black text-white'
                       : 'bg-[#F2F1EC] text-zinc-600 hover:text-black hover:bg-zinc-200'
@@ -200,7 +263,7 @@ export const ClientModal: React.FC<ClientModalProps> = ({
                       key={cat}
                       type="button"
                       onClick={() => setSelectedTypeFilter(selectedTypeFilter === cat ? 'all' : cat)}
-                      className={`px-3 py-1.5 rounded-full font-bold transition-colors cursor-pointer text-[10px] flex items-center gap-1 ${
+                      className={`px-3 py-1.5 rounded-full font-bold transition-colors cursor-pointer text-[10px] flex items-center gap-1 shrink-0 ${
                         selectedTypeFilter === cat
                           ? 'bg-[#FF8407] text-white'
                           : 'bg-[#F2F1EC] text-zinc-700 hover:text-black hover:bg-zinc-200'
@@ -220,7 +283,7 @@ export const ClientModal: React.FC<ClientModalProps> = ({
                 <div className="text-center py-8">
                   <p className="text-xs text-[#8C8C8C] font-medium">{t.noClientsFound}</p>
                   <button
-                    onClick={() => setActiveTab('create')}
+                    onClick={handleStartCreate}
                     className="mt-2 text-xs font-bold text-[#FF8407] hover:underline cursor-pointer uppercase tracking-wider"
                   >
                     {t.registerClientNow}
@@ -306,9 +369,18 @@ export const ClientModal: React.FC<ClientModalProps> = ({
 
                         <button
                           type="button"
-                          onClick={() => onDeleteClient(client.id)}
+                          onClick={() => handleStartEdit(client)}
+                          className="p-1.5 text-zinc-400 hover:text-black rounded-md transition-colors cursor-pointer"
+                          title={language === 'en' ? 'Edit client' : 'Editar cliente'}
+                        >
+                          <Edit2 className="w-3.5 h-3.5" />
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteWithConfirm(client)}
                           className="p-1.5 text-zinc-300 hover:text-red-600 rounded-md transition-colors cursor-pointer"
-                          title="Delete client"
+                          title={language === 'en' ? 'Delete client' : 'Eliminar cliente'}
                         >
                           <Trash2 className="w-3.5 h-3.5" />
                         </button>
@@ -320,8 +392,28 @@ export const ClientModal: React.FC<ClientModalProps> = ({
             </div>
           </div>
         ) : (
-          /* Tab 2: Create Client Form */
+          /* Tab 2: Create / Edit Client Form */
           <form onSubmit={handleCreateSubmit} className="p-5 space-y-3.5">
+            {editingClient && (
+              <div className="p-2.5 rounded-lg bg-orange-50 border border-orange-200 text-xs font-medium text-orange-800 flex items-center justify-between">
+                <span>{language === 'en' ? `Editing: ${editingClient.name}` : `Editando: ${editingClient.name}`}</span>
+                <button
+                  type="button"
+                  onClick={resetForm}
+                  className="text-[10px] font-bold uppercase underline cursor-pointer text-orange-900"
+                >
+                  {language === 'en' ? 'Cancel Edit' : 'Cancelar Edición'}
+                </button>
+              </div>
+            )}
+
+            {saveError && (
+              <div className="p-3 rounded-lg bg-red-50 border border-red-200 text-xs font-medium text-red-700 flex items-start gap-2">
+                <AlertCircle className="w-4 h-4 text-red-500 shrink-0 mt-0.5" />
+                <span className="flex-1">{saveError}</span>
+              </div>
+            )}
+
             <div>
               <label className="text-[11px] font-bold uppercase tracking-[1px] text-[#8C8C8C] block mb-1">
                 {t.clientNameLabel}
@@ -423,7 +515,10 @@ export const ClientModal: React.FC<ClientModalProps> = ({
             <div className="pt-3 border-t border-[#E5E5E5] flex justify-end gap-2">
               <button
                 type="button"
-                onClick={() => setActiveTab('list')}
+                onClick={() => {
+                  resetForm();
+                  setActiveTab('list');
+                }}
                 className="px-4 py-2 rounded-lg text-xs font-bold text-zinc-600 hover:bg-zinc-100 cursor-pointer uppercase tracking-wider"
               >
                 {language === 'en' ? 'Back' : 'Volver'}
@@ -431,10 +526,20 @@ export const ClientModal: React.FC<ClientModalProps> = ({
               <button
                 type="submit"
                 id="btn-confirm-save-client"
-                className="px-5 py-2.5 rounded-lg text-xs font-bold bg-[#FF8407] text-white hover:bg-[#E07300] transition-colors flex items-center gap-1.5 cursor-pointer shadow-md uppercase tracking-wider"
+                disabled={isSaving}
+                className="px-5 py-2.5 rounded-lg text-xs font-bold bg-[#FF8407] text-white hover:bg-[#E07300] transition-colors flex items-center gap-1.5 cursor-pointer shadow-md uppercase tracking-wider disabled:opacity-60 disabled:cursor-not-allowed"
               >
-                <Check className="w-4 h-4" />
-                <span>{t.saveAndAssignBtn}</span>
+                {isSaving ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin text-white" />
+                    <span>{language === 'en' ? 'Saving...' : 'Guardando...'}</span>
+                  </>
+                ) : (
+                  <>
+                    <Check className="w-4 h-4" />
+                    <span>{editingClient ? (language === 'en' ? 'Update & Assign' : 'Actualizar y Asignar') : t.saveAndAssignBtn}</span>
+                  </>
+                )}
               </button>
             </div>
           </form>
