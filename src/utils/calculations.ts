@@ -228,7 +228,9 @@ export function createRiserCartItem(
   style: 'white' | 'match' = 'white',
   matchingColor?: ProductColor,
   thickness?: string,
-  notes?: string
+  notes?: string,
+  riserSqft?: number,
+  productNameOverride?: string
 ): CartItem {
   const subtotal = Number((stepCount * riserUnitPrice).toFixed(2));
   const isWhite = style !== 'match';
@@ -236,12 +238,16 @@ export function createRiserCartItem(
     ? { name: 'White Laminate', code: 'WHITE', hex: '#FFFFFF' }
     : (matchingColor || { name: 'Al tono del peldaño', code: 'MATCH', hex: '#C7B28E' });
 
+  const label = riserSqft && riserSqft > 0
+    ? `${stepCount} contrahuellas (${riserSqft} sqft)`
+    : `${stepCount} contrahuellas / risers`;
+
   return {
     id: `item-${Date.now()}-riser-${Math.random().toString(36).substring(2, 7)}`,
     productId: 'steps-riser-plank',
-    productName: isWhite 
+    productName: productNameOverride || (isWhite 
       ? 'Contrahuella (Riser Plank White Laminate)' 
-      : 'Contrahuella SPC (Al tono de la huella)',
+      : 'Contrahuella SPC (Al tono de la huella)'),
     category: 'escalones',
     subcategory: 'Stair Risers',
     thickness: thickness || '4.0 mm / 5.5 mm',
@@ -250,14 +256,267 @@ export function createRiserCartItem(
     userEnteredQuantity: stepCount,
     quantityUnitLabel: 'contrahuellas',
     calculatedUnits: stepCount,
-    calculatedUnitsLabel: `${stepCount} contrahuellas / risers`,
-    unitPrice: riserUnitPrice,
+    calculatedUnitsLabel: label,
+    unitPrice: Number(riserUnitPrice.toFixed(2)),
     pricingMode: 'per_piece',
-    baseListPrice: 9.00,
+    baseListPrice: Number(riserUnitPrice.toFixed(2)),
     subtotal,
     isTaxable: true,
     isLabor: false,
     notes: notes ? `Riser: ${notes}` : undefined
+  };
+}
+
+/**
+ * Calculation of sqft per plank and value per plank
+ * Formula:
+ *   pies_cuadrados_por_lámina = pies_cuadrados_caja / láminas_por_caja
+ *   valor_lámina = pies_cuadrados_por_lámina * precio_pie_cuadrado
+ *
+ * Real Examples:
+ * - Spirit: 19.29 sqft/caja, 5 láminas/caja, $2.09/sqft -> 3.858 sqft/lámina, $8.06322 (≈ $8.06)
+ * - CUI Select: 24.26 sqft/caja, 10 láminas/caja, $1.49/sqft -> 2.426 sqft/lámina, $3.61474 (≈ $3.61)
+ */
+export function calculatePlankValues(
+  sqftPerBox: number,
+  planksPerBox: number,
+  pricePerSqft: number
+): {
+  sqftPerPlank: number;
+  plankPrice: number;
+} {
+  if (!sqftPerBox || sqftPerBox <= 0 || !planksPerBox || planksPerBox <= 0) {
+    return { sqftPerPlank: 0, plankPrice: 0 };
+  }
+  const sqftPerPlank = sqftPerBox / planksPerBox;
+  const plankPrice = sqftPerPlank * pricePerSqft;
+
+  return {
+    sqftPerPlank: Number(sqftPerPlank.toFixed(4)),
+    plankPrice: Number(plankPrice.toFixed(4))
+  };
+}
+
+export interface StairCalculationParams {
+  mode: 'solo_steps' | 'completa';
+  stepCount: number;
+  stepUnitPrice: number;
+  riserType: 'white' | 'color_piso';
+  riserUnitPrice: number; // for white risers
+  landingCount: number;
+  sqftPerBox: number;
+  planksPerBox: number;
+  pricePerSqft: number;
+}
+
+export interface StairBreakdownResult {
+  sqftPerPlank: number;
+  plankPrice: number;
+  boxUnitPrice: number;
+  // Steps / Huellas
+  stepsCount: number;
+  stepsUnitPrice: number;
+  stepsSubtotal: number;
+  // Contrahuellas
+  risersCount: number;
+  risersSqft: number;
+  risersUnitPrice: number;
+  risersSubtotal: number;
+  // Material complementario (faltantes de huellas)
+  complementaryPlanksCount: number;
+  complementaryPlanksSqft: number;
+  complementaryPlankUnitPrice: number;
+  complementarySubtotal: number;
+  // Descansos
+  landingsCount: number;
+  landingsBoxes: number;
+  landingsSqft: number;
+  landingsSubtotal: number;
+  // Totals
+  totalFlooringSqft: number;
+  totalFlooringBoxesEquivalent: number;
+  totalFlooringSubtotal: number;
+  totalStairsPrice: number;
+}
+
+export function calculateStairsBreakdown(params: StairCalculationParams): StairBreakdownResult {
+  const {
+    mode,
+    stepCount,
+    stepUnitPrice,
+    riserType,
+    riserUnitPrice,
+    landingCount,
+    sqftPerBox,
+    planksPerBox,
+    pricePerSqft
+  } = params;
+
+  const validStepCount = Math.max(0, stepCount || 0);
+  const validStepUnitPrice = Math.max(0, stepUnitPrice || 0);
+  const stepsSubtotal = Number((validStepCount * validStepUnitPrice).toFixed(2));
+
+  if (mode === 'solo_steps') {
+    return {
+      sqftPerPlank: 0,
+      plankPrice: 0,
+      boxUnitPrice: 0,
+      stepsCount: validStepCount,
+      stepsUnitPrice: validStepUnitPrice,
+      stepsSubtotal,
+      risersCount: 0,
+      risersSqft: 0,
+      risersUnitPrice: 0,
+      risersSubtotal: 0,
+      complementaryPlanksCount: 0,
+      complementaryPlanksSqft: 0,
+      complementaryPlankUnitPrice: 0,
+      complementarySubtotal: 0,
+      landingsCount: 0,
+      landingsBoxes: 0,
+      landingsSqft: 0,
+      landingsSubtotal: 0,
+      totalFlooringSqft: 0,
+      totalFlooringBoxesEquivalent: 0,
+      totalFlooringSubtotal: 0,
+      totalStairsPrice: stepsSubtotal
+    };
+  }
+
+  const { sqftPerPlank, plankPrice } = calculatePlankValues(sqftPerBox, planksPerBox, pricePerSqft);
+  const boxUnitPrice = Number((sqftPerBox * pricePerSqft).toFixed(2));
+
+  // Contrahuellas
+  let risersCount = 0;
+  let risersSqft = 0;
+  let risersUnitPriceCalculated = 0;
+  let risersSubtotal = 0;
+
+  if (riserType === 'white') {
+    risersCount = validStepCount;
+    risersSqft = 0; // Contrahuellas blancas son piezas independientes
+    risersUnitPriceCalculated = Math.max(0, riserUnitPrice || 0);
+    risersSubtotal = Number((validStepCount * risersUnitPriceCalculated).toFixed(2));
+  } else {
+    // Contrahuella color piso: 1 lámina por escalón
+    risersCount = validStepCount;
+    risersSqft = Number((validStepCount * sqftPerPlank).toFixed(2));
+    risersUnitPriceCalculated = plankPrice;
+    risersSubtotal = Number((validStepCount * plankPrice).toFixed(2));
+  }
+
+  // Material complementario (faltantes de huellas): 1 lámina por escalón
+  const complementaryPlanksCount = validStepCount;
+  const complementaryPlanksSqft = Number((validStepCount * sqftPerPlank).toFixed(2));
+  const complementaryPlankUnitPrice = plankPrice;
+  const complementarySubtotal = Number((validStepCount * plankPrice).toFixed(2));
+
+  // Descansos: 1 caja por cada descanso
+  const landingsCount = Math.max(0, landingCount || 0);
+  const landingsBoxes = landingsCount;
+  const landingsSqft = Number((landingsBoxes * sqftPerBox).toFixed(2));
+  const landingsSubtotal = Number((landingsBoxes * boxUnitPrice).toFixed(2));
+
+  // Totales de piso
+  const totalFlooringSqft = Number((risersSqft + complementaryPlanksSqft + landingsSqft).toFixed(2));
+  const totalFlooringBoxesEquivalent = sqftPerBox > 0 ? Number((totalFlooringSqft / sqftPerBox).toFixed(2)) : 0;
+  const totalFlooringSubtotal = Number(
+    ((riserType === 'color_piso' ? risersSubtotal : 0) + complementarySubtotal + landingsSubtotal).toFixed(2)
+  );
+  const totalStairsPrice = Number(
+    (stepsSubtotal + risersSubtotal + complementarySubtotal + landingsSubtotal).toFixed(2)
+  );
+
+  return {
+    sqftPerPlank,
+    plankPrice,
+    boxUnitPrice,
+    stepsCount: validStepCount,
+    stepsUnitPrice: validStepUnitPrice,
+    stepsSubtotal,
+    risersCount,
+    risersSqft,
+    risersUnitPrice: risersUnitPriceCalculated,
+    risersSubtotal,
+    complementaryPlanksCount,
+    complementaryPlanksSqft,
+    complementaryPlankUnitPrice,
+    complementarySubtotal,
+    landingsCount,
+    landingsBoxes,
+    landingsSqft,
+    landingsSubtotal,
+    totalFlooringSqft,
+    totalFlooringBoxesEquivalent,
+    totalFlooringSubtotal,
+    totalStairsPrice
+  };
+}
+
+export function createStairComplementaryCartItem(
+  productName: string,
+  planksCount: number,
+  plankUnitPrice: number,
+  totalSqft: number,
+  color?: ProductColor,
+  notes?: string
+): CartItem {
+  const subtotal = Number((planksCount * plankUnitPrice).toFixed(2));
+
+  return {
+    id: `item-${Date.now()}-compl-${Math.random().toString(36).substring(2, 7)}`,
+    productId: 'stairs-complementary-planks',
+    productName: `Material Complementario Huellas (${productName})`,
+    category: 'escalones',
+    subcategory: 'Tablas Complementarias',
+    thickness: 'SPC Plank',
+    size: 'Plank Size',
+    color,
+    userEnteredQuantity: planksCount,
+    quantityUnitLabel: 'láminas',
+    calculatedUnits: planksCount,
+    calculatedUnitsLabel: `${planksCount} láminas (${totalSqft} sqft)`,
+    unitPrice: Number(plankUnitPrice.toFixed(2)),
+    pricingMode: 'per_piece',
+    baseListPrice: Number(plankUnitPrice.toFixed(2)),
+    subtotal,
+    isTaxable: true,
+    isLabor: false,
+    notes: notes || '1 lámina por escalón para completar profundidad de huella'
+  };
+}
+
+export function createStairLandingCartItem(
+  productName: string,
+  landingsCount: number,
+  boxUnitPrice: number,
+  sqftPerBox: number,
+  color?: ProductColor,
+  notes?: string
+): CartItem {
+  const subtotal = Number((landingsCount * boxUnitPrice).toFixed(2));
+  const totalSqft = Number((landingsCount * sqftPerBox).toFixed(2));
+
+  return {
+    id: `item-${Date.now()}-land-${Math.random().toString(36).substring(2, 7)}`,
+    productId: 'stairs-landing-box',
+    productName: `Descanso de Escalera - Piso SPC (${productName})`,
+    category: 'escalones',
+    subcategory: 'Descanso / Landing',
+    thickness: 'SPC Flooring',
+    size: `${sqftPerBox} sqft/caja`,
+    color,
+    userEnteredQuantity: landingsCount,
+    quantityUnitLabel: 'descansos',
+    calculatedUnits: landingsCount,
+    calculatedUnitsLabel: `${landingsCount} caja${landingsCount > 1 ? 's' : ''} (${totalSqft} sqft)`,
+    unitPrice: Number(boxUnitPrice.toFixed(2)),
+    pricingMode: 'per_box',
+    baseListPrice: Number(boxUnitPrice.toFixed(2)),
+    subtotal,
+    isTaxable: true,
+    isLabor: false,
+    notes: notes || `${landingsCount} caja${landingsCount > 1 ? 's' : ''} para descanso(s)`
   };
 }
 

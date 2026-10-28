@@ -425,7 +425,8 @@ export default function App() {
     riserUnitPrice: number,
     color?: ProductColor,
     notes?: string,
-    riserStyle?: 'white' | 'match'
+    riserStyle?: 'white' | 'match',
+    extraStairItems?: CartItem[]
   ) => {
     // 1. Huella o peldaño como ítem individual
     const stepItem = createStairsCartItem(
@@ -438,8 +439,13 @@ export default function App() {
       notes
     );
 
-    // 2. Contrahuella (Riser) como ítem individual para que el cliente vea ambos precios por separado
-    if (includeRiser) {
+    const itemsToAdd: CartItem[] = [stepItem];
+
+    // Separación de componentes: si vienen ítems adicionales (contrahuellas, tablas complementarias, descansos)
+    if (extraStairItems && extraStairItems.length > 0) {
+      itemsToAdd.push(...extraStairItems);
+    } else if (includeRiser) {
+      // Modo legacy si solo venía contrahuella
       const riserItem = createRiserCartItem(
         stepCount,
         riserUnitPrice,
@@ -448,10 +454,10 @@ export default function App() {
         product.thickness,
         notes
       );
-      setCartItems(prev => [...prev, stepItem, riserItem]);
-    } else {
-      setCartItems(prev => [...prev, stepItem]);
+      itemsToAdd.push(riserItem);
     }
+
+    setCartItems(prev => [...prev, ...itemsToAdd]);
   };
 
   const handleAddWallPanel = (
