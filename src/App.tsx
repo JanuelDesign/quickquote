@@ -22,7 +22,8 @@ import {
   createUnderlaymentCartItem,
   calculateQuoteTotals, 
   formatCurrency, 
-  getValidUntilDate 
+  getValidUntilDate,
+  syncCartItemPricesForClient
 } from './utils/calculations';
 import { translations } from './utils/translations';
 
@@ -129,12 +130,7 @@ export default function App() {
   });
 
   const [currentClient, setCurrentClient] = useState<Client | null>(() => {
-    const savedClientId = localStorage.getItem('qs_active_client_id');
-    if (savedClientId) {
-      const found = clients.find(c => c.id === savedClientId);
-      if (found) return found;
-    }
-    return clients[0] || null;
+    return null;
   });
 
   const [quotesHistory, setQuotesHistory] = useState<Quotation[]>(() => {
@@ -314,7 +310,7 @@ export default function App() {
       if (cloudClients && cloudClients.length > 0) {
         setClients(cloudClients);
         setCurrentClient((prev) => {
-          if (!prev) return cloudClients[0] || null;
+          if (!prev) return null;
           const matched = cloudClients.find((c) => c.id === prev.id);
           return matched || prev;
         });
@@ -589,7 +585,9 @@ export default function App() {
               ...item,
               userEnteredQuantity: newQuantity,
               calculatedUnits: newQuantity,
-              calculatedUnitsLabel: `${newQuantity} contrahuellas / risers`,
+              calculatedUnitsLabel: language === 'en'
+                ? `${newQuantity} risers`
+                : `${newQuantity} contrahuellas / risers`,
               subtotal: Number((newQuantity * item.unitPrice).toFixed(2))
             };
           }
@@ -620,7 +618,9 @@ export default function App() {
             ...item,
             userEnteredQuantity: newQuantity,
             calculatedUnits: newQuantity,
-            calculatedUnitsLabel: `${newQuantity} peldaños (12" x 48")`,
+            calculatedUnitsLabel: language === 'en'
+              ? `${newQuantity} stair treads (12" x 48")`
+              : `${newQuantity} peldaños (12" x 48")`,
             subtotal: Number((newQuantity * item.unitPrice).toFixed(2))
           };
         }
@@ -842,8 +842,11 @@ export default function App() {
     setProductSearchTerm('');
     setActiveQuoteId(`quote-${Date.now()}`);
     setActiveQuoteNumber(`QS-${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`);
+    setCurrentClient(null);
+    localStorage.removeItem('qs_active_client_id');
     setIsQuoteModalOpen(false);
     setIsCartOpen(false);
+    setIsClientModalOpen(true);
   };
 
   // Active Quote object for modal/export
@@ -965,12 +968,24 @@ export default function App() {
     }
   };
 
+  const handleSelectClient = (client: Client) => {
+    setCurrentClient(client);
+    setCartItems(prev => syncCartItemPricesForClient(prev, client, products));
+    if (sameAsBillingAddress) {
+      setShippingAddress(client.address || '');
+    }
+  };
+
   const handleSaveClient = async (client: Client) => {
     const sanitizedClient: Client = {
       ...client,
       name: client.name.trim(),
       phone: client.phone.trim(),
       email: client.email?.trim() || '',
+      company: client.company?.trim() || (client.personType === 'natural' ? 'N.A.' : ''),
+      legalName: client.legalName?.trim() || '',
+      clientType: client.clientType?.trim() || 'Contratista',
+      personType: client.personType || 'natural',
       address: client.address?.trim() || '',
       notes: client.notes?.trim() || '',
       createdAt: client.createdAt || new Date().toISOString()
@@ -984,6 +999,10 @@ export default function App() {
       return [sanitizedClient, ...prev];
     });
     setCurrentClient(sanitizedClient);
+    setCartItems(prev => syncCartItemPricesForClient(prev, sanitizedClient, products));
+    if (sameAsBillingAddress) {
+      setShippingAddress(sanitizedClient.address || '');
+    }
 
     try {
       await saveClientToDb(sanitizedClient);
@@ -1064,40 +1083,87 @@ export default function App() {
 
       {/* Main Content Area */}
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
-        {/* Active Client Banner (100% width, flex-1 min-w-0, no premature truncation) */}
-        <div className="bg-white p-3.5 sm:p-4 rounded-xl border border-[#E4E2DA] shadow-xs w-full flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
-          <div className="flex items-center gap-3 flex-1 min-w-0">
-            <div className="w-9 h-9 rounded-lg bg-[#181818] text-[#FF8407] flex items-center justify-center font-bold shrink-0">
-              <User className="w-5 h-5" />
-            </div>
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2 flex-wrap min-w-0">
-                <span className="text-[10px] font-bold uppercase tracking-wider text-[#9C9A90] shrink-0">
-                  {t.quotingFor}:
-                </span>
-                <span className="text-sm font-bold text-[#181818] break-words leading-snug">
-                  {currentClient?.name || t.unassignedClient}
-                </span>
-              </div>
-              {currentClient?.phone && (
-                <p className="text-[11px] text-[#6B6A63] font-mono break-words leading-snug mt-0.5">
-                  Tel: {currentClient.phone} {currentClient.address && `• ${currentClient.address}`}
-                </p>
-              )}
-            </div>
-          </div>
-
-          <div className="flex items-center gap-2 shrink-0">
+        {/* Active Client Banner: Big New Quote Button when no client is selected, or full Client Card once selected */}
+        {!currentClient ? (
+          <div className="w-full">
             <button
               type="button"
-              id="btn-switch-client"
-              onClick={() => setIsClientModalOpen(true)}
-              className="px-3 py-1.5 rounded-lg border border-[#E4E2DA] hover:border-[#181818] bg-[#F2F1EC] text-[#181818] text-xs font-bold transition-colors cursor-pointer uppercase tracking-wider"
+              id="btn-banner-new-quote-large"
+              onClick={handleStartNewQuote}
+              className="w-full py-4 sm:py-5 px-6 rounded-2xl bg-gradient-to-r from-[#FF8407] to-[#E07300] hover:from-[#E07300] hover:to-[#C66500] active:scale-[0.99] text-white shadow-lg hover:shadow-xl transition-all cursor-pointer flex items-center justify-center gap-3 sm:gap-4 group border border-amber-500/30"
             >
-              {currentClient ? t.changeClient : t.assignClient}
+              <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-xl bg-black/20 text-white flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform shadow-inner">
+                <Plus className="w-6 h-6 stroke-[3]" />
+              </div>
+              <div className="text-left sm:text-center">
+                <span className="text-base sm:text-xl font-black uppercase tracking-wider block leading-tight">
+                  {language === 'en' ? '+ START NEW QUOTE' : '+ INICIAR NUEVA COTIZACIÓN'}
+                </span>
+                <span className="text-xs sm:text-sm text-white/90 font-medium block mt-0.5">
+                  {language === 'en'
+                    ? 'Click here to select or register a client and begin'
+                    : 'Haz clic aquí para seleccionar o registrar el cliente y comenzar'}
+                </span>
+              </div>
             </button>
           </div>
-        </div>
+        ) : (
+          <div className="bg-white p-3.5 sm:p-4 rounded-xl border border-[#E4E2DA] shadow-xs w-full flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 animate-in fade-in duration-200">
+            <div className="flex items-center gap-3 flex-1 min-w-0">
+              <div className="w-9 h-9 rounded-lg bg-[#181818] text-[#FF8407] flex items-center justify-center font-bold shrink-0">
+                <User className="w-5 h-5" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2 flex-wrap min-w-0">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-[#9C9A90] shrink-0">
+                    {t.quotingFor}:
+                  </span>
+                  <span className="text-sm font-bold text-[#181818] break-words leading-snug">
+                    {currentClient.name}
+                  </span>
+                  {currentClient.clientType && (
+                    <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-[#F2F1EC] text-[#181818] border border-[#E4E2DA] shrink-0">
+                      {currentClient.clientType}
+                      {currentClient.clientType === 'Homeowner' && ' (+30%)'}
+                    </span>
+                  )}
+                  {currentClient.company && currentClient.company !== 'N.A.' && (
+                    <span className="text-[11px] text-zinc-500 font-medium shrink-0">
+                      • {currentClient.company}
+                    </span>
+                  )}
+                </div>
+                {currentClient.phone && (
+                  <p className="text-[11px] text-[#6B6A63] font-mono break-words leading-snug mt-0.5">
+                    Tel: {currentClient.phone} {currentClient.address && `• ${currentClient.address}`}
+                  </p>
+                )}
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2 shrink-0">
+              <button
+                type="button"
+                id="btn-banner-new-quote"
+                onClick={handleStartNewQuote}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#FF8407] hover:bg-[#E07300] active:scale-95 text-white text-xs font-bold transition-all cursor-pointer shadow-2xs tracking-wide"
+                title={language === 'en' ? 'Start fresh quote & select client' : 'Iniciar cotización limpia y elegir cliente'}
+              >
+                <Plus className="w-3.5 h-3.5 stroke-[2.5]" />
+                <span>{language === 'en' ? 'New Quote' : 'Nueva Cotización'}</span>
+              </button>
+
+              <button
+                type="button"
+                id="btn-switch-client"
+                onClick={() => setIsClientModalOpen(true)}
+                className="px-3 py-1.5 rounded-lg border border-[#E4E2DA] hover:border-[#181818] bg-[#F2F1EC] text-[#181818] text-xs font-bold transition-colors cursor-pointer uppercase tracking-wider"
+              >
+                {t.changeClient}
+              </button>
+            </div>
+          </div>
+        )}
 
         {/* Search Bar & Category Controls */}
         <div className="space-y-2.5">
@@ -1237,6 +1303,7 @@ export default function App() {
                     initialColor={targetColor}
                     initialSelectionKey={targetSelectionKey}
                     onAddToCart={handleAddFloor}
+                    clientCategory={currentClient?.clientType}
                     language={language}
                   />
                 )}
@@ -1247,6 +1314,7 @@ export default function App() {
                     initialProductId={targetProductId}
                     initialSelectionKey={targetSelectionKey}
                     onAddToCart={handleAddBaseboard}
+                    clientCategory={currentClient?.clientType}
                     language={language}
                   />
                 )}
@@ -1258,6 +1326,7 @@ export default function App() {
                     initialColor={targetColor}
                     initialSelectionKey={targetSelectionKey}
                     onAddToCart={handleAddProfile}
+                    clientCategory={currentClient?.clientType}
                     language={language}
                   />
                 )}
@@ -1268,6 +1337,7 @@ export default function App() {
                     initialProductId={targetProductId}
                     initialSelectionKey={targetSelectionKey}
                     onAddToCart={handleAddStairs}
+                    clientCategory={currentClient?.clientType}
                     language={language}
                   />
                 )}
@@ -1279,6 +1349,7 @@ export default function App() {
                     initialColor={targetColor}
                     initialSelectionKey={targetSelectionKey}
                     onAddToCart={handleAddWallPanel}
+                    clientCategory={currentClient?.clientType}
                     language={language}
                   />
                 )}
@@ -1289,6 +1360,7 @@ export default function App() {
                     initialProductId={targetProductId}
                     initialSelectionKey={targetSelectionKey}
                     onAddToCart={handleAddUnderlayment}
+                    clientCategory={currentClient?.clientType}
                     language={language}
                   />
                 )}
@@ -1463,7 +1535,7 @@ export default function App() {
           onClose={() => setIsClientModalOpen(false)}
           clients={clients}
           currentClient={currentClient}
-          onSelectClient={setCurrentClient}
+          onSelectClient={handleSelectClient}
           onSaveClient={handleSaveClient}
           onDeleteClient={handleDeleteClient}
           quotesHistory={quotesHistory}
@@ -1499,14 +1571,9 @@ export default function App() {
           onClose={() => setIsPriceManagerOpen(false)}
           products={products}
           userRole={currentUser.role}
-          onUpdateProducts={async (newProducts) => {
+          onUpdateProducts={(newProducts) => {
             setProducts(newProducts);
             localStorage.setItem('qs_products_catalog', JSON.stringify(newProducts));
-            try {
-              await batchSaveProductsToDb(newProducts);
-            } catch (err) {
-              console.warn('Error sincronizando productos con Firestore:', err);
-            }
           }}
         />
       )}

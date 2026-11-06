@@ -30,6 +30,7 @@ import {
 interface StairsCalculatorProps {
   products: Product[];
   language?: Language;
+  clientCategory?: string;
   initialProductId?: string;
   initialSelectionKey?: number;
   onAddToCart: (
@@ -48,11 +49,15 @@ interface StairsCalculatorProps {
 export const StairsCalculator: React.FC<StairsCalculatorProps> = ({
   products,
   language = 'en',
+  clientCategory,
   initialProductId,
   initialSelectionKey,
   onAddToCart
 }) => {
   const t = translations[language];
+  const isEn = language === 'en';
+  const isHomeowner = clientCategory === 'Homeowner';
+  const homeownerMultiplier = isHomeowner ? 1.30 : 1.0;
 
   // Available stair tread products
   const stairProducts = useMemo(() => {
@@ -74,30 +79,78 @@ export const StairsCalculator: React.FC<StairsCalculatorProps> = ({
   // 1) Modo de cotización: 'solo_steps' vs 'completa'
   const [mode, setMode] = useState<'solo_steps' | 'completa'>('completa');
 
+  // Punto 5: Suministro de la tabla / material
+  // 'company' = Empresa la pone (QuickSurfaces - material completo)
+  // 'client' = Cliente la trae (precio solo mano de obra / operación)
+  const [materialSupplier, setMaterialSupplier] = useState<'company' | 'client'>('company');
+
+  // Formato del piso: 5.5mm (24.26 sqft/caja · 10 láminas) vs 8.0mm (19.29 sqft/caja · 5 láminas) vs Personalizado
+  const [floorFormat, setFloorFormat] = useState<'5.5mm' | '8.0mm' | 'custom'>('5.5mm');
+
   // Step Tread Model
   const [selectedProduct, setSelectedProduct] = useState<Product>(stairProducts[0] || {} as Product);
   const [stepCount, setStepCount] = useState<number>(14);
-  const [stepUnitPrice, setStepUnitPrice] = useState<number>(stairProducts[0]?.basePrice || 19.00);
+  const baseStepRate = (stairProducts[0]?.basePrice || 19.00) * homeownerMultiplier;
+  const [stepUnitPrice, setStepUnitPrice] = useState<number>(baseStepRate);
 
   // Reference Floor Collection (para cálculo de láminas y descansos)
   const [floorSource, setFloorSource] = useState<'catalog' | 'custom'>('catalog');
   const [selectedFloorId, setSelectedFloorId] = useState<string>(floorProducts[0]?.id || '');
-  const [customCollectionName, setCustomCollectionName] = useState<string>('Spirit SPC');
+  const [customCollectionName, setCustomCollectionName] = useState<string>('5.5mm SPC Flooring');
   
   // Floor specs: Pies cuadrados por caja, Láminas por caja, Precio por pie cuadrado
-  const [sqftPerBox, setSqftPerBox] = useState<number>(floorProducts[0]?.sqftPerBox || 19.29);
-  const [planksPerBox, setPlanksPerBox] = useState<number>(floorProducts[0]?.planksPerBox || 5);
-  const [pricePerSqft, setPricePerSqft] = useState<number>(floorProducts[0]?.basePrice || 2.09);
+  const [sqftPerBox, setSqftPerBox] = useState<number>(24.26);
+  const [planksPerBox, setPlanksPerBox] = useState<number>(10);
+  const [pricePerSqft, setPricePerSqft] = useState<number>(Number((1.49 * homeownerMultiplier).toFixed(2)));
 
   // Escalera Completa: Descansos y Tipo de contrahuella
   const [landingCount, setLandingCount] = useState<number>(0);
   const [riserType, setRiserType] = useState<'white' | 'color_piso'>('color_piso');
-  const [riserUnitPrice, setRiserUnitPrice] = useState<number>(9.00); // Para contrahuella blanca
+  const [riserUnitPrice, setRiserUnitPrice] = useState<number>(Number((9.00 * homeownerMultiplier).toFixed(2))); // Para contrahuella blanca
+
+  // Optional Moldings & Skirt Baseboard
+  const [includeMoldings, setIncludeMoldings] = useState<boolean>(false);
+  const [moldingsCount, setMoldingsCount] = useState<number>(0);
+  const [moldingsUnitPrice, setMoldingsUnitPrice] = useState<number>(Number((16.99 * homeownerMultiplier).toFixed(2)));
+
+  const [includeSkirt, setIncludeSkirt] = useState<boolean>(false);
+  const [skirtFeet, setSkirtFeet] = useState<number>(0);
+  const [skirtPricePerFoot, setSkirtPricePerFoot] = useState<number>(Number((1.35 * homeownerMultiplier).toFixed(2)));
 
   // Customer notes & feedback
   const [notes, setNotes] = useState<string>('');
   const [addedSuccess, setAddedSuccess] = useState(false);
   const [validationError, setValidationError] = useState<string | null>(null);
+
+  // Switch material supplier helper
+  const handleSupplierChange = (supplier: 'company' | 'client') => {
+    setMaterialSupplier(supplier);
+    if (supplier === 'client') {
+      // Cliente trae el material: precio solo mano de obra / ensamble
+      const laborStepPrice = Number((11.00 * homeownerMultiplier).toFixed(2));
+      setStepUnitPrice(laborStepPrice);
+    } else {
+      // Empresa la pone: precio completo con material
+      const fullStepPrice = Number(((selectedProduct.basePrice || 19.00) * homeownerMultiplier).toFixed(2));
+      setStepUnitPrice(fullStepPrice);
+    }
+  };
+
+  // Switch floor format helper
+  const handleFloorFormatChange = (format: '5.5mm' | '8.0mm' | 'custom') => {
+    setFloorFormat(format);
+    if (format === '5.5mm') {
+      setSqftPerBox(24.26);
+      setPlanksPerBox(10);
+      setPricePerSqft(Number((1.49 * homeownerMultiplier).toFixed(2)));
+      setCustomCollectionName('5.5mm SPC Select');
+    } else if (format === '8.0mm') {
+      setSqftPerBox(19.29);
+      setPlanksPerBox(5);
+      setPricePerSqft(Number((2.09 * homeownerMultiplier).toFixed(2)));
+      setCustomCollectionName('8.0mm SPC Spirit');
+    }
+  };
 
   // Jump to specific product if passed via search selection
   useEffect(() => {
@@ -169,6 +222,8 @@ export const StairsCalculator: React.FC<StairsCalculatorProps> = ({
   const breakdown = useMemo(() => {
     return calculateStairsBreakdown({
       mode,
+      materialSupplier,
+      floorFormat,
       stepCount,
       stepUnitPrice,
       riserType,
@@ -176,10 +231,16 @@ export const StairsCalculator: React.FC<StairsCalculatorProps> = ({
       landingCount,
       sqftPerBox,
       planksPerBox,
-      pricePerSqft
+      pricePerSqft,
+      moldingsCount: includeMoldings ? moldingsCount : 0,
+      moldingsUnitPrice,
+      skirtFeet: includeSkirt ? skirtFeet : 0,
+      skirtPricePerFoot
     });
   }, [
     mode,
+    materialSupplier,
+    floorFormat,
     stepCount,
     stepUnitPrice,
     riserType,
@@ -187,7 +248,13 @@ export const StairsCalculator: React.FC<StairsCalculatorProps> = ({
     landingCount,
     sqftPerBox,
     planksPerBox,
-    pricePerSqft
+    pricePerSqft,
+    includeMoldings,
+    moldingsCount,
+    moldingsUnitPrice,
+    includeSkirt,
+    skirtFeet,
+    skirtPricePerFoot
   ]);
 
   // Active collection label
@@ -241,19 +308,53 @@ export const StairsCalculator: React.FC<StairsCalculatorProps> = ({
     }
 
     const selectedColor = selectedProduct.colors?.[0];
+    const isClientSupplied = materialSupplier === 'client';
+
+    // Step item customized product name if client supplies plank
+    const stepProductWithSupplier: Product = {
+      ...selectedProduct,
+      name: isClientSupplied
+        ? `${selectedProduct.name} (M.O. / Ensamblado - Material Cliente)`
+        : selectedProduct.name
+    };
+
+    // Extra items array for separated components
+    const extraItems: CartItem[] = [];
 
     // CASE 1: SOLO STEPS
     if (mode === 'solo_steps') {
+      // Optional moldings
+      if (includeMoldings && moldingsCount > 0) {
+        extraItems.push({
+          id: `item-${Date.now()}-molding-${Math.random().toString(36).substring(2, 6)}`,
+          productId: 'stair-flush-nose-molding',
+          productName: isEn ? `Flush Stair Nose Molding (${activeCollectionName})` : `Moldura de Terminación Flush Nose (${activeCollectionName})`,
+          category: 'perfiles',
+          subcategory: isEn ? 'Stair Mouldings' : 'Molduras de Escalera',
+          color: selectedColor,
+          userEnteredQuantity: moldingsCount,
+          quantityUnitLabel: isEn ? 'pieces' : 'piezas',
+          calculatedUnits: moldingsCount,
+          calculatedUnitsLabel: `${moldingsCount} ${isEn ? (moldingsCount > 1 ? 'pieces' : 'piece') : (moldingsCount > 1 ? 'piezas' : 'pieza')}`,
+          unitPrice: moldingsUnitPrice,
+          pricingMode: 'per_piece',
+          baseListPrice: moldingsUnitPrice,
+          subtotal: Number((moldingsCount * moldingsUnitPrice).toFixed(2)),
+          isTaxable: true,
+          isLabor: false
+        });
+      }
+
       onAddToCart(
-        selectedProduct,
+        stepProductWithSupplier,
         stepCount,
         stepUnitPrice,
         false,
         0,
         selectedColor,
-        notes,
+        isClientSupplied ? (isEn ? 'Tread manufacturing labor (customer supplies flooring)' : 'Mano de obra fabricación huellas (material del cliente)') : notes,
         'white',
-        [] // No extra items
+        extraItems
       );
       setAddedSuccess(true);
       setTimeout(() => {
@@ -264,10 +365,6 @@ export const StairsCalculator: React.FC<StairsCalculatorProps> = ({
     }
 
     // CASE 2: ESCALERA COMPLETA (Separated Components)
-    // 1. Huella (Step Tread) is added via the primary item in handleAddStairs
-    // 2. Extra items array:
-    const extraItems: CartItem[] = [];
-
     // Componente 2: Contrahuella (Riser)
     if (riserType === 'white') {
       const whiteRiserItem = createRiserCartItem(
@@ -276,58 +373,116 @@ export const StairsCalculator: React.FC<StairsCalculatorProps> = ({
         'white',
         undefined,
         selectedProduct.thickness,
-        notes
+        notes,
+        0,
+        isEn ? 'Stair Riser (White Laminated Plank)' : 'Contrahuella (Riser Plank White Laminate)'
       );
       extraItems.push(whiteRiserItem);
     } else {
-      // Contrahuella color piso: 1 lámina por escalón
+      // Contrahuella color piso
       const matchRiserItem = createRiserCartItem(
         stepCount,
-        breakdown.plankPrice,
+        breakdown.risersUnitPrice,
         'match',
         selectedColor,
         selectedProduct.thickness,
-        notes,
+        isClientSupplied 
+          ? (isEn ? 'Riser cutting/milling labor (material supplied by customer)' : 'Corte/elaboración de contrahuella (material suministrado por cliente)') 
+          : notes,
         breakdown.risersSqft,
-        `Contrahuella SPC al tono (${activeCollectionName})`
+        isClientSupplied
+          ? (isEn ? `SPC Riser - Cutting Labor (${activeCollectionName})` : `Contrahuella SPC - Mano de Obra Corte (${activeCollectionName})`)
+          : (isEn ? `Matching SPC Riser (${activeCollectionName})` : `Contrahuella SPC al tono (${activeCollectionName})`)
       );
       extraItems.push(matchRiserItem);
     }
 
     // Componente 3: Material Complementario (Tablas que completan el escalón / faltantes de huellas)
-    // Regla: 1 lámina por escalón
     const complementaryItem = createStairComplementaryCartItem(
       activeCollectionName,
       stepCount,
-      breakdown.plankPrice,
+      breakdown.complementaryPlankUnitPrice,
       breakdown.complementaryPlanksSqft,
       selectedColor,
-      notes
+      isClientSupplied 
+        ? (isEn ? 'Plank assembly/cutting labor (customer material)' : 'Mano de obra ensamble/corte lámina (material cliente)') 
+        : notes
     );
     extraItems.push(complementaryItem);
 
     // Componente 4: Descansos (si landingCount > 0)
-    // Regla: 1 caja por cada descanso
     if (landingCount > 0) {
+      const landingUnitPrice = isClientSupplied ? 35.00 : breakdown.boxUnitPrice;
       const landingItem = createStairLandingCartItem(
         activeCollectionName,
         landingCount,
-        breakdown.boxUnitPrice,
+        landingUnitPrice,
         sqftPerBox,
         selectedColor,
-        notes
+        isClientSupplied
+          ? (isEn
+              ? `Landing installation labor (${landingCount} flooring box(es) supplied by customer)`
+              : `Mano de obra instalación de descanso (${landingCount} caja(s) de piso suministrada(s) por el cliente)`)
+          : (isEn
+              ? `${landingCount} flooring box(es) supplied by QuickSurfaces for landings`
+              : `${landingCount} caja(s) de piso suministrada(s) por QuickSurfaces para descansos`)
       );
       extraItems.push(landingItem);
     }
 
+    // Componente 5: Molduras opcionales (Flush Stair Nose)
+    if (includeMoldings && moldingsCount > 0) {
+      extraItems.push({
+        id: `item-${Date.now()}-molding-${Math.random().toString(36).substring(2, 6)}`,
+        productId: 'stair-flush-nose-molding',
+        productName: isEn ? `Flush Stair Nose Molding (${activeCollectionName})` : `Moldura Flush Stair Nose (${activeCollectionName})`,
+        category: 'perfiles',
+        subcategory: isEn ? 'Stair Mouldings' : 'Molduras de Escalera',
+        color: selectedColor,
+        userEnteredQuantity: moldingsCount,
+        quantityUnitLabel: isEn ? 'pieces' : 'piezas',
+        calculatedUnits: moldingsCount,
+        calculatedUnitsLabel: `${moldingsCount} ${isEn ? (moldingsCount > 1 ? 'mouldings' : 'moulding') : (moldingsCount > 1 ? 'molduras' : 'moldura')}`,
+        unitPrice: moldingsUnitPrice,
+        pricingMode: 'per_piece',
+        baseListPrice: moldingsUnitPrice,
+        subtotal: Number((moldingsCount * moldingsUnitPrice).toFixed(2)),
+        isTaxable: true,
+        isLabor: false
+      });
+    }
+
+    // Componente 6: Rodapié para faldón (Skirt Baseboard)
+    if (includeSkirt && skirtFeet > 0) {
+      extraItems.push({
+        id: `item-${Date.now()}-skirt-${Math.random().toString(36).substring(2, 6)}`,
+        productId: 'stair-skirt-baseboard',
+        productName: isEn ? `Stair Skirt Baseboard (${activeCollectionName})` : `Rodapié para Faldón de Escalera (${activeCollectionName})`,
+        category: 'rodapie',
+        subcategory: isEn ? 'Stair Skirt' : 'Faldón de Escalera',
+        color: selectedColor,
+        userEnteredQuantity: skirtFeet,
+        quantityUnitLabel: 'LF',
+        calculatedUnits: skirtFeet,
+        calculatedUnitsLabel: `${skirtFeet} ${isEn ? 'linear feet' : 'pies lineales'}`,
+        unitPrice: skirtPricePerFoot,
+        pricingMode: 'fixed',
+        pricePerLinearFt: skirtPricePerFoot,
+        baseListPrice: skirtPricePerFoot,
+        subtotal: Number((skirtFeet * skirtPricePerFoot).toFixed(2)),
+        isTaxable: true,
+        isLabor: false
+      });
+    }
+
     onAddToCart(
-      selectedProduct,
+      stepProductWithSupplier,
       stepCount,
       stepUnitPrice,
       false, // Handled explicitly in extraItems
       0,
       selectedColor,
-      notes,
+      isClientSupplied ? (isEn ? `Manufacturing labor (customer supplies flooring) - ${notes}` : `Mano de obra fabricación (cliente suministra piso) - ${notes}`) : notes,
       riserType === 'white' ? 'white' : 'match',
       extraItems
     );
@@ -505,12 +660,21 @@ export const StairsCalculator: React.FC<StairsCalculatorProps> = ({
       {/* ======================================================== */}
       {currentStep === 2 && (
         <div className="space-y-4">
-          {/* Top selected model badge */}
+          {/* Top selected model badge & client tariff pill */}
           <div className="bg-[#F2F1EC] border border-[#E4E2DA] rounded-xl px-4 py-2.5 flex items-center justify-between flex-wrap gap-2">
             <div className="flex items-center gap-2 flex-wrap text-xs min-w-0">
               <span className="font-bold text-[#181818]">{selectedProduct.name}</span>
               <span className="text-[#9C9A90]">•</span>
               <span className="text-[#6B6A63] font-medium">{selectedProduct.size || '12" x 48"'}</span>
+              {isHomeowner ? (
+                <span className="text-[10px] font-bold text-amber-800 bg-amber-100 px-2 py-0.5 rounded border border-amber-300">
+                  {isEn ? 'Homeowner Rate (+30% Retail)' : 'Tarifa Homeowner (+30% Retail)'}
+                </span>
+              ) : (
+                <span className="text-[10px] font-bold text-emerald-800 bg-emerald-100 px-2 py-0.5 rounded border border-emerald-300">
+                  {isEn ? 'Contractor Rate (Base Price)' : 'Tarifa Contratista (Precio Base)'}
+                </span>
+              )}
             </div>
             <button
               type="button"
@@ -522,16 +686,99 @@ export const StairsCalculator: React.FC<StairsCalculatorProps> = ({
           </div>
 
           {/* ======================================================== */}
+          {/* PUNTO 5: SUMINISTRO DE LA TABLA (EMPRESA VS CLIENTE)      */}
+          {/* ======================================================== */}
+          <div className="bg-white rounded-xl p-4 sm:p-5 border border-[#E4E2DA] shadow-xs space-y-3">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-bold uppercase tracking-wider text-[#181818] flex items-center gap-2">
+                <Box className="w-4 h-4 text-[#FF8407]" />
+                {isEn ? 'Material Supply (Who provides the plank?)' : 'Suministro de la Tabla / Material'}
+              </span>
+              <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-zinc-100 text-zinc-700">
+                Punto 5
+              </span>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {/* Opción A: Empresa la pone (QuickSurfaces) */}
+              <button
+                type="button"
+                id="btn-supplier-company"
+                onClick={() => handleSupplierChange('company')}
+                className={`p-4 rounded-xl border text-left transition-all cursor-pointer flex flex-col justify-between ${
+                  materialSupplier === 'company'
+                    ? 'border-[#FF8407] bg-amber-50/40 ring-2 ring-[#FF8407]/20 shadow-xs'
+                    : 'border-[#E4E2DA] bg-[#FAFAFA] hover:border-zinc-400'
+                }`}
+              >
+                <div>
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-sm font-bold text-[#181818]">
+                      {isEn ? 'Company Supplies (QuickSurfaces)' : 'Empresa la pone (QuickSurfaces)'}
+                    </span>
+                    <span className={`w-4 h-4 rounded-full border flex items-center justify-center text-[10px] ${
+                      materialSupplier === 'company' ? 'border-[#FF8407] bg-[#FF8407] text-white font-bold' : 'border-zinc-300'
+                    }`}>
+                      {materialSupplier === 'company' && '✓'}
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-[#6B6A63] leading-relaxed">
+                    {isEn 
+                      ? 'Complete price with material: QuickSurfaces supplies stair treads, planks for risers, and flooring boxes for landings.'
+                      : 'Precio completo con material: QuickSurfaces suministra los peldaños, láminas para contrahuellas y cajas de piso para descansos.'}
+                  </p>
+                </div>
+                <div className="mt-3 pt-2 border-t border-zinc-200/60 text-[10px] font-mono font-bold text-emerald-700">
+                  {isEn ? 'Complete material included in quote' : 'Material completo incluido en cotización'}
+                </div>
+              </button>
+
+              {/* Opción B: Cliente la trae */}
+              <button
+                type="button"
+                id="btn-supplier-client"
+                onClick={() => handleSupplierChange('client')}
+                className={`p-4 rounded-xl border text-left transition-all cursor-pointer flex flex-col justify-between ${
+                  materialSupplier === 'client'
+                    ? 'border-[#FF8407] bg-amber-50/40 ring-2 ring-[#FF8407]/20 shadow-xs'
+                    : 'border-[#E4E2DA] bg-[#FAFAFA] hover:border-zinc-400'
+                }`}
+              >
+                <div>
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-sm font-bold text-[#181818]">
+                      {isEn ? 'Customer Supplies (Labor Only)' : 'Cliente la trae (Solo Mano de Obra)'}
+                    </span>
+                    <span className={`w-4 h-4 rounded-full border flex items-center justify-center text-[10px] ${
+                      materialSupplier === 'client' ? 'border-[#FF8407] bg-[#FF8407] text-white font-bold' : 'border-zinc-300'
+                    }`}>
+                      {materialSupplier === 'client' && '✓'}
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-[#6B6A63] leading-relaxed">
+                    {isEn
+                      ? 'Labor / fabrication price only: Customer supplies their flooring planks. Only milling, cutting, and assembly are charged.'
+                      : 'Precio solo de mano de obra/operación: El cliente suministra sus tablas de piso. Se cobra únicamente el maquinado, corte y armado.'}
+                  </p>
+                </div>
+                <div className="mt-3 pt-2 border-t border-zinc-200/60 text-[10px] font-mono font-bold text-[#FF8407]">
+                  {isEn ? 'Labor only / Customer supplies flooring boxes' : 'Solo M.O. / El cliente provee las cajas de piso'}
+                </div>
+              </button>
+            </div>
+          </div>
+
+          {/* ======================================================== */}
           {/* 2) MODO DE COTIZACIÓN: "Solo steps" vs "Escalera completa" */}
           {/* ======================================================== */}
           <div className="bg-white rounded-xl p-4 sm:p-5 border border-[#E4E2DA] shadow-xs space-y-3">
             <div className="flex items-center justify-between">
               <span className="text-xs font-bold uppercase tracking-wider text-[#181818] flex items-center gap-2">
                 <Layers className="w-4 h-4 text-[#FF8407]" />
-                {language === 'en' ? 'Quotation Mode' : 'Modo de Cotización'}
+                {isEn ? 'Quotation Scope' : 'Modo de Cotización'}
               </span>
               <span className="text-[10px] font-semibold text-[#9C9A90] uppercase">
-                {language === 'en' ? 'Select Scope' : 'Alcance de la cotización'}
+                {isEn ? 'Select Scope' : 'Alcance de la cotización'}
               </span>
             </div>
 
@@ -550,7 +797,7 @@ export const StairsCalculator: React.FC<StairsCalculatorProps> = ({
                 <div>
                   <div className="flex items-center justify-between mb-1">
                     <span className="text-sm font-bold text-[#181818]">
-                      {language === 'en' ? 'Steps Only ("Solo steps")' : 'Solo steps (Huellas)'}
+                      {isEn ? 'Steps Only (Treads)' : 'Solo steps (Huellas)'}
                     </span>
                     <span className={`w-4 h-4 rounded-full border flex items-center justify-center text-[10px] ${
                       mode === 'solo_steps' ? 'border-[#FF8407] bg-[#FF8407] text-white font-bold' : 'border-zinc-300'
@@ -559,13 +806,13 @@ export const StairsCalculator: React.FC<StairsCalculatorProps> = ({
                     </span>
                   </div>
                   <p className="text-[11px] text-[#6B6A63] leading-relaxed">
-                    {language === 'en'
-                      ? 'Only quotation of stair tread steps (12" x 48"). No risers, landings, or complementary planks.'
+                    {isEn
+                      ? 'Quotes only the stair treads (12" x 48"). Does not include risers or landings.'
                       : 'Únicamente se cotizan los escalones o huellas (12" x 48"). No incluye contrahuellas ni descansos.'}
                   </p>
                 </div>
                 <div className="mt-3 pt-2 border-t border-zinc-200/60 text-[10px] font-mono font-bold text-[#FF8407]">
-                  {stepCount} peldaños @ {formatCurrency(stepUnitPrice)}
+                  {stepCount} {isEn ? 'treads' : 'peldaños'} @ {formatCurrency(stepUnitPrice)}
                 </div>
               </button>
 
@@ -583,7 +830,7 @@ export const StairsCalculator: React.FC<StairsCalculatorProps> = ({
                 <div>
                   <div className="flex items-center justify-between mb-1">
                     <span className="text-sm font-bold text-[#181818]">
-                      {language === 'en' ? 'Full Staircase ("Escalera completa")' : 'Escalera completa'}
+                      {isEn ? 'Full Staircase' : 'Escalera completa'}
                     </span>
                     <span className={`w-4 h-4 rounded-full border flex items-center justify-center text-[10px] ${
                       mode === 'completa' ? 'border-[#FF8407] bg-[#FF8407] text-white font-bold' : 'border-zinc-300'
@@ -592,20 +839,20 @@ export const StairsCalculator: React.FC<StairsCalculatorProps> = ({
                     </span>
                   </div>
                   <p className="text-[11px] text-[#6B6A63] leading-relaxed">
-                    {language === 'en'
-                      ? 'Includes treads, risers (white or matching floor), landings, and complementary planks to finish the step.'
+                    {isEn
+                      ? 'Includes treads, risers (white or matching floor), landings, and complementary planks.'
                       : 'Incluye huellas, contrahuellas (blancas o color piso), descansos y tablas de material complementario.'}
                   </p>
                 </div>
                 <div className="mt-3 pt-2 border-t border-zinc-200/60 text-[10px] font-mono font-bold text-emerald-700">
-                  {language === 'en' ? 'Complete breakdown itemized separately' : 'Desglose detallado por ítem separado'}
+                  {isEn ? 'Itemized breakdown by separate component' : 'Desglose detallado por componente separado'}
                 </div>
               </button>
             </div>
           </div>
 
           {/* ======================================================== */}
-          {/* 3) CÁLCULO POR LÁMINA: PRODUCTO DEL CATÁLOGO O NUEVO      */}
+          {/* 3) FORMATO DEL PISO & CÁLCULO POR LÁMINA                  */}
           {/* ======================================================== */}
           {mode === 'completa' && (
             <div className="bg-white rounded-xl p-4 sm:p-5 border border-[#E4E2DA] shadow-xs space-y-4">
@@ -613,47 +860,85 @@ export const StairsCalculator: React.FC<StairsCalculatorProps> = ({
                 <div>
                   <span className="text-xs font-bold uppercase tracking-wider text-[#181818] flex items-center gap-2">
                     <Box className="w-4 h-4 text-[#FF8407]" />
-                    {language === 'en' ? 'Floor Collection & Plank Specs' : 'Colección de Piso y Cálculo por Lámina'}
+                    <span>{isEn ? 'Flooring Collection & Format (8 mm vs 5.5 mm)' : 'Colección de Piso y Formato (8 mm vs 5.5 mm)'}</span>
                   </span>
                   <p className="text-[11px] text-[#6B6A63] mt-0.5">
-                    {language === 'en'
-                      ? 'Base flooring used for matching risers, complementary planks, and landings.'
-                      : 'Piso base utilizado para contrahuellas al tono, tablas complementarias y descansos.'}
+                    {isEn ? 'Flooring boxes are not proportional in sq ft or planks depending on thickness/format.' : 'Las cajas no son proporcionales en pies ni planchas según el grosor/formato del piso.'}
                   </p>
                 </div>
 
-                {/* Source selector */}
-                <div className="flex items-center gap-1.5 p-1 bg-[#F2F1EC] rounded-xl self-start sm:self-auto">
+                {/* Formato presets pills */}
+                <div className="flex items-center gap-1.5 p-1 bg-[#F2F1EC] rounded-xl self-start sm:self-auto flex-wrap">
                   <button
                     type="button"
-                    onClick={() => setFloorSource('catalog')}
+                    onClick={() => handleFloorFormatChange('5.5mm')}
                     className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                      floorSource === 'catalog'
-                        ? 'bg-white text-[#181818] shadow-xs'
+                      floorFormat === '5.5mm'
+                        ? 'bg-black text-white shadow-xs'
                         : 'text-[#6B6A63] hover:text-[#181818]'
                     }`}
                   >
-                    {language === 'en' ? 'From Catalog' : 'Del Catálogo'}
+                    5.5 mm (10 pcs · 24.26 ft²)
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => handleFloorFormatChange('8.0mm')}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                      floorFormat === '8.0mm'
+                        ? 'bg-black text-white shadow-xs'
+                        : 'text-[#6B6A63] hover:text-[#181818]'
+                    }`}
+                  >
+                    8.0 mm (5 pcs · 19.29 ft²)
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setFloorFormat('custom')}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                      floorFormat === 'custom'
+                        ? 'bg-[#FF8407] text-white shadow-xs'
+                        : 'text-[#6B6A63] hover:text-[#181818]'
+                    }`}
+                  >
+                    {isEn ? 'Custom' : 'Personalizado'}
+                  </button>
+                </div>
+              </div>
+
+              {/* Source selector: Catalog vs Custom */}
+              <div className="flex items-center justify-between flex-wrap gap-2 pt-1">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-[#9C9A90]">
+                  {isEn ? 'Flooring Source:' : 'Origen del piso:'}
+                </span>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setFloorSource('catalog')}
+                    className={`text-xs font-bold px-2.5 py-1 rounded-md transition-colors cursor-pointer ${
+                      floorSource === 'catalog' ? 'bg-zinc-800 text-white' : 'bg-zinc-100 text-zinc-600 hover:text-black'
+                    }`}
+                  >
+                    {isEn ? 'From Catalog' : 'Del Catálogo'}
                   </button>
                   <button
                     type="button"
                     onClick={() => setFloorSource('custom')}
-                    className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                      floorSource === 'custom'
-                        ? 'bg-[#181818] text-white shadow-xs'
-                        : 'text-[#6B6A63] hover:text-[#181818]'
+                    className={`text-xs font-bold px-2.5 py-1 rounded-md transition-colors cursor-pointer ${
+                      floorSource === 'custom' ? 'bg-zinc-800 text-white' : 'bg-zinc-100 text-zinc-600 hover:text-black'
                     }`}
                   >
-                    {language === 'en' ? '+ New / Custom Floor' : '+ Producto Nuevo / Fuera de Catálogo'}
+                    {isEn ? 'New / Non-Catalog Product' : 'Producto Nuevo / Fuera de Catálogo'}
                   </button>
                 </div>
               </div>
 
               {/* Source 1: From Catalog */}
               {floorSource === 'catalog' && (
-                <div className="space-y-3">
+                <div className="space-y-1.5">
                   <label htmlFor="select-floor-product" className="text-[10px] font-bold uppercase tracking-wider text-[#9C9A90] block">
-                    {language === 'en' ? 'Select Flooring Collection:' : 'Selecciona la Colección de Piso:'}
+                    {isEn ? 'Select Flooring Collection:' : 'Selecciona la Colección de Piso:'}
                   </label>
                   <select
                     id="select-floor-product"
@@ -663,7 +948,7 @@ export const StairsCalculator: React.FC<StairsCalculatorProps> = ({
                   >
                     {floorProducts.map(fp => (
                       <option key={fp.id} value={fp.id}>
-                        {fp.name} — {fp.sqftPerBox ? `${fp.sqftPerBox} sqft/caja` : ''} • {formatCurrency(fp.basePrice)}/sqft
+                        {fp.name} — {fp.sqftPerBox ? `${fp.sqftPerBox} ${isEn ? 'sqft/box' : 'sqft/caja'}` : ''} • {formatCurrency(fp.basePrice * homeownerMultiplier)}/sqft
                       </option>
                     ))}
                   </select>
@@ -672,20 +957,20 @@ export const StairsCalculator: React.FC<StairsCalculatorProps> = ({
 
               {/* Source 2: Custom / New Product */}
               {floorSource === 'custom' && (
-                <div className="space-y-3 p-3.5 bg-amber-50/30 rounded-xl border border-amber-200/60">
+                <div className="space-y-2 p-3 bg-amber-50/40 rounded-xl border border-amber-200">
                   <div className="flex items-center justify-between">
                     <span className="text-xs font-bold text-[#181818]">
-                      {language === 'en' ? 'New Flooring Collection (by code / name):' : 'Nueva Colección por Código / Nombre:'}
+                      {isEn ? 'New Collection by Code / Name:' : 'Nueva Colección por Código / Nombre:'}
                     </span>
                     <span className="text-[10px] font-mono text-[#FF8407] font-semibold">
-                      Fuera de Catálogo
+                      {isEn ? 'Non-Catalog' : 'Fuera de Catálogo'}
                     </span>
                   </div>
                   <input
                     type="text"
                     value={customCollectionName}
                     onChange={(e) => setCustomCollectionName(e.target.value)}
-                    placeholder="Ej. Spirit SPC 6.5mm o CUI Select 5mm"
+                    placeholder={isEn ? 'e.g. Spirit SPC 8mm or CUI Select 5.5mm' : 'Ej. Spirit SPC 8mm o CUI Select 5.5mm'}
                     className="w-full text-xs font-bold text-[#181818] bg-white border border-[#E4E2DA] rounded-xl px-3 py-2 focus:outline-hidden focus:border-[#FF8407]"
                   />
                 </div>
@@ -696,7 +981,7 @@ export const StairsCalculator: React.FC<StairsCalculatorProps> = ({
                 {/* 1. Pies cuadrados por caja */}
                 <div className="p-3 bg-[#FAFAFA] rounded-xl border border-[#E4E2DA] space-y-1">
                   <label htmlFor="input-sqft-box" className="text-[10px] font-bold uppercase tracking-wider text-[#9C9A90] block">
-                    {language === 'en' ? 'SqFt per Box' : 'Pies² por Caja (sqft)'}
+                    {isEn ? 'Sq Ft per Box (sqft)' : 'Pies² por Caja (sqft)'}
                   </label>
                   <input
                     type="number"
@@ -707,13 +992,13 @@ export const StairsCalculator: React.FC<StairsCalculatorProps> = ({
                     onChange={(e) => setSqftPerBox(Math.max(0.1, parseFloat(e.target.value) || 0))}
                     className="w-full text-lg font-bold font-mono text-[#181818] bg-white border border-[#E4E2DA] rounded-lg px-2.5 py-1.5 focus:outline-hidden focus:border-[#FF8407]"
                   />
-                  <span className="text-[10px] text-[#6B6A63] block">Ej: Spirit: 19.29 | CUI: 24.26</span>
+                  <span className="text-[10px] text-[#6B6A63] block">5.5mm: 24.26 | 8mm: 19.29</span>
                 </div>
 
                 {/* 2. Láminas por caja */}
                 <div className="p-3 bg-[#FAFAFA] rounded-xl border border-[#E4E2DA] space-y-1">
                   <label htmlFor="input-planks-box" className="text-[10px] font-bold uppercase tracking-wider text-[#9C9A90] block">
-                    {language === 'en' ? 'Planks per Box' : 'Láminas por Caja'}
+                    {isEn ? 'Planks per Box' : 'Láminas por Caja'}
                   </label>
                   <input
                     type="number"
@@ -724,13 +1009,13 @@ export const StairsCalculator: React.FC<StairsCalculatorProps> = ({
                     onChange={(e) => setPlanksPerBox(Math.max(1, parseInt(e.target.value, 10) || 0))}
                     className="w-full text-lg font-bold font-mono text-[#181818] bg-white border border-[#E4E2DA] rounded-lg px-2.5 py-1.5 focus:outline-hidden focus:border-[#FF8407]"
                   />
-                  <span className="text-[10px] text-[#6B6A63] block">Ej: Spirit: 5 | CUI: 10</span>
+                  <span className="text-[10px] text-[#6B6A63] block">5.5mm: 10 | 8mm: 5</span>
                 </div>
 
                 {/* 3. Precio por pie cuadrado */}
                 <div className="p-3 bg-[#FAFAFA] rounded-xl border border-[#E4E2DA] space-y-1">
                   <label htmlFor="input-price-sqft" className="text-[10px] font-bold uppercase tracking-wider text-[#9C9A90] block">
-                    {language === 'en' ? 'Price per SqFt ($/sqft)' : 'Precio por Pie² ($/sqft)'}
+                    {isEn ? 'Price per Sq Ft ($/sqft)' : 'Precio por Pie² ($/sqft)'}
                   </label>
                   <div className="relative">
                     <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-sm font-bold text-[#9C9A90]">$</span>
@@ -744,7 +1029,7 @@ export const StairsCalculator: React.FC<StairsCalculatorProps> = ({
                       className="w-full text-lg font-bold font-mono text-[#181818] bg-white border border-[#E4E2DA] rounded-lg pl-6 pr-2.5 py-1.5 focus:outline-hidden focus:border-[#FF8407]"
                     />
                   </div>
-                  <span className="text-[10px] text-[#6B6A63] block">Ej: Spirit: $2.09 | CUI: $1.49</span>
+                  <span className="text-[10px] text-[#6B6A63] block">{isEn ? 'Base price adjusted by customer type' : 'Base ajustada por tipo de cliente'}</span>
                 </div>
               </div>
 
@@ -754,26 +1039,26 @@ export const StairsCalculator: React.FC<StairsCalculatorProps> = ({
                   <div className="flex items-center gap-2">
                     <Calculator className="w-4 h-4 text-[#FF8407]" />
                     <span className="text-xs font-bold uppercase tracking-wider text-white">
-                      {language === 'en' ? 'Plank Value Formula Result' : 'Resultado de la Fórmula por Lámina'}
+                      {isEn ? 'Official Per-Plank Formula:' : 'Fórmula Oficial por Lámina:'}
                     </span>
                   </div>
                   <span className="text-[10px] text-[#A8A8A8] font-mono">
-                    {sqftPerBox} ft² ÷ {planksPerBox} láminas × ${pricePerSqft.toFixed(2)}/ft²
+                    {sqftPerBox} ft² ÷ {planksPerBox} {isEn ? 'planks' : 'láminas'} × ${pricePerSqft.toFixed(2)}/ft²
                   </span>
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1 text-xs">
                   <div className="bg-white/10 rounded-lg p-2.5">
-                    <span className="text-[10px] text-[#C9C9C9] block">Pies² por lámina:</span>
+                    <span className="text-[10px] text-[#C9C9C9] block">{isEn ? 'Sq Ft per plank:' : 'Pies² por lámina:'}</span>
                     <div className="text-base font-bold font-mono text-white">
-                      {plankValues.sqftPerPlank.toFixed(3)} <span className="text-xs font-normal text-[#C9C9C9]">sqft/lámina</span>
+                      {plankValues.sqftPerPlank.toFixed(3)} <span className="text-xs font-normal text-[#C9C9C9]">{isEn ? 'sqft/plank' : 'sqft/lámina'}</span>
                     </div>
                   </div>
 
                   <div className="bg-white/10 rounded-lg p-2.5">
-                    <span className="text-[10px] text-[#C9C9C9] block">Valor por lámina:</span>
+                    <span className="text-[10px] text-[#C9C9C9] block">{isEn ? 'Commercial value per plank:' : 'Valor comercial por lámina:'}</span>
                     <div className="text-base font-black font-mono text-[#FF8407]">
-                      {formatCurrency(plankValues.plankPrice)} <span className="text-xs font-normal text-white">/ lámina</span>
+                      {formatCurrency(plankValues.plankPrice)} <span className="text-xs font-normal text-white">{isEn ? '/ plank' : '/ lámina'}</span>
                     </div>
                   </div>
                 </div>
@@ -808,7 +1093,7 @@ export const StairsCalculator: React.FC<StairsCalculatorProps> = ({
 
               {/* Quick Add Chips */}
               <div className="flex flex-wrap items-center gap-1.5 pt-1">
-                <span className="text-[10px] text-[#9C9A90] font-semibold uppercase">Rápido:</span>
+                <span className="text-[10px] text-[#9C9A90] font-semibold uppercase">{isEn ? 'Quick:' : 'Rápido:'}</span>
                 {[1, 2, 4, 14].map((amount) => (
                   <button
                     key={amount}
@@ -826,10 +1111,12 @@ export const StairsCalculator: React.FC<StairsCalculatorProps> = ({
             <div className="bg-white rounded-xl p-4 sm:p-5 border border-[#E4E2DA] shadow-xs space-y-3">
               <div className="flex items-center justify-between">
                 <label htmlFor="input-stairs-price" className="text-[10px] font-bold uppercase tracking-wider text-[#9C9A90]">
-                  {language === 'en' ? 'Price per Step Tread (Huella)' : 'Precio por Peldaño / Huella ($)'}
+                  {materialSupplier === 'client' 
+                    ? (isEn ? 'Labor / Assembly Price per Step ($)' : 'Precio M.O. / Ensamble por Escalón ($)')
+                    : (isEn ? 'Complete Step Tread Price ($)' : 'Precio por Peldaño / Huella Completo ($)')}
                 </label>
                 <span className="text-[10px] text-emerald-700 font-bold bg-emerald-50 px-2 py-0.5 rounded">
-                  {language === 'en' ? 'Adjustable' : 'Ajustable'}
+                  {materialSupplier === 'client' ? (isEn ? 'Labor Only' : 'Solo Mano de Obra') : (isEn ? 'Full Material' : 'Material Completo')}
                 </span>
               </div>
 
@@ -840,13 +1127,13 @@ export const StairsCalculator: React.FC<StairsCalculatorProps> = ({
                   step="0.50"
                   id="input-stairs-price"
                   value={stepUnitPrice}
-                  onChange={(e) => setStepUnitPrice(Math.max(0, parseFloat(e.target.value) || 0))}
+                  onChange={(e) => setStepUnitPrice(Math.max(0.1, parseFloat(e.target.value) || 0))}
                   className="w-full text-2xl font-bold text-[#181818] bg-[#FAFAFA] border border-[#E4E2DA] rounded-xl pl-8 pr-3 py-2 focus:outline-hidden focus:border-[#FF8407]"
                 />
               </div>
 
               <div className="p-2.5 bg-[#F2F1EC] rounded-lg flex items-center justify-between text-xs">
-                <span className="text-[#6B6A63]">Subtotal huellas:</span>
+                <span className="text-[#6B6A63]">{isEn ? 'Treads subtotal:' : 'Subtotal peldaños:'}</span>
                 <span className="font-bold font-mono text-[#181818]">{formatCurrency(breakdown.stepsSubtotal)}</span>
               </div>
             </div>
@@ -861,10 +1148,10 @@ export const StairsCalculator: React.FC<StairsCalculatorProps> = ({
               <div className="bg-white rounded-xl p-4 sm:p-5 border border-[#E4E2DA] shadow-xs space-y-3">
                 <div className="flex items-center justify-between">
                   <span className="text-xs font-bold uppercase tracking-wider text-[#181818]">
-                    {language === 'en' ? 'Riser Type (Contrahuella)' : 'Tipo de Contrahuella'}
+                    {isEn ? 'Riser Style' : 'Tipo de Contrahuella'}
                   </span>
                   <span className="text-[10px] font-semibold text-[#9C9A90]">
-                    {stepCount} risers
+                    {stepCount} {isEn ? 'risers' : 'contrahuellas'}
                   </span>
                 </div>
 
@@ -878,10 +1165,10 @@ export const StairsCalculator: React.FC<StairsCalculatorProps> = ({
                         : 'border-[#E4E2DA] bg-[#FAFAFA] hover:border-zinc-300'
                     }`}
                   >
-                    <div className="text-xs font-bold text-[#181818]">Blanca Laminada</div>
-                    <div className="text-[10px] text-[#6B6A63] mt-0.5">Pieza independiente</div>
+                    <div className="text-xs font-bold text-[#181818]">{isEn ? 'White Laminated' : 'Blanca Laminada'}</div>
+                    <div className="text-[10px] text-[#6B6A63] mt-0.5">{isEn ? 'Independent piece' : 'Pieza independiente'}</div>
                     <div className="text-[10px] font-bold text-[#FF8407] mt-1.5">
-                      1 lámina/escalón para faltante
+                      {isEn ? '1 plank/step for extension' : '1 lámina/escalón para faltante'}
                     </div>
                   </button>
 
@@ -894,19 +1181,19 @@ export const StairsCalculator: React.FC<StairsCalculatorProps> = ({
                         : 'border-[#E4E2DA] bg-[#FAFAFA] hover:border-zinc-300'
                     }`}
                   >
-                    <div className="text-xs font-bold text-[#181818]">Al Color del Piso</div>
-                    <div className="text-[10px] text-[#6B6A63] mt-0.5">Matching SPC Color</div>
+                    <div className="text-xs font-bold text-[#181818]">{isEn ? 'Matching Floor Color' : 'Al Color del Piso'}</div>
+                    <div className="text-[10px] text-[#6B6A63] mt-0.5">{isEn ? 'Matching SPC Color' : 'Matching SPC Color'}</div>
                     <div className="text-[10px] font-bold text-[#FF8407] mt-1.5">
-                      2 láminas/escalón en total
+                      {isEn ? '2 planks/step in total' : '2 láminas/escalón en total'}
                     </div>
                   </button>
                 </div>
 
-                {/* Si es blanca, permite ajustar el precio unitario de la contrahuella blanca */}
+                {/* Si es blanca */}
                 {riserType === 'white' ? (
                   <div className="pt-2 border-t border-[#E4E2DA] space-y-1.5">
                     <label htmlFor="input-white-riser-price" className="text-[10px] font-bold uppercase tracking-wider text-[#9C9A90] block">
-                      Precio Unitario Contrahuella Blanca ($)
+                      {isEn ? 'White Riser Unit Price ($)' : 'Precio Unitario Contrahuella Blanca ($)'}
                     </label>
                     <div className="relative">
                       <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm font-bold text-[#9C9A90]">$</span>
@@ -920,18 +1207,18 @@ export const StairsCalculator: React.FC<StairsCalculatorProps> = ({
                       />
                     </div>
                     <div className="text-[11px] text-[#6B6A63] flex justify-between">
-                      <span>Subtotal contrahuellas blancas:</span>
+                      <span>{isEn ? 'White risers subtotal:' : 'Subtotal contrahuellas blancas:'}</span>
                       <strong className="font-mono text-[#181818]">{formatCurrency(breakdown.risersSubtotal)}</strong>
                     </div>
                   </div>
                 ) : (
                   <div className="p-2.5 bg-amber-50/50 rounded-lg border border-amber-200/50 text-[11px] text-[#6B6A63] space-y-1">
                     <div className="flex justify-between">
-                      <span>Precio derivado por lámina:</span>
-                      <strong className="font-mono text-[#181818]">{formatCurrency(breakdown.plankPrice)} c/u</strong>
+                      <span>{materialSupplier === 'client' ? (isEn ? 'Labor cut per riser:' : 'M.O. Corte por contrahuella:') : (isEn ? 'Price per plank:' : 'Precio derivado por lámina:')}</span>
+                      <strong className="font-mono text-[#181818]">{formatCurrency(breakdown.risersUnitPrice)} {isEn ? 'ea' : 'c/u'}</strong>
                     </div>
                     <div className="flex justify-between font-bold text-[#181818]">
-                      <span>Subtotal contrahuellas piso:</span>
+                      <span>{isEn ? 'Risers subtotal:' : 'Subtotal contrahuellas:'}</span>
                       <span className="font-mono text-[#FF8407]">{formatCurrency(breakdown.risersSubtotal)}</span>
                     </div>
                   </div>
@@ -942,10 +1229,10 @@ export const StairsCalculator: React.FC<StairsCalculatorProps> = ({
               <div className="bg-white rounded-xl p-4 sm:p-5 border border-[#E4E2DA] shadow-xs space-y-3">
                 <div className="flex items-center justify-between">
                   <span className="text-xs font-bold uppercase tracking-wider text-[#181818]">
-                    {language === 'en' ? 'Landings (Descansos)' : 'Descansos de Escalera'}
+                    {isEn ? 'Stair Landings' : 'Descansos de Escalera'}
                   </span>
                   <span className="text-[10px] font-bold text-amber-800 bg-amber-100 px-2 py-0.5 rounded">
-                    +1 caja por descanso
+                    {isEn ? '+1 box per landing' : '+1 caja por descanso'}
                   </span>
                 </div>
 
@@ -963,7 +1250,7 @@ export const StairsCalculator: React.FC<StairsCalculatorProps> = ({
                       {landingCount}
                     </span>
                     <span className="text-[10px] uppercase font-bold text-[#9C9A90]">
-                      {landingCount === 1 ? 'Descanso' : 'Descansos'}
+                      {isEn ? (landingCount === 1 ? 'Landing' : 'Landings') : (landingCount === 1 ? 'Descanso' : 'Descansos')}
                     </span>
                   </div>
 
@@ -978,19 +1265,92 @@ export const StairsCalculator: React.FC<StairsCalculatorProps> = ({
 
                 <div className="p-2.5 bg-[#F2F1EC] rounded-lg text-[11px] text-[#6B6A63] space-y-1">
                   <div className="flex justify-between">
-                    <span>Cajas de piso necesarias:</span>
+                    <span>{isEn ? 'Flooring boxes for landings:' : 'Cajas de piso para descansos:'}</span>
                     <strong className="font-mono text-[#181818]">
-                      {landingCount} {landingCount === 1 ? 'caja' : 'cajas'} ({breakdown.landingsSqft} sqft)
+                      {landingCount} {landingCount === 1 ? (isEn ? 'box' : 'caja') : (isEn ? 'boxes' : 'cajas')} ({breakdown.landingsSqft} sqft)
                     </strong>
                   </div>
                   <div className="flex justify-between font-bold text-[#181818]">
-                    <span>Subtotal descansos:</span>
+                    <span>{isEn ? 'Landings subtotal:' : 'Subtotal descansos:'}</span>
                     <span className="font-mono text-[#FF8407]">{formatCurrency(breakdown.landingsSubtotal)}</span>
                   </div>
                 </div>
               </div>
             </div>
           )}
+
+          {/* ======================================================== */}
+          {/* MOLDURAS & FALDONES OPCIONALES                            */}
+          {/* ======================================================== */}
+          <div className="bg-white rounded-xl p-4 sm:p-5 border border-[#E4E2DA] shadow-xs space-y-3">
+            <span className="text-xs font-bold uppercase tracking-wider text-[#181818] block">
+              {isEn ? 'Optional Stair Mouldings & Accessories' : 'Molduras & Accesorios Opcionales para Escalera'}
+            </span>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {/* Moldura Flush Nose */}
+              <div className="p-3 bg-[#FAFAFA] rounded-xl border border-[#E4E2DA] space-y-2">
+                <label className="flex items-center gap-2 cursor-pointer select-none">
+                  <input
+                    type="checkbox"
+                    checked={includeMoldings}
+                    onChange={(e) => {
+                      setIncludeMoldings(e.target.checked);
+                      if (e.target.checked && moldingsCount === 0) setMoldingsCount(1);
+                    }}
+                    className="w-4 h-4 accent-[#FF8407] rounded"
+                  />
+                  <span className="text-xs font-bold text-[#181818]">
+                    {isEn ? 'Flush Stair Nose Finish Moulding' : 'Moldura de Terminación Flush Nose'}
+                  </span>
+                </label>
+
+                {includeMoldings && (
+                  <div className="flex items-center gap-2 pt-1">
+                    <input
+                      type="number"
+                      min="1"
+                      value={moldingsCount}
+                      onChange={(e) => setMoldingsCount(Math.max(1, parseInt(e.target.value, 10) || 1))}
+                      className="w-20 text-xs font-bold font-mono bg-white border border-[#E4E2DA] rounded-lg px-2 py-1"
+                    />
+                    <span className="text-xs text-[#6B6A63]">{isEn ? 'pieces' : 'piezas'} @ {formatCurrency(moldingsUnitPrice)}</span>
+                  </div>
+                )}
+              </div>
+
+              {/* Rodapié Faldón */}
+              <div className="p-3 bg-[#FAFAFA] rounded-xl border border-[#E4E2DA] space-y-2">
+                <label className="flex items-center gap-2 cursor-pointer select-none">
+                  <input
+                    type="checkbox"
+                    checked={includeSkirt}
+                    onChange={(e) => {
+                      setIncludeSkirt(e.target.checked);
+                      if (e.target.checked && skirtFeet === 0) setSkirtFeet(16);
+                    }}
+                    className="w-4 h-4 accent-[#FF8407] rounded"
+                  />
+                  <span className="text-xs font-bold text-[#181818]">
+                    {isEn ? 'Skirt Baseboard' : 'Rodapié para Faldón (Skirt Baseboard)'}
+                  </span>
+                </label>
+
+                {includeSkirt && (
+                  <div className="flex items-center gap-2 pt-1">
+                    <input
+                      type="number"
+                      min="1"
+                      value={skirtFeet}
+                      onChange={(e) => setSkirtFeet(Math.max(1, parseInt(e.target.value, 10) || 1))}
+                      className="w-20 text-xs font-bold font-mono bg-white border border-[#E4E2DA] rounded-lg px-2 py-1"
+                    />
+                    <span className="text-xs text-[#6B6A63]">LF @ {formatCurrency(skirtPricePerFoot)}/LF</span>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
 
           {/* ======================================================== */}
           {/* 4) DESGLOSE Y TOTAL DE PIES CUADRADOS POR ESCALERA       */}
@@ -1000,20 +1360,45 @@ export const StairsCalculator: React.FC<StairsCalculatorProps> = ({
               <div className="flex items-center gap-2">
                 <Layers className="w-4 h-4 text-[#FF8407]" />
                 <h4 className="text-xs font-bold uppercase tracking-wider text-[#181818]">
-                  {language === 'en' ? 'Stairs Components Breakdown' : 'Desglose Detallado de la Escalera'}
+                  {isEn ? 'Detailed Staircase Breakdown' : 'Desglose Detallado de la Escalera'}
                 </h4>
               </div>
 
               {/* Total de pies cuadrados de piso por escalera */}
               {mode === 'completa' && (
                 <div className="px-3 py-1 bg-white rounded-lg border border-[#E4E2DA] text-xs font-mono font-bold text-[#181818]">
-                  Total piso escalera: <span className="text-[#FF8407]">{breakdown.totalFlooringSqft} sqft</span>
+                  {isEn ? 'Total stairs flooring:' : 'Total piso escalera:'} <span className="text-[#FF8407]">{breakdown.totalFlooringSqft} sqft</span>
                   <span className="text-[10px] text-[#9C9A90] font-normal ml-1">
-                    (≈ {breakdown.totalFlooringBoxesEquivalent} cajas)
+                    (≈ {breakdown.totalFlooringBoxesEquivalent} {isEn ? 'boxes' : 'cajas'})
                   </span>
                 </div>
               )}
             </div>
+
+            {/* Boxes callout box */}
+            {mode === 'completa' && (
+              <div className={`p-3 rounded-xl border text-xs flex items-center justify-between gap-3 ${
+                materialSupplier === 'client' 
+                  ? 'bg-amber-50 border-amber-300 text-amber-950 font-medium'
+                  : 'bg-emerald-50 border-emerald-300 text-emerald-950 font-medium'
+              }`}>
+                <div className="flex items-center gap-2">
+                  <Box className="w-4 h-4 text-[#FF8407] shrink-0" />
+                  <span>
+                    {materialSupplier === 'client'
+                      ? (isEn
+                          ? `Flooring boxes customer must bring to shop: ${breakdown.clientBoxesToProvide} boxes (${breakdown.totalFlooringSqft} sqft)`
+                          : `Cajas de piso que el cliente debe traer al taller: ${breakdown.clientBoxesToProvide} cajas (${breakdown.totalFlooringSqft} sqft)`)
+                      : (isEn
+                          ? `Flooring boxes supplied by QuickSurfaces: ${breakdown.totalBoxesNeeded} boxes (${breakdown.totalFlooringSqft} sqft)`
+                          : `Cajas de piso suministradas por QuickSurfaces: ${breakdown.totalBoxesNeeded} cajas (${breakdown.totalFlooringSqft} sqft)`)}
+                  </span>
+                </div>
+                <span className="font-mono font-bold px-2 py-0.5 rounded bg-white border border-black/10">
+                  {breakdown.totalBoxesNeeded} {isEn ? 'boxes total' : 'cajas total'}
+                </span>
+              </div>
+            )}
 
             {/* Line-by-line itemized breakdown preview */}
             <div className="space-y-2 text-xs">
@@ -1025,10 +1410,10 @@ export const StairsCalculator: React.FC<StairsCalculatorProps> = ({
                   </span>
                   <div className="min-w-0 leading-snug">
                     <span className="font-bold text-[#181818] block">
-                      Huellas / Steps ({selectedProduct.name})
+                      {isEn ? 'Stair Treads / Steps' : 'Huellas / Steps'} ({selectedProduct.name})
                     </span>
                     <span className="text-[#6B6A63] text-[11px]">
-                      {breakdown.stepsCount} peldaños (12" x 48") @ <strong className="text-[#181818] font-mono">{formatCurrency(breakdown.stepsUnitPrice)}</strong> c/u
+                      {breakdown.stepsCount} {isEn ? 'treads' : 'peldaños'} (12" x 48") @ <strong className="text-[#181818] font-mono">{formatCurrency(breakdown.stepsUnitPrice)}</strong> {isEn ? 'ea' : 'c/u'}
                     </span>
                   </div>
                 </div>
@@ -1048,13 +1433,13 @@ export const StairsCalculator: React.FC<StairsCalculatorProps> = ({
                       </span>
                       <div className="min-w-0 leading-snug">
                         <span className="font-bold text-[#181818] block">
-                          Contrahuellas ({riserType === 'white' ? 'Blanca Laminada' : `Color Piso ${activeCollectionName}`})
+                          {isEn ? 'Stair Risers' : 'Contrahuellas'} ({riserType === 'white' ? (isEn ? 'White Laminated' : 'Blanca Laminada') : (isEn ? `Matching Floor Color ${activeCollectionName}` : `Color Piso ${activeCollectionName}`)})
                         </span>
                         <span className="text-[#6B6A63] text-[11px]">
                           {riserType === 'white' ? (
-                            <>{breakdown.risersCount} contrahuellas @ <strong className="text-[#181818] font-mono">{formatCurrency(breakdown.risersUnitPrice)}</strong> c/u</>
+                            <>{breakdown.risersCount} {isEn ? 'risers' : 'contrahuellas'} @ <strong className="text-[#181818] font-mono">{formatCurrency(breakdown.risersUnitPrice)}</strong> {isEn ? 'ea' : 'c/u'}</>
                           ) : (
-                            <>{breakdown.risersCount} láminas ({breakdown.risersSqft} sqft) @ <strong className="text-[#181818] font-mono">{formatCurrency(breakdown.risersUnitPrice)}</strong>/lámina</>
+                            <>{breakdown.risersCount} {isEn ? 'planks' : 'láminas'} ({breakdown.risersSqft} sqft) @ <strong className="text-[#181818] font-mono">{formatCurrency(breakdown.risersUnitPrice)}</strong>{isEn ? '/plank' : '/lámina'}</>
                           )}
                         </span>
                       </div>
@@ -1072,10 +1457,10 @@ export const StairsCalculator: React.FC<StairsCalculatorProps> = ({
                       </span>
                       <div className="min-w-0 leading-snug">
                         <span className="font-bold text-[#181818] block">
-                          Material Complementario (Faltantes de Huellas)
+                          {isEn ? 'Complementary Material (Tread Extensions)' : 'Material Complementario (Faltantes de Huellas)'}
                         </span>
                         <span className="text-[#6B6A63] text-[11px]">
-                          {breakdown.complementaryPlanksCount} láminas ({breakdown.complementaryPlanksSqft} sqft) @ <strong className="text-[#181818] font-mono">{formatCurrency(breakdown.complementaryPlankUnitPrice)}</strong>/lámina
+                          {breakdown.complementaryPlanksCount} {isEn ? 'planks' : 'láminas'} ({breakdown.complementaryPlanksSqft} sqft) @ <strong className="text-[#181818] font-mono">{formatCurrency(breakdown.complementaryPlankUnitPrice)}</strong>{isEn ? '/plank' : '/lámina'}
                         </span>
                       </div>
                     </div>
@@ -1093,10 +1478,10 @@ export const StairsCalculator: React.FC<StairsCalculatorProps> = ({
                         </span>
                         <div className="min-w-0 leading-snug">
                           <span className="font-bold text-[#181818] block">
-                            Descansos de Escalera ({landingCount} {landingCount === 1 ? 'descanso' : 'descansos'})
+                            {isEn ? 'Stair Landings' : 'Descansos de Escalera'} ({landingCount} {isEn ? (landingCount === 1 ? 'landing' : 'landings') : (landingCount === 1 ? 'descanso' : 'descansos')})
                           </span>
                           <span className="text-[#6B6A63] text-[11px]">
-                            {breakdown.landingsBoxes} caja{breakdown.landingsBoxes !== 1 ? 's' : ''} ({breakdown.landingsSqft} sqft) @ <strong className="text-[#181818] font-mono">{formatCurrency(breakdown.boxUnitPrice)}</strong>/caja
+                            {breakdown.landingsBoxes} {isEn ? (breakdown.landingsBoxes === 1 ? 'box' : 'boxes') : (breakdown.landingsBoxes === 1 ? 'caja' : 'cajas')} ({breakdown.landingsSqft} sqft) @ <strong className="text-[#181818] font-mono">{formatCurrency(breakdown.boxUnitPrice)}</strong>{isEn ? '/box' : '/caja'}
                           </span>
                         </div>
                       </div>
@@ -1112,7 +1497,7 @@ export const StairsCalculator: React.FC<StairsCalculatorProps> = ({
             {/* Total Row */}
             <div className="pt-2 border-t border-[#E4E2DA] flex items-center justify-between">
               <span className="text-xs font-bold uppercase tracking-wider text-[#181818]">
-                Total de la Escalera:
+                {isEn ? 'Total Stairs Price:' : 'Total de la Escalera:'}
               </span>
               <span className="text-xl font-black font-mono text-[#FF8407]">
                 {formatCurrency(breakdown.totalStairsPrice)}
@@ -1169,8 +1554,12 @@ export const StairsCalculator: React.FC<StairsCalculatorProps> = ({
                 <Plus className="w-4 h-4" />
                 <span>
                   {mode === 'solo_steps'
-                    ? `+ Agregar ${stepCount} Peldaños a la Cotización (${formatCurrency(breakdown.totalStairsPrice)})`
-                    : `+ Agregar Escalera Completa con Componentes Separados (${formatCurrency(breakdown.totalStairsPrice)})`}
+                    ? (isEn
+                        ? `+ Add ${stepCount} Stair Treads to Quote (${formatCurrency(breakdown.totalStairsPrice)})`
+                        : `+ Agregar ${stepCount} Peldaños a la Cotización (${formatCurrency(breakdown.totalStairsPrice)})`)
+                    : (isEn
+                        ? `+ Add Full Staircase with Separate Components (${formatCurrency(breakdown.totalStairsPrice)})`
+                        : `+ Agregar Escalera Completa con Componentes Separados (${formatCurrency(breakdown.totalStairsPrice)})`)}
                 </span>
               </>
             )}

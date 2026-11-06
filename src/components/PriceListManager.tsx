@@ -172,9 +172,9 @@ export const PriceListManager: React.FC<PriceListManagerProps> = ({
   };
 
   // Handle Delete Product
-  const handleDeleteProduct = async (productId: string, productName: string) => {
+  const handleDeleteProduct = async (productId: string, productName: string): Promise<boolean> => {
     if (!window.confirm(`¿Estás seguro de eliminar "${productName}" del catálogo permanentemente?`)) {
-      return;
+      return false;
     }
 
     try {
@@ -182,9 +182,11 @@ export const PriceListManager: React.FC<PriceListManagerProps> = ({
       const updated = products.filter((p) => p.id !== productId);
       onUpdateProducts(updated);
       showFeedback('success', `"${productName}" eliminado del catálogo.`);
+      return true;
     } catch (err) {
       console.error('Error eliminando producto:', err);
       showFeedback('error', 'Error al eliminar el producto.');
+      return false;
     }
   };
 
@@ -1111,8 +1113,10 @@ export const PriceListManager: React.FC<PriceListManagerProps> = ({
             setSearchTerm('');
           }}
           onDeleteProduct={async (prodId, prodName) => {
-            await handleDeleteProduct(prodId, prodName);
-            setModalEditingProduct(null);
+            const deleted = await handleDeleteProduct(prodId, prodName);
+            if (deleted) {
+              setModalEditingProduct(null);
+            }
           }}
         />
       )}

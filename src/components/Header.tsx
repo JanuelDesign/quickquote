@@ -124,8 +124,21 @@ export const Header: React.FC<HeaderProps> = ({
             </div>
           </div>
 
-          {/* Right Controls: Only the More Options (···) button */}
-          <div className="flex items-center shrink-0">
+          {/* Right Controls: Prominent New Quote Button + More Options (···) */}
+          <div className="flex items-center gap-2 shrink-0">
+            {onNewQuote && (
+              <button
+                id="btn-header-new-quote"
+                type="button"
+                onClick={handleNewQuoteClick}
+                className="flex items-center gap-1.5 px-3 sm:px-3.5 py-1.5 sm:py-2 bg-[#FF8407] hover:bg-[#E07300] active:scale-95 text-white rounded-lg sm:rounded-xl font-bold text-xs shadow-xs transition-all cursor-pointer"
+                title={isEn ? 'Start New Quote & pick client' : 'Comenzar Nueva Cotización y elegir cliente'}
+              >
+                <Plus className="w-4 h-4 stroke-[2.5]" />
+                <span className="tracking-wide">{isEn ? 'New Quote' : 'Nueva Cotización'}</span>
+              </button>
+            )}
+
             {/* More options (···) icon button */}
             <button
               id="btn-header-menu"

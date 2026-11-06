@@ -13,6 +13,7 @@ import {
 interface FloorCalculatorProps {
   products: Product[];
   language?: Language;
+  clientCategory?: string;
   initialProductId?: string;
   initialColor?: ProductColor;
   initialSelectionKey?: number;
@@ -28,6 +29,7 @@ interface FloorCalculatorProps {
 export const FloorCalculator: React.FC<FloorCalculatorProps> = ({
   products,
   language = 'en',
+  clientCategory,
   initialProductId,
   initialColor,
   initialSelectionKey,
@@ -35,6 +37,9 @@ export const FloorCalculator: React.FC<FloorCalculatorProps> = ({
 }) => {
   const t = translations[language];
   const floorProducts = products.filter(p => p.category === 'piso');
+  const isHomeowner = clientCategory === 'Homeowner';
+  const multiplier = isHomeowner ? 1.30 : 1.0;
+  const getTargetRate = (base: number) => Number((base * multiplier).toFixed(2));
   
   // Step workflow: 1 = Model, 2 = Color, 3 = Dims/Price
   const [currentStep, setCurrentStep] = useState<1 | 2 | 3>(1);
@@ -43,7 +48,8 @@ export const FloorCalculator: React.FC<FloorCalculatorProps> = ({
     floorProducts[0]?.colors?.[0]
   );
   const [sqftInput, setSqftInput] = useState<string>('300');
-  const [pricePerSqft, setPricePerSqft] = useState<number>(floorProducts[0]?.basePrice || 1.49);
+  const initialBasePrice = floorProducts[0]?.basePrice || 1.49;
+  const [pricePerSqft, setPricePerSqft] = useState<number>(getTargetRate(initialBasePrice));
   const [notes, setNotes] = useState<string>('');
   const [addedSuccess, setAddedSuccess] = useState(false);
 
@@ -53,13 +59,13 @@ export const FloorCalculator: React.FC<FloorCalculatorProps> = ({
       const match = floorProducts.find(p => p.id === initialProductId);
       if (match) {
         setSelectedProduct(match);
-        setPricePerSqft(match.basePrice || 1.49);
+        setPricePerSqft(getTargetRate(match.basePrice || 1.49));
         setSelectedColor(initialColor || match.colors?.[0]);
         setCurrentStep(3);
         scrollToCalculatorTop();
       }
     }
-  }, [initialProductId, initialSelectionKey]);
+  }, [initialProductId, initialSelectionKey, multiplier]);
 
   // Live synchronization: when products change via Firestore, Admin updates, or search filter
   React.useEffect(() => {
@@ -102,12 +108,14 @@ export const FloorCalculator: React.FC<FloorCalculatorProps> = ({
     }, 40);
   };
 
+  const minAllowedPrice = getTargetRate(selectedProduct?.basePrice || 1.49);
+
   // Update selection when product changes - jump directly to Step 3 for immediate quantity entry!
   const handleProductSelect = (prod: Product, chosenColor?: ProductColor) => {
     setSelectedProduct(prod);
     const colorToSet = chosenColor || prod.colors?.[0] || undefined;
     setSelectedColor(colorToSet);
-    setPricePerSqft(prod.basePrice);
+    setPricePerSqft(getTargetRate(prod.basePrice));
     setCurrentStep(3);
     scrollToCalculatorTop();
   };
@@ -121,7 +129,8 @@ export const FloorCalculator: React.FC<FloorCalculatorProps> = ({
   const { boxesNeeded, totalSqftCovered, wastePercent } = calculateFloorUnits(sqftNumber, sqftPerBox);
 
   // Price calculations
-  const boxUnitPrice = Number((sqftPerBox * pricePerSqft).toFixed(2));
+  const effectivePricePerSqft = Math.max(minAllowedPrice, pricePerSqft);
+  const boxUnitPrice = Number((sqftPerBox * effectivePricePerSqft).toFixed(2));
   const subtotal = Number((boxesNeeded * boxUnitPrice).toFixed(2));
 
   const handleAddSqft = (amount: number) => {
@@ -130,12 +139,13 @@ export const FloorCalculator: React.FC<FloorCalculatorProps> = ({
   };
 
   const handlePriceMarkup = (delta: number) => {
-    setPricePerSqft(prev => Math.max(0.1, Number((prev + delta).toFixed(2))));
+    setPricePerSqft(prev => Math.max(minAllowedPrice, Number((prev + delta).toFixed(2))));
   };
 
   const handleAddToCart = () => {
     if (sqftNumber <= 0) return;
-    onAddToCart(selectedProduct, sqftNumber, pricePerSqft, selectedColor, notes);
+    const finalPrice = Math.max(minAllowedPrice, pricePerSqft);
+    onAddToCart(selectedProduct, sqftNumber, finalPrice, selectedColor, notes);
     setAddedSuccess(true);
     setTimeout(() => {
       setAddedSuccess(false);
@@ -449,7 +459,7 @@ export const FloorCalculator: React.FC<FloorCalculatorProps> = ({
                   {language === 'en' ? 'Required Area (Sq Ft)' : 'Área Necesaria (Sq Ft)'}
                 </label>
                 <span className="text-[10px] text-[#6B6A63] font-medium">
-                  {selectedProduct.sqftPerBox} sqft / caja
+                  {selectedProduct.sqftPerBox} {language === 'en' ? 'sqft / box' : 'sqft / caja'}
                 </span>
               </div>
 
@@ -466,7 +476,7 @@ export const FloorCalculator: React.FC<FloorCalculatorProps> = ({
 
               {/* Quick Add Chips */}
               <div className="flex flex-wrap items-center gap-1.5 pt-1">
-                <span className="text-[10px] text-[#9C9A90] font-semibold uppercase">Rápido:</span>
+                <span className="text-[10px] text-[#9C9A90] font-semibold uppercase">{language === 'en' ? 'Quick:' : 'Rápido:'}</span>
                 {[50, 100, 250, 500].map((amount) => (
                   <button
                     key={amount}
@@ -487,7 +497,7 @@ export const FloorCalculator: React.FC<FloorCalculatorProps> = ({
                   {language === 'en' ? 'Boxes Required (Standard Rounding)' : 'Cajas Requeridas (Redondeo)'}
                 </span>
                 <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-white/10 text-white font-mono">
-                  {boxesNeeded} {boxesNeeded === 1 ? 'caja' : 'cajas'}
+                  {boxesNeeded} {language === 'en' ? (boxesNeeded === 1 ? 'box' : 'boxes') : (boxesNeeded === 1 ? 'caja' : 'cajas')}
                 </span>
               </div>
 
@@ -496,13 +506,13 @@ export const FloorCalculator: React.FC<FloorCalculatorProps> = ({
                   {boxesNeeded} <span className="text-lg font-medium text-white">{language === 'en' ? 'Boxes' : 'Cajas'}</span>
                 </div>
                 <div className="text-xs text-[#C9C9C9] mt-2 flex items-center justify-between">
-                  <span>Cubre: <strong>{totalSqftCovered} sq ft</strong></span>
-                  <span>Rinde: <strong>{sqftPerBox} sqft/caja</strong></span>
+                  <span>{language === 'en' ? 'Covers:' : 'Cubre:'} <strong>{totalSqftCovered} sq ft</strong></span>
+                  <span>{language === 'en' ? 'Yields:' : 'Rinde:'} <strong>{sqftPerBox} {language === 'en' ? 'sqft/box' : 'sqft/caja'}</strong></span>
                 </div>
               </div>
 
               <div className="text-[11px] text-[#A8A8A8] pt-2 border-t border-zinc-800 flex justify-between">
-                <span>Merma estimada:</span>
+                <span>{language === 'en' ? 'Estimated waste:' : 'Merma estimada:'}</span>
                 <span className="font-mono text-zinc-300">+{wastePercent}% buffer</span>
               </div>
             </div>
@@ -514,7 +524,7 @@ export const FloorCalculator: React.FC<FloorCalculatorProps> = ({
                   {language === 'en' ? 'Selling Price per Sq Ft' : 'Precio de Venta / Sq Ft'}
                 </label>
                 <span className="text-[10px] text-[#6B6A63] font-mono">
-                  ${boxUnitPrice.toFixed(2)} / caja
+                  ${boxUnitPrice.toFixed(2)} {language === 'en' ? '/ box' : '/ caja'}
                 </span>
               </div>
 
@@ -534,7 +544,7 @@ export const FloorCalculator: React.FC<FloorCalculatorProps> = ({
 
               {/* Quick Markup Chips */}
               <div className="flex flex-wrap items-center gap-1.5 pt-1">
-                <span className="text-[10px] text-[#9C9A90] font-semibold uppercase">Margen:</span>
+                <span className="text-[10px] text-[#9C9A90] font-semibold uppercase">{language === 'en' ? 'Markup:' : 'Margen:'}</span>
                 {[0.10, 0.25, 0.50].map((delta) => (
                   <button
                     key={delta}
@@ -559,12 +569,12 @@ export const FloorCalculator: React.FC<FloorCalculatorProps> = ({
                   {formatCurrency(subtotal)}
                 </div>
                 <p className="text-[11px] text-[#6B6A63] mt-1">
-                  {boxesNeeded} cajas × ${boxUnitPrice.toFixed(2)}/caja
+                  {boxesNeeded} {language === 'en' ? (boxesNeeded === 1 ? 'box' : 'boxes') : (boxesNeeded === 1 ? 'caja' : 'cajas')} × ${boxUnitPrice.toFixed(2)}{language === 'en' ? '/box' : '/caja'}
                 </p>
               </div>
 
               <div className="text-[10px] text-[#9C9A90] pt-2 border-t border-[#E4E2DA]">
-                * Gravable con el 7% de sales tax de Florida en el total
+                {language === 'en' ? '* Subject to 7% Florida sales tax on grand total' : '* Gravable con el 7% de sales tax de Florida en el total'}
               </div>
             </div>
           </div>

@@ -24,7 +24,9 @@ import {
   Loader2,
   PlusCircle,
   Edit3,
-  History
+  History,
+  MapPin,
+  AlertCircle
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 
@@ -796,36 +798,136 @@ export const QuoteModal: React.FC<QuoteModalProps> = ({
               </div>
             </div>
 
-            {/* Shipping Address Section */}
-            <div className="bg-[#FAFAFA] p-3 sm:p-3.5 rounded-lg border border-[#E4E2DA] space-y-2">
-              <label className="flex items-center gap-2 cursor-pointer select-none">
-                <input
-                  type="checkbox"
-                  id="chk-same-as-billing"
-                  checked={sameAsBillingAddress}
-                  onChange={(e) => onToggleSameAsBilling?.(e.target.checked)}
-                  className="w-4 h-4 accent-[#FF8407] rounded cursor-pointer shrink-0"
-                />
-                <span className="text-xs font-bold text-[#181818]">
-                  {isEn ? 'Shipping address same as billing' : 'Dirección de entrega igual a la de facturación'}
+            {/* PASO / CHECK OBLIGATORIO DE DIRECCIÓN DE ENTREGA (ADICIONAL 2) */}
+            <div className="bg-[#FFFBF5] p-3.5 sm:p-4 rounded-xl border border-[#F0D5BA] space-y-3 shadow-2xs">
+              <div className="flex items-center justify-between gap-2 border-b border-[#F0D5BA] pb-2">
+                <div className="flex items-center gap-2">
+                  <div className="w-6 h-6 rounded-md bg-[#181818] text-[#FF8407] flex items-center justify-center shrink-0">
+                    <Truck className="w-3.5 h-3.5" />
+                  </div>
+                  <div>
+                    <span className="text-[11px] font-bold text-[#181818] uppercase tracking-wider block leading-tight">
+                      {isEn ? 'Delivery / Shipping Address Check' : 'Verificación de Dirección de Entrega'}
+                    </span>
+                    <span className="text-[10px] text-[#6B6A63] block">
+                      {isEn
+                        ? 'Confirm whether delivery is to the client registered address or a different location:'
+                        : '¿La entrega es en la misma dirección del cliente o en una dirección diferente?'}
+                    </span>
+                  </div>
+                </div>
+                <span className="text-[9px] font-bold uppercase px-2 py-0.5 rounded bg-[#FF8407]/10 text-[#FF8407] border border-[#FF8407]/30 shrink-0">
+                  {isEn ? 'Required Check' : 'Paso Requerido'}
                 </span>
-              </label>
+              </div>
 
+              {/* 2 Opción Selector: Misma vs Diferente */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                {/* Opción 1: Misma dirección del cliente */}
+                <button
+                  type="button"
+                  onClick={() => onToggleSameAsBilling?.(true)}
+                  className={`p-3 rounded-xl border text-left transition-all cursor-pointer flex flex-col justify-between gap-1.5 ${
+                    sameAsBillingAddress
+                      ? 'bg-white border-[#181818] ring-2 ring-[#181818] shadow-xs'
+                      : 'bg-[#FAFAFA] border-[#E4E2DA] hover:bg-white text-zinc-600'
+                  }`}
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold text-[#181818] flex items-center gap-1.5">
+                      <span className={`w-3.5 h-3.5 rounded-full border flex items-center justify-center ${
+                        sameAsBillingAddress ? 'border-[#FF8407] bg-[#FF8407]' : 'border-zinc-400 bg-white'
+                      }`}>
+                        {sameAsBillingAddress && <span className="w-1.5 h-1.5 rounded-full bg-white" />}
+                      </span>
+                      {isEn ? 'Client Registered Address' : 'Misma Dirección del Cliente'}
+                    </span>
+                    <span className="text-[9px] font-mono font-bold text-zinc-500 uppercase">
+                      {isEn ? 'Registered' : 'Registrada'}
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-[#6B6A63] line-clamp-2 pl-5">
+                    {quote.client.address || (isEn ? '(No address registered on client profile)' : '(Sin dirección registrada en ficha de cliente)')}
+                  </p>
+                </button>
+
+                {/* Opción 2: Dirección diferente */}
+                <button
+                  type="button"
+                  onClick={() => onToggleSameAsBilling?.(false)}
+                  className={`p-3 rounded-xl border text-left transition-all cursor-pointer flex flex-col justify-between gap-1.5 ${
+                    !sameAsBillingAddress
+                      ? 'bg-white border-[#FF8407] ring-2 ring-[#FF8407] shadow-xs'
+                      : 'bg-[#FAFAFA] border-[#E4E2DA] hover:bg-white text-zinc-600'
+                  }`}
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold text-[#181818] flex items-center gap-1.5">
+                      <span className={`w-3.5 h-3.5 rounded-full border flex items-center justify-center ${
+                        !sameAsBillingAddress ? 'border-[#FF8407] bg-[#FF8407]' : 'border-zinc-400 bg-white'
+                      }`}>
+                        {!sameAsBillingAddress && <span className="w-1.5 h-1.5 rounded-full bg-white" />}
+                      </span>
+                      {isEn ? 'Different Delivery Address' : 'Dirección de Entrega Diferente'}
+                    </span>
+                    <span className="text-[9px] font-mono font-bold text-[#FF8407] uppercase">
+                      {isEn ? 'Alternative' : 'Alternativa'}
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-[#6B6A63] pl-5">
+                    {isEn ? 'Deliver to job site, warehouse or alternate address' : 'Despacho a obra, almacén o dirección alterna'}
+                  </p>
+                </button>
+              </div>
+
+              {/* Si es diferente: Input para la dirección alternativa */}
               {!sameAsBillingAddress && (
-                <div className="pt-1.5 space-y-1">
-                  <label className="text-[10px] font-bold uppercase tracking-wider text-[#6B6A63] block">
-                    {isEn ? 'Shipping / Delivery Address' : 'Dirección de Entrega (Shipping Address)'}
-                  </label>
+                <div className="bg-white p-3 rounded-lg border border-[#FF8407] space-y-1.5 animate-fadeIn">
+                  <div className="flex items-center justify-between">
+                    <label className="text-[10px] font-bold uppercase tracking-wider text-[#181818] flex items-center gap-1.5">
+                      <MapPin className="w-3.5 h-3.5 text-[#FF8407]" />
+                      <span>{isEn ? 'Enter Alternative Job Site / Delivery Address *' : 'Ingresa la Dirección Alternativa de Entrega *'}</span>
+                    </label>
+                    {(!shippingAddress || !shippingAddress.trim()) && (
+                      <span className="text-[10px] font-bold text-red-600 flex items-center gap-1">
+                        <AlertCircle className="w-3 h-3" />
+                        <span>{isEn ? 'Required for PDF' : 'Requerida para el PDF'}</span>
+                      </span>
+                    )}
+                  </div>
                   <input
                     type="text"
                     id="input-shipping-address"
+                    required
                     value={shippingAddress}
                     onChange={(e) => onUpdateShippingAddress?.(e.target.value)}
                     placeholder={isEn ? 'e.g. 8320 NW 56th St, Doral, FL 33166' : 'Ej. 8320 NW 56th St, Doral, FL 33166'}
-                    className="w-full text-xs bg-white border border-[#E4E2DA] focus:border-[#FF8407] rounded-lg px-3 py-2 outline-none font-medium text-black"
+                    className="w-full text-xs bg-[#FFFDF9] border border-zinc-300 focus:border-[#FF8407] rounded-lg px-3 py-2.5 outline-none font-medium text-black"
                   />
                 </div>
               )}
+
+              {/* Resumen confirmado de dirección antes de generar el PDF */}
+              <div className="p-2.5 rounded-lg bg-emerald-50 border border-emerald-200 flex items-center justify-between gap-2 text-xs">
+                <div className="flex items-center gap-2 min-w-0">
+                  <div className="w-5 h-5 rounded-full bg-emerald-600 text-white flex items-center justify-center shrink-0">
+                    <Check className="w-3 h-3 stroke-[3]" />
+                  </div>
+                  <div className="min-w-0">
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-800 block">
+                      {isEn ? 'Confirmed Address for Official PDF:' : 'Dirección Confirmada para el PDF Oficial:'}
+                    </span>
+                    <span className="text-xs font-bold text-emerald-950 truncate block">
+                      {sameAsBillingAddress
+                        ? (quote.client.address || (isEn ? 'Client registered address' : 'Dirección del cliente'))
+                        : (shippingAddress?.trim() || (isEn ? '(Enter address above)' : '(Ingresa la dirección arriba)'))}
+                    </span>
+                  </div>
+                </div>
+                <span className="text-[10px] font-bold uppercase px-2 py-0.5 rounded bg-emerald-600 text-white shrink-0">
+                  {sameAsBillingAddress ? (isEn ? 'Client Address' : 'Del Cliente') : (isEn ? 'Custom Site' : 'En Obra')}
+                </span>
+              </div>
             </div>
 
             {/* Products in Quote - Vertically Stacked Cards */}
@@ -1047,11 +1149,26 @@ export const QuoteModal: React.FC<QuoteModalProps> = ({
         </div>
 
         {/* Modal Bottom: SINGLE PRIMARY BUTTON (Ver vista previa completa) */}
-        <div className="p-4 sm:p-5 border-t border-[#E4E2DA] bg-white shrink-0">
+        <div className="p-4 sm:p-5 border-t border-[#E4E2DA] bg-white shrink-0 space-y-2">
+          {!sameAsBillingAddress && (!shippingAddress || !shippingAddress.trim()) && (
+            <p className="text-[11px] text-amber-700 bg-amber-50 border border-amber-200 px-3 py-1.5 rounded-lg font-medium flex items-center gap-1.5">
+              <AlertCircle className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+              <span>{isEn ? 'Please enter the alternative delivery address before viewing the preview.' : 'Por favor ingresa la dirección de entrega alternativa antes de ver el documento.'}</span>
+            </p>
+          )}
+
           <button
             type="button"
             id="btn-open-full-preview"
-            onClick={() => setIsFullPreviewOpen(true)}
+            onClick={() => {
+              if (!sameAsBillingAddress && (!shippingAddress || !shippingAddress.trim())) {
+                const el = document.getElementById('input-shipping-address');
+                el?.focus();
+                alert(isEn ? 'Please enter the delivery address for this order.' : 'Por favor introduce la dirección de entrega para la orden.');
+                return;
+              }
+              setIsFullPreviewOpen(true);
+            }}
             className="w-full py-4 rounded-xl text-xs sm:text-sm font-bold uppercase tracking-wider bg-[#FF8407] hover:bg-[#E07300] active:scale-[0.99] text-white flex items-center justify-center gap-2.5 transition-all cursor-pointer shadow-md group"
           >
             <Eye className="w-5 h-5 text-white group-hover:scale-110 transition-transform" />

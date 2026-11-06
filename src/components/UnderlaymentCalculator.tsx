@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Product, Language } from '../types';
-import { formatCurrency } from '../utils/calculations';
+import { formatCurrency, getClientPriceMultiplier } from '../utils/calculations';
 import { translations } from '../utils/translations';
 import { 
   Check, 
@@ -17,6 +17,7 @@ import {
 interface UnderlaymentCalculatorProps {
   products: Product[];
   language?: Language;
+  clientCategory?: string;
   initialProductId?: string;
   initialSelectionKey?: number;
   onAddToCart: (
@@ -30,6 +31,7 @@ interface UnderlaymentCalculatorProps {
 export const UnderlaymentCalculator: React.FC<UnderlaymentCalculatorProps> = ({
   products,
   language = 'en',
+  clientCategory,
   initialProductId,
   initialSelectionKey,
   onAddToCart
@@ -37,15 +39,28 @@ export const UnderlaymentCalculator: React.FC<UnderlaymentCalculatorProps> = ({
   const t = translations[language];
   const underlaymentProducts = products.filter(p => p.category === 'underlayment');
   
+  const clientMultiplier = getClientPriceMultiplier(clientCategory);
+  const isHomeowner = clientMultiplier > 1.0;
+
   const [currentStep, setCurrentStep] = useState<1 | 2>(1);
   const [selectedProduct, setSelectedProduct] = useState<Product>(underlaymentProducts[0] || {} as Product);
   const [quantity, setQuantity] = useState<number>(5);
-  const [unitPrice, setUnitPrice] = useState<number>(underlaymentProducts[0]?.basePrice || 22.00);
+  const [unitPrice, setUnitPrice] = useState<number>(() => {
+    const raw = underlaymentProducts[0]?.basePrice || 22.00;
+    return Number((raw * clientMultiplier).toFixed(2));
+  });
   
   // Floor Area (Sqft) Helper
   const [areaSqft, setAreaSqft] = useState<string>('');
   const [notes, setNotes] = useState<string>('');
   const [addedSuccess, setAddedSuccess] = useState(false);
+
+  // Re-sync price if client category changes
+  React.useEffect(() => {
+    if (selectedProduct?.basePrice) {
+      setUnitPrice(Number((selectedProduct.basePrice * clientMultiplier).toFixed(2)));
+    }
+  }, [clientCategory, clientMultiplier, selectedProduct]);
 
   // Jump to specific product if passed via search selection
   React.useEffect(() => {
@@ -53,12 +68,12 @@ export const UnderlaymentCalculator: React.FC<UnderlaymentCalculatorProps> = ({
       const match = underlaymentProducts.find(p => p.id === initialProductId);
       if (match) {
         setSelectedProduct(match);
-        setUnitPrice(match.basePrice || 22.00);
+        setUnitPrice(Number(((match.basePrice || 22.00) * clientMultiplier).toFixed(2)));
         setCurrentStep(2);
         scrollToCalculatorTop();
       }
     }
-  }, [initialProductId, initialSelectionKey]);
+  }, [initialProductId, initialSelectionKey, clientMultiplier]);
 
   // Live synchronization
   React.useEffect(() => {
@@ -99,7 +114,7 @@ export const UnderlaymentCalculator: React.FC<UnderlaymentCalculatorProps> = ({
 
   const handleProductSelect = (prod: Product) => {
     setSelectedProduct(prod);
-    setUnitPrice(prod.basePrice);
+    setUnitPrice(Number((prod.basePrice * clientMultiplier).toFixed(2)));
     setCurrentStep(2);
     scrollToCalculatorTop();
   };
@@ -112,13 +127,14 @@ export const UnderlaymentCalculator: React.FC<UnderlaymentCalculatorProps> = ({
 
   const subtotal = Number((quantity * unitPrice).toFixed(2));
   const totalAreaCovered = quantity * rollCoverage;
+  const minAllowedPrice = Number(((selectedProduct.basePrice || 22.00) * clientMultiplier).toFixed(2));
 
   const handleAddQty = (amount: number) => {
     setQuantity(prev => Math.max(1, prev + amount));
   };
 
   const handlePriceMarkup = (delta: number) => {
-    setUnitPrice(prev => Math.max(1, Number((prev + delta).toFixed(2))));
+    setUnitPrice(prev => Math.max(minAllowedPrice, Number((prev + delta).toFixed(2))));
   };
 
   const handleAddToCart = () => {
@@ -371,7 +387,7 @@ export const UnderlaymentCalculator: React.FC<UnderlaymentCalculatorProps> = ({
                     onClick={() => handleAddQty(delta)}
                     className="px-2.5 py-2 bg-zinc-100 hover:bg-zinc-200 text-black text-xs font-bold rounded-lg transition-colors cursor-pointer"
                   >
-                    +{delta} rollo{delta > 1 ? 's' : ''}
+                    +{delta} {language === 'en' ? (delta > 1 ? 'rolls' : 'roll') : (delta > 1 ? 'rollos' : 'rollo')}
                   </button>
                 ))}
               </div>
@@ -385,7 +401,7 @@ export const UnderlaymentCalculator: React.FC<UnderlaymentCalculatorProps> = ({
                 {language === 'en' ? 'Sell Price per Roll ($)' : 'Precio de Venta por Rollo ($)'}:
               </label>
               <span className="text-[11px] text-zinc-400 font-medium">
-                {language === 'en' ? 'Base Cost' : 'Costo Base'}: {formatCurrency(selectedProduct.basePrice)} / rollo
+                {language === 'en' ? 'Base Cost' : 'Costo Base'}: {formatCurrency(selectedProduct.basePrice)} {language === 'en' ? '/ roll' : '/ rollo'}
               </span>
             </div>
 
@@ -426,7 +442,7 @@ export const UnderlaymentCalculator: React.FC<UnderlaymentCalculatorProps> = ({
               type="text"
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
-              placeholder="Ej. Aislante para toda la segunda planta..."
+              placeholder={language === 'en' ? 'e.g. Acoustic underlayment for entire 2nd floor...' : 'Ej. Aislante para toda la segunda planta...'}
               className="w-full text-xs px-3 py-2 bg-zinc-50 border border-zinc-300 rounded-lg outline-none focus:bg-white focus:ring-2 focus:ring-[#FF8407]"
             />
           </div>
@@ -442,7 +458,7 @@ export const UnderlaymentCalculator: React.FC<UnderlaymentCalculatorProps> = ({
                   {formatCurrency(subtotal)}
                 </span>
                 <span className="text-xs text-zinc-500 font-medium">
-                  ({quantity} {quantity === 1 ? 'rollo' : 'rollos'} × {formatCurrency(unitPrice)})
+                  ({quantity} {language === 'en' ? (quantity === 1 ? 'roll' : 'rolls') : (quantity === 1 ? 'rollo' : 'rollos')} × {formatCurrency(unitPrice)})
                 </span>
               </div>
             </div>

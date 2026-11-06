@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Product, ProductColor, Language } from '../types';
-import { formatCurrency } from '../utils/calculations';
+import { formatCurrency, getClientPriceMultiplier } from '../utils/calculations';
 import { translations } from '../utils/translations';
 import { 
   Check, 
@@ -17,6 +17,7 @@ import {
 interface WallPanelsCalculatorProps {
   products: Product[];
   language?: Language;
+  clientCategory?: string;
   initialProductId?: string;
   initialColor?: ProductColor;
   initialSelectionKey?: number;
@@ -32,6 +33,7 @@ interface WallPanelsCalculatorProps {
 export const WallPanelsCalculator: React.FC<WallPanelsCalculatorProps> = ({
   products,
   language = 'en',
+  clientCategory,
   initialProductId,
   initialColor,
   initialSelectionKey,
@@ -40,10 +42,16 @@ export const WallPanelsCalculator: React.FC<WallPanelsCalculatorProps> = ({
   const t = translations[language];
   const panelProducts = products.filter(p => p.category === 'wall_panels');
   
+  const clientMultiplier = getClientPriceMultiplier(clientCategory);
+  const isHomeowner = clientMultiplier > 1.0;
+
   const [currentStep, setCurrentStep] = useState<1 | 2>(1);
   const [selectedProduct, setSelectedProduct] = useState<Product>(panelProducts[0] || {} as Product);
   const [quantity, setQuantity] = useState<number>(10);
-  const [unitPrice, setUnitPrice] = useState<number>(panelProducts[0]?.basePrice || 17.00);
+  const [unitPrice, setUnitPrice] = useState<number>(() => {
+    const raw = panelProducts[0]?.basePrice || 17.00;
+    return Number((raw * clientMultiplier).toFixed(2));
+  });
   const [selectedColor, setSelectedColor] = useState<ProductColor | undefined>(
     panelProducts[0]?.colors?.[0]
   );
@@ -53,19 +61,26 @@ export const WallPanelsCalculator: React.FC<WallPanelsCalculatorProps> = ({
   const [notes, setNotes] = useState<string>('');
   const [addedSuccess, setAddedSuccess] = useState(false);
 
+  // Re-sync price if client category changes
+  React.useEffect(() => {
+    if (selectedProduct?.basePrice) {
+      setUnitPrice(Number((selectedProduct.basePrice * clientMultiplier).toFixed(2)));
+    }
+  }, [clientCategory, clientMultiplier, selectedProduct]);
+
   // Jump to specific product if passed via search selection
   React.useEffect(() => {
     if (initialProductId) {
       const match = panelProducts.find(p => p.id === initialProductId);
       if (match) {
         setSelectedProduct(match);
-        setUnitPrice(match.basePrice || 17.00);
+        setUnitPrice(Number(((match.basePrice || 17.00) * clientMultiplier).toFixed(2)));
         setSelectedColor(initialColor || match.colors?.[0]);
         setCurrentStep(2);
         scrollToCalculatorTop();
       }
     }
-  }, [initialProductId, initialSelectionKey]);
+  }, [initialProductId, initialSelectionKey, clientMultiplier]);
 
   // Live synchronization: when products change via Firestore, Admin updates, or search filter
   React.useEffect(() => {
@@ -108,7 +123,7 @@ export const WallPanelsCalculator: React.FC<WallPanelsCalculatorProps> = ({
 
   const handleProductSelect = (prod: Product) => {
     setSelectedProduct(prod);
-    setUnitPrice(prod.basePrice);
+    setUnitPrice(Number((prod.basePrice * clientMultiplier).toFixed(2)));
     setSelectedColor(prod.colors?.[0]);
     setCurrentStep(2);
     scrollToCalculatorTop();
@@ -130,13 +145,14 @@ export const WallPanelsCalculator: React.FC<WallPanelsCalculatorProps> = ({
   };
 
   const subtotal = Number((quantity * unitPrice).toFixed(2));
+  const minAllowedPrice = Number(((selectedProduct.basePrice || 17.00) * clientMultiplier).toFixed(2));
 
   const handleAddQty = (amount: number) => {
     setQuantity(prev => Math.max(1, prev + amount));
   };
 
   const handlePriceMarkup = (delta: number) => {
-    setUnitPrice(prev => Math.max(1, Number((prev + delta).toFixed(2))));
+    setUnitPrice(prev => Math.max(minAllowedPrice, Number((prev + delta).toFixed(2))));
   };
 
   const handleAddToCart = () => {
@@ -400,10 +416,10 @@ export const WallPanelsCalculator: React.FC<WallPanelsCalculatorProps> = ({
                     handleCalcFromWidth(val);
                   }
                 }}
-                placeholder="Ej. 12 ft de ancho"
+                placeholder={language === 'en' ? 'e.g. 12 ft wide' : 'Ej. 12 ft de ancho'}
                 className="w-44 text-xs font-semibold px-3 py-2 bg-white border border-zinc-300 rounded-lg outline-none focus:ring-2 focus:ring-[#FF8407]"
               />
-              <span className="text-xs text-zinc-600 font-medium">ft de pared</span>
+              <span className="text-xs text-zinc-600 font-medium">{language === 'en' ? 'ft of wall' : 'ft de pared'}</span>
               {wallWidthFeet && (
                 <span className="text-xs font-bold text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-md border border-emerald-200 ml-auto">
                   ≈ {quantity} {language === 'en' ? 'panels recommended' : 'paneles calculados'}
@@ -505,7 +521,7 @@ export const WallPanelsCalculator: React.FC<WallPanelsCalculatorProps> = ({
               type="text"
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
-              placeholder="Ej. Pared de sala principal fondo de TV..."
+              placeholder={language === 'en' ? 'e.g. Living room TV accent wall...' : 'Ej. Pared de sala principal fondo de TV...'}
               className="w-full text-xs px-3 py-2 bg-zinc-50 border border-zinc-300 rounded-lg outline-none focus:bg-white focus:ring-2 focus:ring-[#FF8407]"
             />
           </div>
@@ -521,7 +537,7 @@ export const WallPanelsCalculator: React.FC<WallPanelsCalculatorProps> = ({
                   {formatCurrency(subtotal)}
                 </span>
                 <span className="text-xs text-zinc-500 font-medium">
-                  ({quantity} {quantity === 1 ? 'panel' : 'paneles'} × {formatCurrency(unitPrice)})
+                  ({quantity} {language === 'en' ? (quantity === 1 ? 'panel' : 'panels') : (quantity === 1 ? 'panel' : 'paneles')} × {formatCurrency(unitPrice)})
                 </span>
               </div>
             </div>

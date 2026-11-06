@@ -1073,6 +1073,8 @@ export const INITIAL_CLIENTS: Client[] = [
   {
     id: 'cli-001',
     name: 'Constructora Horizon LLC',
+    personType: 'juridica',
+    legalName: 'Horizon Construction Enterprises LLC',
     clientType: 'Contractor',
     phone: '+1 (786) 450-9921',
     email: 'contacto@constructorahorizon.com',
@@ -1084,6 +1086,8 @@ export const INITIAL_CLIENTS: Client[] = [
   {
     id: 'cli-002',
     name: 'Artisan Floor Installations',
+    personType: 'juridica',
+    legalName: 'Artisan Floor Installations Corp',
     clientType: 'Installer',
     phone: '+1 (305) 882-1433',
     email: 'artisan.floors@gmail.com',
@@ -1095,6 +1099,7 @@ export const INITIAL_CLIENTS: Client[] = [
   {
     id: 'cli-003',
     name: 'Valeria Mendoza',
+    personType: 'natural',
     clientType: 'Designer',
     phone: '+1 (954) 731-5088',
     email: 'valeria@mendozainteriors.com',
@@ -1102,5 +1107,17 @@ export const INITIAL_CLIENTS: Client[] = [
     address: '880 Ocean Drive, Miami Beach FL',
     notes: 'Diseñadora de interiores residencial y comercial',
     createdAt: '2026-02-28T09:15:00.000Z'
+  },
+  {
+    id: 'cli-004',
+    name: 'Roberto Gómez',
+    personType: 'natural',
+    clientType: 'Homeowner',
+    phone: '+1 (305) 555-0144',
+    email: 'roberto.gomez@gmail.com',
+    company: 'N.A.',
+    address: '10420 NW 41st St, Doral, FL 33178',
+    notes: 'Cliente particular para remodelación de vivienda (Tarifa Homeowner +30%)',
+    createdAt: '2026-03-01T11:00:00.000Z'
   }
 ];

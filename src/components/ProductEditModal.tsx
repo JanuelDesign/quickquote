@@ -79,8 +79,9 @@ export const ProductEditModal: React.FC<ProductEditModalProps> = ({
   // Confirmation for deleting a variant
   const [variantToDeleteIndex, setVariantToDeleteIndex] = useState<number | null>(null);
 
-  // Saving state & feedback
+  // Saving & deleting state & feedback
   const [isSaving, setIsSaving] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
@@ -218,6 +219,20 @@ export const ProductEditModal: React.FC<ProductEditModalProps> = ({
       setErrorMessage(`Error al guardar cambios: ${err.message || 'Error de conexión'}`);
     } finally {
       setIsSaving(false);
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!onDeleteProduct || isDeleting || isSaving) return;
+    setIsDeleting(true);
+    setErrorMessage(null);
+    try {
+      await onDeleteProduct(formData.id, formData.name);
+    } catch (err: any) {
+      console.error('Error al eliminar producto:', err);
+      setErrorMessage(`Error al eliminar: ${err?.message || 'Error desconocido'}`);
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -1018,13 +1033,22 @@ export const ProductEditModal: React.FC<ProductEditModalProps> = ({
           {!isNew && onDeleteProduct ? (
             <button
               type="button"
-              disabled={isSaving}
-              onClick={() => onDeleteProduct(formData.id, formData.name)}
-              className="px-3.5 py-2 text-xs font-bold text-red-600 hover:text-red-700 bg-red-50 hover:bg-red-100 border border-red-200 rounded-lg transition-colors flex items-center gap-1.5 cursor-pointer uppercase tracking-wider w-full sm:w-auto justify-center"
+              disabled={isSaving || isDeleting}
+              onClick={handleDelete}
+              className="px-3.5 py-2 text-xs font-bold text-red-600 hover:text-red-700 bg-red-50 hover:bg-red-100 disabled:opacity-50 border border-red-200 rounded-lg transition-colors flex items-center gap-1.5 cursor-pointer uppercase tracking-wider w-full sm:w-auto justify-center"
               title="Eliminar este producto del catálogo permanentemente"
             >
-              <Trash2 className="w-3.5 h-3.5 text-red-500 shrink-0" />
-              <span>Eliminar producto</span>
+              {isDeleting ? (
+                <>
+                  <div className="w-3.5 h-3.5 border-2 border-red-600 border-t-transparent rounded-full animate-spin shrink-0"></div>
+                  <span>Eliminando...</span>
+                </>
+              ) : (
+                <>
+                  <Trash2 className="w-3.5 h-3.5 text-red-500 shrink-0" />
+                  <span>Eliminar producto</span>
+                </>
+              )}
             </button>
           ) : (
             <div className="text-[11px] text-zinc-500 flex items-center gap-1.5">

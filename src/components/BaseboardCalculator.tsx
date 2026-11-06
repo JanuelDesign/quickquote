@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Product, ProductColor, Language } from '../types';
-import { calculateBaseboardUnits, formatCurrency } from '../utils/calculations';
+import { calculateBaseboardUnits, formatCurrency, getClientPriceMultiplier } from '../utils/calculations';
 import { translations } from '../utils/translations';
 import { 
   Check, 
@@ -12,6 +12,7 @@ import {
 interface BaseboardCalculatorProps {
   products: Product[];
   language?: Language;
+  clientCategory?: string;
   initialProductId?: string;
   initialSelectionKey?: number;
   onAddToCart: (
@@ -26,6 +27,7 @@ interface BaseboardCalculatorProps {
 export const BaseboardCalculator: React.FC<BaseboardCalculatorProps> = ({
   products,
   language = 'en',
+  clientCategory,
   initialProductId,
   initialSelectionKey,
   onAddToCart
@@ -33,12 +35,25 @@ export const BaseboardCalculator: React.FC<BaseboardCalculatorProps> = ({
   const t = translations[language];
   const baseboardProducts = products.filter(p => p.category === 'rodapie');
   
+  const clientMultiplier = getClientPriceMultiplier(clientCategory);
+  const isHomeowner = clientMultiplier > 1.0;
+
   const [currentStep, setCurrentStep] = useState<1 | 2>(1);
   const [selectedProduct, setSelectedProduct] = useState<Product>(baseboardProducts[0] || {} as Product);
   const [linearFeetInput, setLinearFeetInput] = useState<string>('134');
-  const [pricePerLinearFt, setPricePerLinearFt] = useState<number>(baseboardProducts[0]?.basePrice || 1.19);
+  const [pricePerLinearFt, setPricePerLinearFt] = useState<number>(() => {
+    const raw = baseboardProducts[0]?.basePrice || 1.19;
+    return Number((raw * clientMultiplier).toFixed(2));
+  });
   const [notes, setNotes] = useState<string>('');
   const [addedSuccess, setAddedSuccess] = useState(false);
+
+  // Re-sync price if client category changes
+  React.useEffect(() => {
+    if (selectedProduct?.basePrice) {
+      setPricePerLinearFt(Number((selectedProduct.basePrice * clientMultiplier).toFixed(2)));
+    }
+  }, [clientCategory, clientMultiplier, selectedProduct]);
 
   // Jump to specific product if passed via search selection
   React.useEffect(() => {
@@ -46,12 +61,12 @@ export const BaseboardCalculator: React.FC<BaseboardCalculatorProps> = ({
       const match = baseboardProducts.find(p => p.id === initialProductId);
       if (match) {
         setSelectedProduct(match);
-        setPricePerLinearFt(match.basePrice || 1.19);
+        setPricePerLinearFt(Number(((match.basePrice || 1.19) * clientMultiplier).toFixed(2)));
         setCurrentStep(2);
         scrollToCalculatorTop();
       }
     }
-  }, [initialProductId, initialSelectionKey]);
+  }, [initialProductId, initialSelectionKey, clientMultiplier]);
 
   // Live synchronization
   React.useEffect(() => {
@@ -83,7 +98,7 @@ export const BaseboardCalculator: React.FC<BaseboardCalculatorProps> = ({
 
   const handleProductSelect = (prod: Product) => {
     setSelectedProduct(prod);
-    setPricePerLinearFt(prod.basePrice);
+    setPricePerLinearFt(Number((prod.basePrice * clientMultiplier).toFixed(2)));
     setCurrentStep(2);
     scrollToCalculatorTop();
   };
@@ -95,13 +110,15 @@ export const BaseboardCalculator: React.FC<BaseboardCalculatorProps> = ({
   const stripUnitPrice = Number((stripLength * pricePerLinearFt).toFixed(2));
   const subtotal = Number((stripsNeeded * stripUnitPrice).toFixed(2));
 
+  const minAllowedPrice = Number(((selectedProduct.basePrice || 1.19) * clientMultiplier).toFixed(2));
+
   const handleAddLF = (amount: number) => {
     const current = parseFloat(linearFeetInput) || 0;
     setLinearFeetInput(Math.max(0, current + amount).toString());
   };
 
   const handlePriceMarkup = (delta: number) => {
-    setPricePerLinearFt(prev => Math.max(0.1, Number((prev + delta).toFixed(2))));
+    setPricePerLinearFt(prev => Math.max(minAllowedPrice, Number((prev + delta).toFixed(2))));
   };
 
   const handleAddToCart = () => {
@@ -319,7 +336,7 @@ export const BaseboardCalculator: React.FC<BaseboardCalculatorProps> = ({
                   {language === 'en' ? 'Strips Needed (Ceil to 16 ft)' : 'Tiras Necesarias (Múltiplos de 16 ft)'}
                 </span>
                 <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-white/10 text-white font-mono">
-                  {stripsNeeded} {stripsNeeded === 1 ? 'tira' : 'tiras'}
+                  {stripsNeeded} {language === 'en' ? (stripsNeeded === 1 ? 'strip' : 'strips') : (stripsNeeded === 1 ? 'tira' : 'tiras')}
                 </span>
               </div>
 
@@ -328,13 +345,13 @@ export const BaseboardCalculator: React.FC<BaseboardCalculatorProps> = ({
                   {stripsNeeded} <span className="text-lg font-medium text-white">{language === 'en' ? 'Strips' : 'Tiras'}</span>
                 </div>
                 <div className="text-xs text-[#C9C9C9] mt-2 flex items-center justify-between">
-                  <span>Cubre: <strong>{totalLinearFeetCovered} LF</strong></span>
-                  <span>Longitud: <strong>{stripLength} ft/tira</strong></span>
+                  <span>{language === 'en' ? 'Covers:' : 'Cubre:'} <strong>{totalLinearFeetCovered} LF</strong></span>
+                  <span>{language === 'en' ? 'Length:' : 'Longitud:'} <strong>{stripLength} {language === 'en' ? 'ft/strip' : 'ft/tira'}</strong></span>
                 </div>
               </div>
 
               <div className="text-[11px] text-[#A8A8A8] pt-2 border-t border-zinc-800 flex justify-between">
-                <span>Sobrante estimado:</span>
+                <span>{language === 'en' ? 'Estimated surplus:' : 'Sobrante estimado:'}</span>
                 <span className="font-mono text-zinc-300">+{surplusFeet} ft</span>
               </div>
             </div>
@@ -346,7 +363,7 @@ export const BaseboardCalculator: React.FC<BaseboardCalculatorProps> = ({
                   {language === 'en' ? 'Selling Price per Linear Foot' : 'Precio de Venta / Pie Lineal'}
                 </label>
                 <span className="text-[10px] text-[#6B6A63] font-mono">
-                  ${stripUnitPrice.toFixed(2)} / tira
+                  ${stripUnitPrice.toFixed(2)} {language === 'en' ? '/ strip' : '/ tira'}
                 </span>
               </div>
 
@@ -366,7 +383,7 @@ export const BaseboardCalculator: React.FC<BaseboardCalculatorProps> = ({
 
               {/* Quick Markup Chips */}
               <div className="flex flex-wrap items-center gap-1.5 pt-1">
-                <span className="text-[10px] text-[#9C9A90] font-semibold uppercase">Margen:</span>
+                <span className="text-[10px] text-[#9C9A90] font-semibold uppercase">{language === 'en' ? 'Markup:' : 'Margen:'}</span>
                 {[0.10, 0.25, 0.50].map((delta) => (
                   <button
                     key={delta}
@@ -391,12 +408,12 @@ export const BaseboardCalculator: React.FC<BaseboardCalculatorProps> = ({
                   {formatCurrency(subtotal)}
                 </div>
                 <p className="text-[11px] text-[#6B6A63] mt-1">
-                  {stripsNeeded} tiras × ${stripUnitPrice.toFixed(2)}/tira
+                  {stripsNeeded} {language === 'en' ? (stripsNeeded === 1 ? 'strip' : 'strips') : (stripsNeeded === 1 ? 'tira' : 'tiras')} × ${stripUnitPrice.toFixed(2)}{language === 'en' ? '/strip' : '/tira'}
                 </p>
               </div>
 
               <div className="text-[10px] text-[#9C9A90] pt-2 border-t border-[#E4E2DA]">
-                * Gravable con el 7% de sales tax de Florida en el total
+                {language === 'en' ? '* Subject to 7% Florida sales tax on grand total' : '* Gravable con el 7% de sales tax de Florida en el total'}
               </div>
             </div>
           </div>

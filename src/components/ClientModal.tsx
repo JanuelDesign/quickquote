@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Client, Quotation, Language, ClientCategory, CLIENT_CATEGORIES } from '../types';
+import { Client, Quotation, Language, ClientCategory, CLIENT_CATEGORIES, PersonType } from '../types';
 import { 
   Users, 
   UserPlus, 
@@ -13,7 +13,10 @@ import {
   ChevronDown,
   Edit2,
   Loader2,
-  AlertCircle
+  AlertCircle,
+  Building2,
+  User,
+  MapPin
 } from 'lucide-react';
 import { translations } from '../utils/translations';
 
@@ -50,7 +53,10 @@ export const ClientModal: React.FC<ClientModalProps> = ({
   const [editingClient, setEditingClient] = useState<Client | null>(null);
 
   // Form state
+  const [personType, setPersonType] = useState<PersonType>('natural');
   const [name, setName] = useState('');
+  const [legalName, setLegalName] = useState('');
+  const [company, setCompany] = useState('N.A.');
   const [clientType, setClientType] = useState<ClientCategory>('Contractor');
   const [phone, setPhone] = useState('');
   const [email, setEmail] = useState('');
@@ -62,7 +68,10 @@ export const ClientModal: React.FC<ClientModalProps> = ({
   const [saveError, setSaveError] = useState<string | null>(null);
 
   const resetForm = () => {
+    setPersonType('natural');
     setName('');
+    setLegalName('');
+    setCompany('N.A.');
     setClientType('Contractor');
     setPhone('');
     setEmail('');
@@ -79,7 +88,10 @@ export const ClientModal: React.FC<ClientModalProps> = ({
 
   const handleStartEdit = (client: Client) => {
     setEditingClient(client);
-    setName(client.name);
+    setPersonType(client.personType || (client.legalName ? 'juridica' : 'natural'));
+    setName(client.name || '');
+    setLegalName(client.legalName || '');
+    setCompany(client.company || (client.personType === 'juridica' ? '' : 'N.A.'));
     setClientType((client.clientType as ClientCategory) || 'Contractor');
     setPhone(client.phone || '');
     setEmail(client.email || '');
@@ -89,9 +101,24 @@ export const ClientModal: React.FC<ClientModalProps> = ({
     setActiveTab('create');
   };
 
+  const handlePersonTypeChange = (type: PersonType) => {
+    setPersonType(type);
+    if (type === 'natural') {
+      if (!company.trim() || company === '') {
+        setCompany('N.A.');
+      }
+    } else {
+      if (company === 'N.A.') {
+        setCompany('');
+      }
+    }
+  };
+
   const filteredClients = clients.filter(c => {
     const matchesSearch = 
       c.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (c.legalName && c.legalName.toLowerCase().includes(searchTerm.toLowerCase())) ||
+      (c.company && c.company.toLowerCase().includes(searchTerm.toLowerCase())) ||
       (c.clientType && c.clientType.toLowerCase().includes(searchTerm.toLowerCase())) ||
       (c.phone && c.phone.includes(searchTerm)) ||
       (c.email && c.email.toLowerCase().includes(searchTerm.toLowerCase()));
@@ -103,19 +130,71 @@ export const ClientModal: React.FC<ClientModalProps> = ({
 
   const handleCreateSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!name.trim()) return;
+    setSaveError(null);
+
+    // Mandatory Validations: Nombre, Teléfono, Correo, Compañía, Tipo, Dirección
+    const trimmedName = name.trim();
+    const trimmedPhone = phone.trim();
+    const trimmedEmail = email.trim();
+    const trimmedAddress = address.trim();
+    let trimmedCompany = company.trim();
+    if (personType === 'natural' && (!trimmedCompany || trimmedCompany === '')) {
+      trimmedCompany = 'N.A.';
+    }
+
+    if (!trimmedName) {
+      setSaveError(language === 'en' ? 'Client Name is required.' : 'El Nombre del cliente es obligatorio.');
+      return;
+    }
+
+    if (personType === 'juridica' && !legalName.trim()) {
+      setSaveError(language === 'en' ? 'Legal Name / Business Name is required for Legal Entity.' : 'La Razón Social / Nombre Jurídico es obligatoria para Persona Jurídica.');
+      return;
+    }
+
+    if (!trimmedPhone) {
+      setSaveError(language === 'en' ? 'Phone number is required.' : 'El número de Teléfono es obligatorio.');
+      return;
+    }
+
+    if (!trimmedEmail) {
+      setSaveError(language === 'en' ? 'Email is required.' : 'El Correo Electrónico es obligatorio.');
+      return;
+    }
+
+    if (!trimmedEmail.includes('@') || !trimmedEmail.includes('.')) {
+      setSaveError(language === 'en' ? 'Please enter a valid email address.' : 'Por favor ingresa un correo electrónico válido (ej. cliente@empresa.com).');
+      return;
+    }
+
+    if (!trimmedCompany) {
+      setSaveError(language === 'en' ? 'Company name is required (use "N.A." for individuals).' : 'El campo Compañía es obligatorio (usa "N.A." para personas naturales).');
+      return;
+    }
+
+    if (!clientType) {
+      setSaveError(language === 'en' ? 'Client Type / Category is required.' : 'El Tipo / Categoría de cliente es obligatorio.');
+      return;
+    }
+
+    if (!trimmedAddress) {
+      setSaveError(language === 'en' ? 'Physical address is required.' : 'La Dirección física / fiscal es obligatoria.');
+      return;
+    }
 
     setIsSaving(true);
-    setSaveError(null);
 
     // Explicitly clean fields: strings are trimmed, no undefined properties
     const clientToSave: Client = {
       id: editingClient?.id || `client-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
-      name: name.trim(),
+      name: trimmedName,
+      personType,
+      legalName: personType === 'juridica' ? (legalName.trim() || trimmedName) : undefined,
       clientType: clientType,
-      phone: phone.trim(),
-      email: email.trim() || '',
-      address: address.trim() || '',
+      phone: trimmedPhone,
+      email: trimmedEmail,
+      company: trimmedCompany,
+      address: trimmedAddress,
       notes: notes.trim() || '',
       createdAt: editingClient?.createdAt || new Date().toISOString()
     };
@@ -293,6 +372,7 @@ export const ClientModal: React.FC<ClientModalProps> = ({
                 filteredClients.map((client) => {
                   const isSelected = currentClient?.id === client.id;
                   const quoteCount = getClientQuoteCount(client.id);
+                  const isJuridica = client.personType === 'juridica' || Boolean(client.legalName);
 
                   return (
                     <div
@@ -304,25 +384,52 @@ export const ClientModal: React.FC<ClientModalProps> = ({
                       }`}
                     >
                       <div className="flex items-start gap-3 min-w-0 flex-1">
-                        <div className={`w-8 h-8 rounded-md flex items-center justify-center font-bold text-xs shrink-0 ${
+                        <div className={`w-9 h-9 rounded-md flex items-center justify-center font-bold text-xs shrink-0 ${
                           isSelected ? 'bg-black text-[#FF8407]' : 'bg-zinc-100 text-zinc-700'
                         }`}>
-                          {client.name.charAt(0).toUpperCase()}
+                          {isJuridica ? <Building2 className="w-4 h-4" /> : <User className="w-4 h-4" />}
                         </div>
 
-                        <div className="min-w-0 flex-1">
+                        <div className="min-w-0 flex-1 space-y-1">
                           <div className="flex items-center gap-2 flex-wrap">
                             <h4 className="text-xs sm:text-sm font-bold text-black leading-snug break-words">
                               {client.name}
                             </h4>
+                            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md border ${
+                              isJuridica 
+                                ? 'bg-blue-50 text-blue-700 border-blue-200' 
+                                : 'bg-zinc-100 text-zinc-700 border-zinc-200'
+                            }`}>
+                              {isJuridica ? (language === 'en' ? 'Legal Entity' : 'P. Jurídica') : (language === 'en' ? 'Individual' : 'P. Natural')}
+                            </span>
                             {client.clientType && (
-                              <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-[#F2F1EC] text-[#181818] border border-[#E4E2DA]">
+                              <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md border ${
+                                client.clientType === 'Homeowner'
+                                  ? 'bg-amber-100 text-amber-900 border-amber-300'
+                                  : 'bg-[#F2F1EC] text-[#181818] border-[#E4E2DA]'
+                              }`}>
                                 {client.clientType}
+                                {client.clientType === 'Homeowner' && ' (+30%)'}
                               </span>
                             )}
                           </div>
 
-                          <div className="flex flex-wrap gap-x-3 gap-y-0.5 text-[11px] text-[#8C8C8C] mt-0.5">
+                          {/* Company / Legal Name display */}
+                          <div className="text-[11px] text-zinc-600 flex flex-wrap items-center gap-x-2 gap-y-0.5">
+                            {client.company && client.company !== 'N.A.' && (
+                              <span className="font-semibold text-zinc-800 flex items-center gap-1">
+                                <Building2 className="w-3 h-3 text-zinc-400 shrink-0" />
+                                <span>{client.company}</span>
+                              </span>
+                            )}
+                            {client.legalName && client.legalName !== client.name && (
+                              <span className="text-zinc-500 text-[10px]">
+                                (Razón Social: {client.legalName})
+                              </span>
+                            )}
+                          </div>
+
+                          <div className="flex flex-wrap gap-x-3 gap-y-0.5 text-[11px] text-[#8C8C8C]">
                             {client.phone && (
                               <span className="flex items-center gap-1">
                                 <Phone className="w-3 h-3 text-[#8C8C8C] shrink-0" />
@@ -338,8 +445,9 @@ export const ClientModal: React.FC<ClientModalProps> = ({
                           </div>
 
                           {client.address && (
-                            <p className="text-[10px] text-[#8C8C8C] leading-snug break-words mt-0.5">
-                              {client.address}
+                            <p className="text-[10px] text-[#8C8C8C] leading-snug break-words flex items-center gap-1">
+                              <MapPin className="w-3 h-3 text-zinc-400 shrink-0" />
+                              <span>{client.address}</span>
                             </p>
                           )}
                         </div>
@@ -393,7 +501,7 @@ export const ClientModal: React.FC<ClientModalProps> = ({
           </div>
         ) : (
           /* Tab 2: Create / Edit Client Form */
-          <form onSubmit={handleCreateSubmit} className="p-5 space-y-3.5">
+          <form onSubmit={handleCreateSubmit} className="p-4 sm:p-5 space-y-3.5 max-h-[75vh] overflow-y-auto">
             {editingClient && (
               <div className="p-2.5 rounded-lg bg-orange-50 border border-orange-200 text-xs font-medium text-orange-800 flex items-center justify-between">
                 <span>{language === 'en' ? `Editing: ${editingClient.name}` : `Editando: ${editingClient.name}`}</span>
@@ -414,40 +522,152 @@ export const ClientModal: React.FC<ClientModalProps> = ({
               </div>
             )}
 
+            {/* Persona Natural vs Persona Jurídica Selector */}
             <div>
-              <label className="text-[11px] font-bold uppercase tracking-[1px] text-[#8C8C8C] block mb-1">
-                {t.clientNameLabel}
+              <label className="text-[11px] font-bold uppercase tracking-[1px] text-[#8C8C8C] block mb-1.5">
+                {language === 'en' ? 'Person Type *' : 'Tipo de Persona *'}
               </label>
-              <input
-                type="text"
-                required
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                placeholder={language === 'en' ? 'e.g. Robert Smith / Miami Construction LLC' : 'Ej. Roberto Gómez / Constructora Miami LLC'}
-                className="w-full text-xs sm:text-sm bg-white border border-[#E5E5E5] focus:border-black rounded-lg px-3 py-2 outline-none font-medium"
-              />
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onClick={() => handlePersonTypeChange('natural')}
+                  className={`p-2.5 rounded-lg border text-xs font-bold flex items-center justify-center gap-2 transition-all cursor-pointer ${
+                    personType === 'natural'
+                      ? 'border-black bg-black text-white shadow-xs'
+                      : 'border-[#E5E5E5] bg-white text-zinc-700 hover:border-zinc-400'
+                  }`}
+                >
+                  <User className="w-4 h-4 text-[#FF8407]" />
+                  <span>{language === 'en' ? 'Natural Person' : 'Persona Natural'}</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => handlePersonTypeChange('juridica')}
+                  className={`p-2.5 rounded-lg border text-xs font-bold flex items-center justify-center gap-2 transition-all cursor-pointer ${
+                    personType === 'juridica'
+                      ? 'border-black bg-black text-white shadow-xs'
+                      : 'border-[#E5E5E5] bg-white text-zinc-700 hover:border-zinc-400'
+                  }`}
+                >
+                  <Building2 className="w-4 h-4 text-[#FF8407]" />
+                  <span>{language === 'en' ? 'Legal Entity' : 'Persona Jurídica'}</span>
+                </button>
+              </div>
             </div>
+
+            {/* Name Fields according to Person Type */}
+            {personType === 'natural' ? (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="text-[11px] font-bold uppercase tracking-[1px] text-[#8C8C8C] block mb-1">
+                    {language === 'en' ? 'Full Name *' : 'Nombre Completo *'}
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    placeholder={language === 'en' ? 'e.g. Roberto Gomez' : 'Ej. Roberto Gómez'}
+                    className="w-full text-xs sm:text-sm bg-white border border-[#E5E5E5] focus:border-black rounded-lg px-3 py-2 outline-none font-medium"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-[11px] font-bold uppercase tracking-[1px] text-[#8C8C8C] block mb-1 flex items-center justify-between">
+                    <span>{language === 'en' ? 'Company *' : 'Compañía / Empresa *'}</span>
+                    <span className="text-[10px] text-zinc-400 font-normal lowercase">{language === 'en' ? 'defaults to N.A.' : 'usa N.A. si no aplica'}</span>
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={company}
+                    onChange={(e) => setCompany(e.target.value)}
+                    placeholder="N.A."
+                    className="w-full text-xs sm:text-sm bg-white border border-[#E5E5E5] focus:border-black rounded-lg px-3 py-2 outline-none font-medium"
+                  />
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                <div>
+                  <label className="text-[11px] font-bold uppercase tracking-[1px] text-[#8C8C8C] block mb-1">
+                    {language === 'en' ? 'Legal / Registered Business Name *' : 'Razón Social / Nombre Jurídico *'}
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={legalName}
+                    onChange={(e) => setLegalName(e.target.value)}
+                    placeholder={language === 'en' ? 'e.g. Constructora San Carlos LLC' : 'Ej. Constructora San Carlos LLC'}
+                    className="w-full text-xs sm:text-sm bg-white border border-[#E5E5E5] focus:border-black rounded-lg px-3 py-2 outline-none font-medium"
+                  />
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-[11px] font-bold uppercase tracking-[1px] text-[#8C8C8C] block mb-1">
+                      {language === 'en' ? 'Trade Name / Company *' : 'Nombre Comercial / Compañía *'}
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={company}
+                      onChange={(e) => setCompany(e.target.value)}
+                      placeholder={language === 'en' ? 'e.g. San Carlos Builders' : 'Ej. San Carlos Builders'}
+                      className="w-full text-xs sm:text-sm bg-white border border-[#E5E5E5] focus:border-black rounded-lg px-3 py-2 outline-none font-medium"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-[11px] font-bold uppercase tracking-[1px] text-[#8C8C8C] block mb-1">
+                      {language === 'en' ? 'Contact Representative *' : 'Contacto / Representante *'}
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={name}
+                      onChange={(e) => setName(e.target.value)}
+                      placeholder={language === 'en' ? 'e.g. Carlos Mendoza (Manager)' : 'Ej. Carlos Mendoza (Gerente)'}
+                      className="w-full text-xs sm:text-sm bg-white border border-[#E5E5E5] focus:border-black rounded-lg px-3 py-2 outline-none font-medium"
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
 
             {/* Client Category / Segment Dropdown */}
             <div>
               <label 
                 htmlFor="client-category-select" 
-                className="text-[11px] font-bold uppercase tracking-[1px] text-[#8C8C8C] flex items-center gap-1.5 mb-1"
+                className="text-[11px] font-bold uppercase tracking-[1px] text-[#8C8C8C] flex items-center justify-between mb-1"
               >
-                <Tag className="w-3.5 h-3.5 text-[#FF8407]" />
-                <span>{t.clientTypeLabel} *</span>
+                <div className="flex items-center gap-1.5">
+                  <Tag className="w-3.5 h-3.5 text-[#FF8407]" />
+                  <span>{t.clientTypeLabel} *</span>
+                </div>
+                {clientType === 'Homeowner' ? (
+                  <span className="text-[10px] font-bold text-amber-700 bg-amber-50 px-2 py-0.5 rounded border border-amber-200">
+                    {language === 'en' ? 'Applies +30% Retail margin' : 'Aplica recargo automático +30% Retail'}
+                  </span>
+                ) : (
+                  <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
+                    {language === 'en' ? 'Base Contractor price' : 'Precio Base Contratista'}
+                  </span>
+                )}
               </label>
 
               <div className="relative">
                 <select
                   id="client-category-select"
+                  required
                   value={clientType}
                   onChange={(e) => setClientType(e.target.value as ClientCategory)}
                   className="w-full text-xs sm:text-sm bg-white border border-[#E5E5E5] focus:border-black rounded-lg px-3 py-2.5 outline-none font-semibold text-[#181818] appearance-none cursor-pointer pr-10 shadow-2xs transition-colors hover:border-[#CCCCCC]"
                 >
                   {CLIENT_CATEGORIES.map((cat) => (
                     <option key={cat} value={cat} className="font-medium text-black py-1">
-                      {cat}
+                      {cat} {cat === 'Homeowner' ? '(+30% Retail)' : '(Base)'}
                     </option>
                   ))}
                 </select>
@@ -460,7 +680,7 @@ export const ClientModal: React.FC<ClientModalProps> = ({
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
                 <label className="text-[11px] font-bold uppercase tracking-[1px] text-[#8C8C8C] block mb-1">
-                  {t.phoneLabel}
+                  {t.phoneLabel} *
                 </label>
                 <input
                   type="tel"
@@ -474,13 +694,14 @@ export const ClientModal: React.FC<ClientModalProps> = ({
 
               <div>
                 <label className="text-[11px] font-bold uppercase tracking-[1px] text-[#8C8C8C] block mb-1">
-                  {t.emailLabel}
+                  {t.emailLabel} *
                 </label>
                 <input
                   type="email"
+                  required
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  placeholder="client@example.com"
+                  placeholder="cliente@empresa.com"
                   className="w-full text-xs sm:text-sm bg-white border border-[#E5E5E5] focus:border-black rounded-lg px-3 py-2 outline-none"
                 />
               </div>
@@ -488,10 +709,11 @@ export const ClientModal: React.FC<ClientModalProps> = ({
 
             <div>
               <label className="text-[11px] font-bold uppercase tracking-[1px] text-[#8C8C8C] block mb-1">
-                {t.addressLabel}
+                {t.addressLabel} *
               </label>
               <input
                 type="text"
+                required
                 value={address}
                 onChange={(e) => setAddress(e.target.value)}
                 placeholder="8400 NW 36th St, Doral, FL 33166"

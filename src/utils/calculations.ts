@@ -1,4 +1,4 @@
-import { CartItem, Product, ProductColor } from '../types';
+import { CartItem, Product, ProductColor, Client } from '../types';
 
 export function calculateFloorUnits(sqftRequired: number, sqftPerBox: number): {
   boxesNeeded: number;
@@ -299,17 +299,26 @@ export function calculatePlankValues(
 
 export interface StairCalculationParams {
   mode: 'solo_steps' | 'completa';
+  materialSupplier?: 'company' | 'client'; // 'company' = Empresa la pone (material completo), 'client' = Cliente la trae (mano de obra/operación)
+  floorFormat?: '5.5mm' | '8.0mm' | 'custom';
   stepCount: number;
   stepUnitPrice: number;
   riserType: 'white' | 'color_piso';
-  riserUnitPrice: number; // for white risers
+  riserUnitPrice: number; // for white risers or cutting labor
   landingCount: number;
   sqftPerBox: number;
   planksPerBox: number;
   pricePerSqft: number;
+  // Optional moldings & skirt
+  moldingsCount?: number;
+  moldingsUnitPrice?: number;
+  skirtFeet?: number;
+  skirtPricePerFoot?: number;
 }
 
 export interface StairBreakdownResult {
+  materialSupplier: 'company' | 'client';
+  floorFormat: '5.5mm' | '8.0mm' | 'custom';
   sqftPerPlank: number;
   plankPrice: number;
   boxUnitPrice: number;
@@ -332,9 +341,18 @@ export interface StairBreakdownResult {
   landingsBoxes: number;
   landingsSqft: number;
   landingsSubtotal: number;
-  // Totals
+  // Optional Moldings & Skirt
+  moldingsCount: number;
+  moldingsUnitPrice: number;
+  moldingsSubtotal: number;
+  skirtFeet: number;
+  skirtPricePerFoot: number;
+  skirtSubtotal: number;
+  // Totals & Boxes summary
   totalFlooringSqft: number;
   totalFlooringBoxesEquivalent: number;
+  totalBoxesNeeded: number;
+  clientBoxesToProvide: number;
   totalFlooringSubtotal: number;
   totalStairsPrice: number;
 }
@@ -342,6 +360,8 @@ export interface StairBreakdownResult {
 export function calculateStairsBreakdown(params: StairCalculationParams): StairBreakdownResult {
   const {
     mode,
+    materialSupplier = 'company',
+    floorFormat = '5.5mm',
     stepCount,
     stepUnitPrice,
     riserType,
@@ -349,15 +369,29 @@ export function calculateStairsBreakdown(params: StairCalculationParams): StairB
     landingCount,
     sqftPerBox,
     planksPerBox,
-    pricePerSqft
+    pricePerSqft,
+    moldingsCount = 0,
+    moldingsUnitPrice = 16.99,
+    skirtFeet = 0,
+    skirtPricePerFoot = 1.35
   } = params;
 
+  const isClientSupplied = materialSupplier === 'client';
   const validStepCount = Math.max(0, stepCount || 0);
   const validStepUnitPrice = Math.max(0, stepUnitPrice || 0);
   const stepsSubtotal = Number((validStepCount * validStepUnitPrice).toFixed(2));
 
+  // Moldings & Skirt
+  const validMoldingsCount = Math.max(0, moldingsCount || 0);
+  const moldingsSubtotal = Number((validMoldingsCount * moldingsUnitPrice).toFixed(2));
+  const validSkirtFeet = Math.max(0, skirtFeet || 0);
+  const skirtSubtotal = Number((validSkirtFeet * skirtPricePerFoot).toFixed(2));
+
   if (mode === 'solo_steps') {
+    const totalStairsPrice = Number((stepsSubtotal + moldingsSubtotal + skirtSubtotal).toFixed(2));
     return {
+      materialSupplier,
+      floorFormat,
       sqftPerPlank: 0,
       plankPrice: 0,
       boxUnitPrice: 0,
@@ -376,10 +410,18 @@ export function calculateStairsBreakdown(params: StairCalculationParams): StairB
       landingsBoxes: 0,
       landingsSqft: 0,
       landingsSubtotal: 0,
+      moldingsCount: validMoldingsCount,
+      moldingsUnitPrice,
+      moldingsSubtotal,
+      skirtFeet: validSkirtFeet,
+      skirtPricePerFoot,
+      skirtSubtotal,
       totalFlooringSqft: 0,
       totalFlooringBoxesEquivalent: 0,
+      totalBoxesNeeded: 0,
+      clientBoxesToProvide: 0,
       totalFlooringSubtotal: 0,
-      totalStairsPrice: stepsSubtotal
+      totalStairsPrice
     };
   }
 
@@ -394,40 +436,76 @@ export function calculateStairsBreakdown(params: StairCalculationParams): StairB
 
   if (riserType === 'white') {
     risersCount = validStepCount;
-    risersSqft = 0; // Contrahuellas blancas son piezas independientes
-    risersUnitPriceCalculated = Math.max(0, riserUnitPrice || 0);
+    risersSqft = 0; // Contrahuellas blancas son piezas de material especial
+    // Si la empresa la pone -> $9.00 pieza completa; si cliente la trae pero quiere blanca -> $9.00
+    risersUnitPriceCalculated = Math.max(0, riserUnitPrice || 9.00);
     risersSubtotal = Number((validStepCount * risersUnitPriceCalculated).toFixed(2));
   } else {
     // Contrahuella color piso: 1 lámina por escalón
     risersCount = validStepCount;
     risersSqft = Number((validStepCount * sqftPerPlank).toFixed(2));
-    risersUnitPriceCalculated = plankPrice;
-    risersSubtotal = Number((validStepCount * plankPrice).toFixed(2));
+    if (isClientSupplied) {
+      // Cliente trae el piso -> precio solo de mano de obra de corte/fabricación de contrahuella ($4.50/corte)
+      risersUnitPriceCalculated = Number(Math.min(4.50, riserUnitPrice || 4.50).toFixed(2));
+      risersSubtotal = Number((validStepCount * risersUnitPriceCalculated).toFixed(2));
+    } else {
+      // Empresa la pone -> valor completo de la lámina
+      risersUnitPriceCalculated = plankPrice;
+      risersSubtotal = Number((validStepCount * plankPrice).toFixed(2));
+    }
   }
 
   // Material complementario (faltantes de huellas): 1 lámina por escalón
   const complementaryPlanksCount = validStepCount;
   const complementaryPlanksSqft = Number((validStepCount * sqftPerPlank).toFixed(2));
-  const complementaryPlankUnitPrice = plankPrice;
-  const complementarySubtotal = Number((validStepCount * plankPrice).toFixed(2));
+  let complementaryPlankUnitPrice = 0;
+  let complementarySubtotal = 0;
+
+  if (isClientSupplied) {
+    // Cliente suministra las láminas -> mano de obra de ensamble/corte ($3.00/lámina)
+    complementaryPlankUnitPrice = 3.00;
+    complementarySubtotal = Number((validStepCount * complementaryPlankUnitPrice).toFixed(2));
+  } else {
+    // Empresa la pone -> valor comercial de la lámina de piso
+    complementaryPlankUnitPrice = plankPrice;
+    complementarySubtotal = Number((validStepCount * plankPrice).toFixed(2));
+  }
 
   // Descansos: 1 caja por cada descanso
   const landingsCount = Math.max(0, landingCount || 0);
   const landingsBoxes = landingsCount;
   const landingsSqft = Number((landingsBoxes * sqftPerBox).toFixed(2));
-  const landingsSubtotal = Number((landingsBoxes * boxUnitPrice).toFixed(2));
+  let landingsSubtotal = 0;
 
-  // Totales de piso
+  if (isClientSupplied) {
+    // Cliente trae la caja de piso -> Mano de obra de instalación por descanso ($35.00/descanso)
+    landingsSubtotal = Number((landingsBoxes * 35.00).toFixed(2));
+  } else {
+    // Empresa la pone -> valor completo de la caja de piso
+    landingsSubtotal = Number((landingsBoxes * boxUnitPrice).toFixed(2));
+  }
+
+  // Cajas totales de piso requeridas para la obra
+  const planksFromFlooring = (riserType === 'color_piso' ? risersCount : 0) + complementaryPlanksCount;
+  const boxesForPlanks = planksPerBox > 0 ? Math.ceil(planksFromFlooring / planksPerBox) : 0;
+  const totalBoxesNeeded = boxesForPlanks + landingsBoxes;
+  const clientBoxesToProvide = isClientSupplied ? totalBoxesNeeded : 0;
+
+  // Totales de piso en pies cuadrados
   const totalFlooringSqft = Number((risersSqft + complementaryPlanksSqft + landingsSqft).toFixed(2));
   const totalFlooringBoxesEquivalent = sqftPerBox > 0 ? Number((totalFlooringSqft / sqftPerBox).toFixed(2)) : 0;
+  
   const totalFlooringSubtotal = Number(
     ((riserType === 'color_piso' ? risersSubtotal : 0) + complementarySubtotal + landingsSubtotal).toFixed(2)
   );
+
   const totalStairsPrice = Number(
-    (stepsSubtotal + risersSubtotal + complementarySubtotal + landingsSubtotal).toFixed(2)
+    (stepsSubtotal + risersSubtotal + complementarySubtotal + landingsSubtotal + moldingsSubtotal + skirtSubtotal).toFixed(2)
   );
 
   return {
+    materialSupplier,
+    floorFormat,
     sqftPerPlank,
     plankPrice,
     boxUnitPrice,
@@ -446,8 +524,16 @@ export function calculateStairsBreakdown(params: StairCalculationParams): StairB
     landingsBoxes,
     landingsSqft,
     landingsSubtotal,
+    moldingsCount: validMoldingsCount,
+    moldingsUnitPrice,
+    moldingsSubtotal,
+    skirtFeet: validSkirtFeet,
+    skirtPricePerFoot,
+    skirtSubtotal,
     totalFlooringSqft,
     totalFlooringBoxesEquivalent,
+    totalBoxesNeeded,
+    clientBoxesToProvide,
     totalFlooringSubtotal,
     totalStairsPrice
   };
@@ -789,5 +875,203 @@ export function getValidUntilDate(days: number = 3, lang: 'en' | 'es' = 'en'): s
     day: 'numeric'
   });
 }
+
+/**
+ * Client Type Pricing Multiplier (Punto 4)
+ * - Homeowner / cliente final: automatically receives +30% surcharge (x1.30)
+ * - Contractor / Installer / Builder / others: base price (x1.00)
+ */
+export function getClientPriceMultiplier(clientType?: string): number {
+  return clientType === 'Homeowner' ? 1.30 : 1.0;
+}
+
+/**
+ * Synchronize all quote cart item prices when the client changes
+ * Multiplies base catalog prices by 1.30 for Homeowner, or resets to base (1.0) for Contractor
+ */
+export function syncCartItemPricesForClient(
+  items: CartItem[],
+  client: Client | null,
+  products: Product[]
+): CartItem[] {
+  const multiplier = getClientPriceMultiplier(client?.clientType);
+
+  return items.map((item) => {
+    const matchedProduct = products.find((p) => p.id === item.productId);
+
+    if (item.category === 'piso') {
+      const baseSqft = matchedProduct?.basePrice || item.baseListPrice || 1.49;
+      const targetSqftRate = Number((baseSqft * multiplier).toFixed(2));
+      const sqftPerBox = item.sqftPerBox || matchedProduct?.sqftPerBox || 24.26;
+      const updated = createFloorCartItem(
+        {
+          id: item.productId,
+          name: item.productName,
+          category: 'piso',
+          subcategory: item.subcategory,
+          thickness: item.thickness,
+          size: item.size,
+          basePrice: baseSqft,
+          sqftPerBox,
+          priceUnit: 'sqft'
+        },
+        item.userEnteredQuantity,
+        targetSqftRate,
+        item.color,
+        item.notes
+      );
+      return { ...updated, id: item.id };
+    }
+
+    if (item.category === 'rodapie') {
+      const baseLf = matchedProduct?.basePrice || item.baseListPrice || 1.25;
+      const targetLfRate = Number((baseLf * multiplier).toFixed(2));
+      const stripLength = item.stripLengthFeet || matchedProduct?.stripLengthFeet || 16;
+      const updated = createBaseboardCartItem(
+        {
+          id: item.productId,
+          name: item.productName,
+          category: 'rodapie',
+          subcategory: item.subcategory,
+          thickness: item.thickness,
+          size: item.size,
+          basePrice: baseLf,
+          stripLengthFeet: stripLength,
+          priceUnit: 'linear_ft'
+        },
+        item.userEnteredQuantity,
+        targetLfRate,
+        item.color,
+        item.notes
+      );
+      return { ...updated, id: item.id };
+    }
+
+    if (item.category === 'perfiles') {
+      const basePrice = matchedProduct?.basePrice || item.baseListPrice || item.unitPrice;
+      const targetPrice = Number((basePrice * multiplier).toFixed(2));
+      const updated = createProfileCartItem(
+        {
+          id: item.productId,
+          name: item.productName,
+          category: 'perfiles',
+          subcategory: item.subcategory,
+          thickness: item.thickness,
+          size: item.size,
+          basePrice,
+          priceUnit: 'piece'
+        },
+        item.userEnteredQuantity,
+        targetPrice,
+        item.color,
+        item.notes
+      );
+      return { ...updated, id: item.id };
+    }
+
+    if (item.category === 'escalones') {
+      const isRiser = item.subcategory === 'Stair Risers' || 
+                      item.productId === 'steps-riser-plank' || 
+                      item.productName.toLowerCase().includes('contrahuella') ||
+                      item.productName.toLowerCase().includes('riser');
+
+      if (isRiser) {
+        const basePrice = item.baseListPrice || 9.00;
+        const targetPrice = Number((basePrice * multiplier).toFixed(2));
+        return {
+          ...item,
+          unitPrice: targetPrice,
+          subtotal: Number((item.userEnteredQuantity * targetPrice).toFixed(2))
+        };
+      }
+
+      if (item.stepIncludesRiser) {
+        const baseStep = item.baseListPrice || (item.unitPrice - (item.riserUnitPrice || 9.00));
+        const targetStepRate = Number((baseStep * multiplier).toFixed(2));
+        const targetRiserRate = Number(((item.riserUnitPrice || 9.00) * multiplier).toFixed(2));
+        const updated = createStairsCartItem(
+          {
+            id: item.productId,
+            name: item.productName,
+            category: 'escalones',
+            subcategory: item.subcategory,
+            thickness: item.thickness,
+            size: item.size,
+            basePrice: baseStep,
+            priceUnit: 'piece'
+          },
+          item.userEnteredQuantity,
+          targetStepRate,
+          true,
+          targetRiserRate,
+          item.color,
+          item.notes
+        );
+        return { ...updated, id: item.id };
+      }
+
+      const baseStep = matchedProduct?.basePrice || item.baseListPrice || 19.00;
+      const targetStepRate = Number((baseStep * multiplier).toFixed(2));
+      return {
+        ...item,
+        unitPrice: targetStepRate,
+        subtotal: Number((item.userEnteredQuantity * targetStepRate).toFixed(2))
+      };
+    }
+
+    if (item.category === 'wall_panels') {
+      const basePrice = matchedProduct?.basePrice || item.baseListPrice || item.unitPrice;
+      const targetPrice = Number((basePrice * multiplier).toFixed(2));
+      const updated = createWallPanelCartItem(
+        {
+          id: item.productId,
+          name: item.productName,
+          category: 'wall_panels',
+          subcategory: item.subcategory,
+          thickness: item.thickness,
+          size: item.size,
+          basePrice,
+          priceUnit: 'piece'
+        },
+        item.userEnteredQuantity,
+        targetPrice,
+        item.color,
+        item.notes
+      );
+      return { ...updated, id: item.id };
+    }
+
+    if (item.category === 'underlayment') {
+      const basePrice = matchedProduct?.basePrice || item.baseListPrice || item.unitPrice;
+      const targetPrice = Number((basePrice * multiplier).toFixed(2));
+      const updated = createUnderlaymentCartItem(
+        {
+          id: item.productId,
+          name: item.productName,
+          category: 'underlayment',
+          subcategory: item.subcategory,
+          thickness: item.thickness,
+          size: item.size,
+          basePrice,
+          priceUnit: 'unit'
+        },
+        item.userEnteredQuantity,
+        targetPrice,
+        item.notes
+      );
+      return { ...updated, id: item.id };
+    }
+
+    // Default for other / custom items
+    const basePrice = item.baseListPrice || item.unitPrice;
+    const targetPrice = Number((basePrice * multiplier).toFixed(2));
+    return {
+      ...item,
+      unitPrice: targetPrice,
+      subtotal: Number((item.userEnteredQuantity * targetPrice).toFixed(2))
+    };
+  });
+}
+
 
 

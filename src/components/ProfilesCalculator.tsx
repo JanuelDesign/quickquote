@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Product, ProductColor, Language } from '../types';
-import { formatCurrency } from '../utils/calculations';
+import { formatCurrency, getClientPriceMultiplier } from '../utils/calculations';
 import { translations } from '../utils/translations';
 import { 
   Check, 
@@ -13,6 +13,7 @@ import {
 interface ProfilesCalculatorProps {
   products: Product[];
   language?: Language;
+  clientCategory?: string;
   initialProductId?: string;
   initialColor?: ProductColor;
   initialSelectionKey?: number;
@@ -28,6 +29,7 @@ interface ProfilesCalculatorProps {
 export const ProfilesCalculator: React.FC<ProfilesCalculatorProps> = ({
   products,
   language = 'en',
+  clientCategory,
   initialProductId,
   initialColor,
   initialSelectionKey,
@@ -36,15 +38,28 @@ export const ProfilesCalculator: React.FC<ProfilesCalculatorProps> = ({
   const t = translations[language];
   const profileProducts = products.filter(p => p.category === 'perfiles');
   
+  const clientMultiplier = getClientPriceMultiplier(clientCategory);
+  const isHomeowner = clientMultiplier > 1.0;
+
   const [currentStep, setCurrentStep] = useState<1 | 2>(1);
   const [selectedProduct, setSelectedProduct] = useState<Product>(profileProducts[0] || {} as Product);
   const [quantity, setQuantity] = useState<number>(4);
-  const [unitPrice, setUnitPrice] = useState<number>(profileProducts[0]?.basePrice || 30.00);
+  const [unitPrice, setUnitPrice] = useState<number>(() => {
+    const raw = profileProducts[0]?.basePrice || 30.00;
+    return Number((raw * clientMultiplier).toFixed(2));
+  });
   const [selectedColor, setSelectedColor] = useState<ProductColor | undefined>(
     profileProducts[0]?.colors?.[0]
   );
   const [notes, setNotes] = useState<string>('');
   const [addedSuccess, setAddedSuccess] = useState(false);
+
+  // Re-sync price if client category changes
+  React.useEffect(() => {
+    if (selectedProduct?.basePrice) {
+      setUnitPrice(Number((selectedProduct.basePrice * clientMultiplier).toFixed(2)));
+    }
+  }, [clientCategory, clientMultiplier, selectedProduct]);
 
   // Jump to specific product if passed via search selection
   React.useEffect(() => {
@@ -52,13 +67,13 @@ export const ProfilesCalculator: React.FC<ProfilesCalculatorProps> = ({
       const match = profileProducts.find(p => p.id === initialProductId);
       if (match) {
         setSelectedProduct(match);
-        setUnitPrice(match.basePrice || 30.00);
+        setUnitPrice(Number(((match.basePrice || 30.00) * clientMultiplier).toFixed(2)));
         setSelectedColor(initialColor || match.colors?.[0]);
         setCurrentStep(2);
         scrollToCalculatorTop();
       }
     }
-  }, [initialProductId, initialSelectionKey]);
+  }, [initialProductId, initialSelectionKey, clientMultiplier]);
 
   // Live synchronization
   React.useEffect(() => {
@@ -91,20 +106,21 @@ export const ProfilesCalculator: React.FC<ProfilesCalculatorProps> = ({
 
   const handleProductSelect = (prod: Product) => {
     setSelectedProduct(prod);
-    setUnitPrice(prod.basePrice);
+    setUnitPrice(Number((prod.basePrice * clientMultiplier).toFixed(2)));
     setSelectedColor(prod.colors?.[0]);
     setCurrentStep(2);
     scrollToCalculatorTop();
   };
 
   const subtotal = Number((quantity * unitPrice).toFixed(2));
+  const minAllowedPrice = Number(((selectedProduct.basePrice || 30.00) * clientMultiplier).toFixed(2));
 
   const handleAddQty = (amount: number) => {
     setQuantity(prev => Math.max(1, prev + amount));
   };
 
   const handlePriceMarkup = (delta: number) => {
-    setUnitPrice(prev => Math.max(1, Number((prev + delta).toFixed(2))));
+    setUnitPrice(prev => Math.max(minAllowedPrice, Number((prev + delta).toFixed(2))));
   };
 
   const handleAddToCart = () => {
@@ -298,7 +314,7 @@ export const ProfilesCalculator: React.FC<ProfilesCalculatorProps> = ({
 
               {/* Quick Add Chips */}
               <div className="flex flex-wrap items-center gap-1.5 pt-1">
-                <span className="text-[10px] text-[#9C9A90] font-semibold uppercase">Rápido:</span>
+                <span className="text-[10px] text-[#9C9A90] font-semibold uppercase">{language === 'en' ? 'Quick:' : 'Rápido:'}</span>
                 {[1, 2, 5, 10].map((amount) => (
                   <button
                     key={amount}
@@ -319,7 +335,7 @@ export const ProfilesCalculator: React.FC<ProfilesCalculatorProps> = ({
                   {language === 'en' ? 'Total Profiles' : 'Perfiles Totales'}
                 </span>
                 <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-white/10 text-white font-mono">
-                  {quantity} {quantity === 1 ? 'pieza' : 'piezas'}
+                  {quantity} {language === 'en' ? (quantity === 1 ? 'piece' : 'pieces') : (quantity === 1 ? 'pieza' : 'piezas')}
                 </span>
               </div>
 
@@ -328,13 +344,13 @@ export const ProfilesCalculator: React.FC<ProfilesCalculatorProps> = ({
                   {quantity} <span className="text-lg font-medium text-white">{language === 'en' ? 'Pieces' : 'Piezas'}</span>
                 </div>
                 <div className="text-xs text-[#C9C9C9] mt-2 flex items-center justify-between">
-                  <span>Longitud estándar: <strong>94 inches (~7.8 ft)</strong></span>
+                  <span>{language === 'en' ? 'Standard length:' : 'Longitud estándar:'} <strong>94 inches (~7.8 ft)</strong></span>
                 </div>
               </div>
 
               <div className="text-[11px] text-[#A8A8A8] pt-2 border-t border-zinc-800 flex justify-between">
-                <span>Material:</span>
-                <span className="font-mono text-zinc-300">Aluminio / Co-extrusión</span>
+                <span>{language === 'en' ? 'Material:' : 'Material:'}</span>
+                <span className="font-mono text-zinc-300">{language === 'en' ? 'Aluminum / Co-extrusion' : 'Aluminio / Co-extrusión'}</span>
               </div>
             </div>
 
@@ -345,7 +361,7 @@ export const ProfilesCalculator: React.FC<ProfilesCalculatorProps> = ({
                   {language === 'en' ? 'Selling Price per Piece' : 'Precio de Venta / Pieza'}
                 </label>
                 <span className="text-[10px] text-[#6B6A63] font-mono">
-                  ${unitPrice.toFixed(2)} / pza
+                  ${unitPrice.toFixed(2)} {language === 'en' ? '/ pc' : '/ pza'}
                 </span>
               </div>
 
@@ -365,7 +381,7 @@ export const ProfilesCalculator: React.FC<ProfilesCalculatorProps> = ({
 
               {/* Quick Markup Chips */}
               <div className="flex flex-wrap items-center gap-1.5 pt-1">
-                <span className="text-[10px] text-[#9C9A90] font-semibold uppercase">Margen:</span>
+                <span className="text-[10px] text-[#9C9A90] font-semibold uppercase">{language === 'en' ? 'Markup:' : 'Margen:'}</span>
                 {[0.50, 1.00, 2.00].map((delta) => (
                   <button
                     key={delta}
@@ -390,12 +406,12 @@ export const ProfilesCalculator: React.FC<ProfilesCalculatorProps> = ({
                   {formatCurrency(subtotal)}
                 </div>
                 <p className="text-[11px] text-[#6B6A63] mt-1">
-                  {quantity} piezas × ${unitPrice.toFixed(2)}/pza
+                  {quantity} {language === 'en' ? (quantity === 1 ? 'piece' : 'pieces') : (quantity === 1 ? 'pieza' : 'piezas')} × ${unitPrice.toFixed(2)}{language === 'en' ? '/pc' : '/pza'}
                 </p>
               </div>
 
               <div className="text-[10px] text-[#9C9A90] pt-2 border-t border-[#E4E2DA]">
-                * Gravable con el 7% de sales tax de Florida en el total
+                {language === 'en' ? '* Subject to 7% Florida sales tax on grand total' : '* Gravable con el 7% de sales tax de Florida en el total'}
               </div>
             </div>
           </div>

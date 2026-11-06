@@ -41,25 +41,25 @@ export const CategoryTabs: React.FC<CategoryTabsProps> = ({
     {
       id: 'piso',
       name: language === 'en' ? 'Flooring' : 'Piso',
-      sublabel: 'SPC • Laminado',
+      sublabel: language === 'en' ? 'SPC • Laminate' : 'SPC • Laminado',
       icon: Layers
     },
     {
       id: 'rodapie',
       name: language === 'en' ? 'Baseboard' : 'Rodapié',
-      sublabel: '16 ft strips',
+      sublabel: language === 'en' ? '16 ft strips' : 'Tiras 16 ft',
       icon: Ruler
     },
     {
       id: 'perfiles',
       name: language === 'en' ? 'Profiles & Trims' : 'Perfiles',
-      sublabel: 'Transiciones',
+      sublabel: language === 'en' ? 'Transitions & Trims' : 'Transiciones',
       icon: CornerDownRight
     },
     {
       id: 'escalones',
       name: language === 'en' ? 'Stair Treads' : 'Escaleras',
-      sublabel: 'Paquete peldaños',
+      sublabel: language === 'en' ? 'Treads & Steps' : 'Paquete peldaños',
       icon: MoveUpRight
     },
     {

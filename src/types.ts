@@ -102,14 +102,18 @@ export const CLIENT_CATEGORIES: ClientCategory[] = [
   'Homeowner'
 ];
 
+export type PersonType = 'natural' | 'juridica';
+
 export interface Client {
   id: string;
   name: string;
-  clientType?: ClientCategory | string;
+  personType?: PersonType;
+  legalName?: string; // Nombre Jurídico / Razón Social para persona jurídica
+  clientType: ClientCategory | string;
   phone: string;
-  email?: string;
-  address?: string;
-  company?: string;
+  email: string;
+  address: string;
+  company: string;
   notes?: string;
   createdAt: string;
 }

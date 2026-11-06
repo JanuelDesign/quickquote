@@ -356,7 +356,7 @@ export const CustomItemCalculator: React.FC<CustomItemCalculatorProps> = ({
                 />
                 <div className="flex-1 min-w-0">
                   <span className="text-xs font-bold text-[#181818] block leading-tight">
-                    {isEn ? 'Aplica impuesto del 7% (Taxable)' : 'Aplica impuesto del 7% (Taxable)'}
+                    {isEn ? 'Apply 7% FL Sales Tax (Taxable Material)' : 'Aplica impuesto del 7% (Taxable)'}
                   </span>
                   <p className="text-[11px] text-[#6B6A63] mt-1 leading-relaxed">
                     {isEn 
@@ -382,7 +382,7 @@ export const CustomItemCalculator: React.FC<CustomItemCalculatorProps> = ({
                 />
                 <div className="flex-1 min-w-0">
                   <span className="text-xs font-bold text-[#181818] block leading-tight">
-                    {isEn ? 'Es mano de obra o servicio (Labor)' : 'Es mano de obra o servicio (Labor)'}
+                    {isEn ? 'Installation Labor or Service (0% Tax Exempt)' : 'Es mano de obra o servicio (Labor)'}
                   </span>
                   <p className="text-[11px] text-[#6B6A63] mt-1 leading-relaxed">
                     {isEn 
@@ -406,7 +406,7 @@ export const CustomItemCalculator: React.FC<CustomItemCalculatorProps> = ({
               <div className="flex-1 min-w-0">
                 <span className="text-xs font-bold text-[#181818] block leading-tight flex items-center gap-1.5">
                   <Database className="w-3.5 h-3.5 text-[#FF8407]" />
-                  <span>{isEn ? 'Guardar en catálogo para futuras cotizaciones' : 'Guardar en catálogo para futuras cotizaciones'}</span>
+                  <span>{isEn ? 'Save to catalog for future quotations' : 'Guardar en catálogo para futuras cotizaciones'}</span>
                 </span>
                 <p className="text-[11px] text-[#6B6A63] mt-1 leading-relaxed">
                   {isEn 
