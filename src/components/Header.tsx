@@ -124,21 +124,8 @@ export const Header: React.FC<HeaderProps> = ({
             </div>
           </div>
 
-          {/* Right Controls: Prominent New Quote Button + More Options (···) */}
+          {/* Right Controls: More Options (···) */}
           <div className="flex items-center gap-2 shrink-0">
-            {onNewQuote && (
-              <button
-                id="btn-header-new-quote"
-                type="button"
-                onClick={handleNewQuoteClick}
-                className="flex items-center gap-1.5 px-3 sm:px-3.5 py-1.5 sm:py-2 bg-[#FF8407] hover:bg-[#E07300] active:scale-95 text-white rounded-lg sm:rounded-xl font-bold text-xs shadow-xs transition-all cursor-pointer"
-                title={isEn ? 'Start New Quote & pick client' : 'Comenzar Nueva Cotización y elegir cliente'}
-              >
-                <Plus className="w-4 h-4 stroke-[2.5]" />
-                <span className="tracking-wide">{isEn ? 'New Quote' : 'Nueva Cotización'}</span>
-              </button>
-            )}
-
             {/* More options (···) icon button */}
             <button
               id="btn-header-menu"
@@ -282,18 +269,6 @@ export const Header: React.FC<HeaderProps> = ({
                 <span className="text-[10px] font-bold uppercase tracking-wider text-[#9C9A90] px-1 block mb-1">
                   {isEn ? 'Terminal Navigation' : 'Navegación del Cotizador'}
                 </span>
-
-                {onNewQuote && (
-                  <button
-                    type="button"
-                    id="btn-menu-new-quote"
-                    onClick={handleNewQuoteClick}
-                    className="w-full px-3 py-2.5 rounded-xl hover:bg-[#F2F1EC] bg-[#FAFAFA] border border-[#E4E2DA] text-left flex items-center gap-2.5 text-xs font-bold text-[#181818] transition-colors cursor-pointer"
-                  >
-                    <Plus className="w-4 h-4 text-[#FF8407]" />
-                    <span>{isEn ? 'New Blank Quote' : 'Nueva Cotización en Blanco'}</span>
-                  </button>
-                )}
 
                 <button
                   type="button"

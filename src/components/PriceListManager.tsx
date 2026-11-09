@@ -289,44 +289,72 @@ export const PriceListManager: React.FC<PriceListManagerProps> = ({
     showFeedback('success', 'Plantilla CSV descargada.');
   };
 
-  // 2. Export Catalog to CSV
+  // 2. Export Catalog Database to CSV (Full detailed database with all color variants)
   const handleExportCSV = () => {
     setIsMoreMenuOpen(false);
     const headers = [
       'id',
-      'name',
-      'category',
-      'subcategory',
-      'thickness',
-      'wearLayer',
-      'size',
-      'basePrice',
-      'priceUnit',
-      'sqftPerBox',
-      'stripLengthFeet',
-      'isStock',
+      'categoria',
+      'nombre',
+      'coleccion',
       'badge',
-      'colors_count',
-      'description'
+      'espesor',
+      'medidas',
+      'unidad_venta',
+      'precio_base',
+      'cobertura_caja',
+      'tira_longitud_ft',
+      'color_nombre',
+      'color_codigo',
+      'color_hex',
+      'imagen_url',
+      'notas'
     ];
 
-    const rows = products.map((p) => [
-      p.id,
-      p.name,
-      p.category,
-      p.subcategory || '',
-      p.thickness || '',
-      p.wearLayer || '',
-      p.size || '',
-      p.basePrice,
-      p.priceUnit,
-      p.sqftPerBox || '',
-      p.stripLengthFeet || '',
-      p.isStock !== false ? 'true' : 'false',
-      p.badge || '',
-      p.colors ? p.colors.length : 0,
-      p.description || ''
-    ]);
+    const rows: (string | number)[][] = [];
+    products.forEach((p) => {
+      if (p.colors && p.colors.length > 0) {
+        p.colors.forEach((c) => {
+          rows.push([
+            p.id,
+            p.category,
+            p.name,
+            p.subcategory || '',
+            p.badge || '',
+            p.thickness || '',
+            p.size || '',
+            p.priceUnit || '',
+            p.basePrice !== undefined ? p.basePrice : '',
+            p.sqftPerBox !== undefined ? p.sqftPerBox : '',
+            p.stripLengthFeet !== undefined ? p.stripLengthFeet : '',
+            c.name || '',
+            c.code || '',
+            c.hex || '',
+            c.plankPhotoUrl || '',
+            p.description || ''
+          ]);
+        });
+      } else {
+        rows.push([
+          p.id,
+          p.category,
+          p.name,
+          p.subcategory || '',
+          p.badge || '',
+          p.thickness || '',
+          p.size || '',
+          p.priceUnit || '',
+          p.basePrice !== undefined ? p.basePrice : '',
+          p.sqftPerBox !== undefined ? p.sqftPerBox : '',
+          p.stripLengthFeet !== undefined ? p.stripLengthFeet : '',
+          '',
+          '',
+          '',
+          '',
+          p.description || ''
+        ]);
+      }
+    });
 
     const csvContent = [
       headers.join(','),
@@ -337,12 +365,12 @@ export const PriceListManager: React.FC<PriceListManagerProps> = ({
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
-    link.setAttribute('download', `catalogo_quicksurfaces_${new Date().toISOString().slice(0, 10)}.csv`);
+    link.setAttribute('download', `productos_database_quicksurfaces_${new Date().toISOString().slice(0, 10)}.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
     URL.revokeObjectURL(url);
-    showFeedback('success', `${products.length} productos exportados a CSV.`);
+    showFeedback('success', `Base de datos CSV descargada (${rows.length} variantes / ${products.length} productos).`);
   };
 
   // 3. Import Products from CSV
@@ -394,19 +422,24 @@ export const PriceListManager: React.FC<PriceListManagerProps> = ({
 
         const headers = parsed[0].map(h => h.toLowerCase().trim());
         const idIdx = headers.indexOf('id');
-        const nameIdx = headers.indexOf('name');
-        const catIdx = headers.indexOf('category');
-        const priceIdx = headers.indexOf('baseprice') !== -1 ? headers.indexOf('baseprice') : headers.indexOf('price');
-        const unitIdx = headers.indexOf('priceunit');
-        const sqftIdx = headers.indexOf('sqftperbox');
-        const stripIdx = headers.indexOf('striplengthfeet');
-        const thickIdx = headers.indexOf('thickness');
-        const sizeIdx = headers.indexOf('size');
+        const nameIdx = headers.indexOf('name') !== -1 ? headers.indexOf('name') : headers.indexOf('nombre');
+        const catIdx = headers.indexOf('category') !== -1 ? headers.indexOf('category') : headers.indexOf('categoria');
+        const priceIdx = headers.indexOf('baseprice') !== -1 ? headers.indexOf('baseprice') : (headers.indexOf('precio_base') !== -1 ? headers.indexOf('precio_base') : headers.indexOf('price'));
+        const unitIdx = headers.indexOf('priceunit') !== -1 ? headers.indexOf('priceunit') : headers.indexOf('unidad_venta');
+        const sqftIdx = headers.indexOf('sqftperbox') !== -1 ? headers.indexOf('sqftperbox') : headers.indexOf('cobertura_caja');
+        const stripIdx = headers.indexOf('striplengthfeet') !== -1 ? headers.indexOf('striplengthfeet') : headers.indexOf('tira_longitud_ft');
+        const thickIdx = headers.indexOf('thickness') !== -1 ? headers.indexOf('thickness') : headers.indexOf('espesor');
+        const sizeIdx = headers.indexOf('size') !== -1 ? headers.indexOf('size') : headers.indexOf('medidas');
         const badgeIdx = headers.indexOf('badge');
-        const subcatIdx = headers.indexOf('subcategory');
+        const subcatIdx = headers.indexOf('subcategory') !== -1 ? headers.indexOf('subcategory') : headers.indexOf('coleccion');
+        const colorNameIdx = headers.indexOf('color_nombre') !== -1 ? headers.indexOf('color_nombre') : headers.indexOf('color_name');
+        const colorCodeIdx = headers.indexOf('color_codigo') !== -1 ? headers.indexOf('color_codigo') : headers.indexOf('color_code');
+        const colorHexIdx = headers.indexOf('color_hex') !== -1 ? headers.indexOf('color_hex') : headers.indexOf('hex');
+        const imageUrlIdx = headers.indexOf('imagen_url') !== -1 ? headers.indexOf('imagen_url') : headers.indexOf('image_url');
+        const notesIdx = headers.indexOf('notas') !== -1 ? headers.indexOf('notas') : headers.indexOf('description');
 
         if (nameIdx === -1) {
-          throw new Error('No se encontró la columna "name" en el archivo CSV.');
+          throw new Error('No se encontró la columna "name" o "nombre" en el archivo CSV.');
         }
 
         const importedProducts: Product[] = [];
@@ -416,7 +449,25 @@ export const PriceListManager: React.FC<PriceListManagerProps> = ({
           const name = row[nameIdx];
           if (!name) continue;
 
-          const existing = products.find(p => (idIdx !== -1 && p.id === row[idIdx]) || p.name.toLowerCase() === name.toLowerCase());
+          const productId = (idIdx !== -1 && row[idIdx]) ? row[idIdx] : undefined;
+          const colorName = colorNameIdx !== -1 ? row[colorNameIdx]?.trim() : undefined;
+          const colorCode = colorCodeIdx !== -1 ? row[colorCodeIdx]?.trim() : undefined;
+          const colorHex = colorHexIdx !== -1 ? row[colorHexIdx]?.trim() : undefined;
+          const imageUrl = imageUrlIdx !== -1 ? row[imageUrlIdx]?.trim() : undefined;
+
+          // Check if this product is already in our imported list (aggregating multi-row variants)
+          const inBatch = importedProducts.find(p => (productId && p.id === productId) || p.name.toLowerCase() === name.toLowerCase());
+          if (inBatch) {
+            if (colorName && !inBatch.colors?.some(c => c.name.toLowerCase() === colorName.toLowerCase())) {
+              inBatch.colors = [
+                ...(inBatch.colors || []),
+                { name: colorName, code: colorCode || '', hex: colorHex || '#CCCCCC', plankPhotoUrl: imageUrl || undefined }
+              ];
+            }
+            continue;
+          }
+
+          const existing = products.find(p => (productId && p.id === productId) || p.name.toLowerCase() === name.toLowerCase());
 
           const categoryRaw = catIdx !== -1 ? row[catIdx]?.toLowerCase() : 'piso';
           const validCategory: ProductCategory = 
@@ -424,8 +475,12 @@ export const PriceListManager: React.FC<PriceListManagerProps> = ({
             categoryRaw === 'wall_panels' || categoryRaw === 'underlayment' || categoryRaw === 'otros' 
               ? categoryRaw : 'piso';
 
+          const initialColors = colorName 
+            ? [{ name: colorName, code: colorCode || '', hex: colorHex || '#CCCCCC', plankPhotoUrl: imageUrl || undefined }]
+            : (existing?.colors || []);
+
           const prod: Product = {
-            id: (idIdx !== -1 && row[idIdx]) ? row[idIdx] : (existing?.id || `prod-csv-${Date.now()}-${i}`),
+            id: productId || (existing?.id || `prod-csv-${Date.now()}-${i}`),
             name: name,
             category: validCategory,
             subcategory: (subcatIdx !== -1 && row[subcatIdx]) || existing?.subcategory,
@@ -436,7 +491,8 @@ export const PriceListManager: React.FC<PriceListManagerProps> = ({
             sqftPerBox: sqftIdx !== -1 && !isNaN(parseFloat(row[sqftIdx])) ? parseFloat(row[sqftIdx]) : existing?.sqftPerBox,
             stripLengthFeet: stripIdx !== -1 && !isNaN(parseFloat(row[stripIdx])) ? parseFloat(row[stripIdx]) : existing?.stripLengthFeet,
             badge: (badgeIdx !== -1 && row[badgeIdx]) || existing?.badge,
-            colors: existing?.colors || []
+            description: (notesIdx !== -1 && row[notesIdx]) || existing?.description,
+            colors: initialColors
           };
 
           importedProducts.push(prod);
@@ -561,7 +617,7 @@ export const PriceListManager: React.FC<PriceListManagerProps> = ({
             </select>
           </div>
 
-          {/* Buttons: + Crear Producto Completo, + Rápido & ⋯ Más opciones */}
+          {/* Buttons: + Crear Producto Completo, + Rápido, Descargar CSV & ⋯ Más opciones */}
           <div className="flex items-center gap-2 shrink-0 flex-wrap sm:flex-nowrap">
             {isAdmin && (
               <button
@@ -585,6 +641,19 @@ export const PriceListManager: React.FC<PriceListManagerProps> = ({
             >
               <Plus className="w-4 h-4" />
               <span>{isAddingNew ? 'Cancelar' : '+ Rápido'}</span>
+            </button>
+
+            {/* Direct CSV Database Download Button */}
+            <button
+              type="button"
+              id="btn-download-csv-database"
+              onClick={handleExportCSV}
+              className="px-3.5 py-2.5 rounded-xl border border-emerald-300 bg-emerald-50 hover:bg-emerald-100 active:scale-95 text-emerald-800 text-xs font-bold uppercase tracking-wider flex items-center gap-1.5 transition-colors cursor-pointer whitespace-nowrap shadow-2xs"
+              title="Descargar base de datos CSV completa actualizada con todos los productos y variantes de color"
+            >
+              <Download className="w-4 h-4 text-emerald-600" />
+              <span className="hidden sm:inline">Descargar CSV</span>
+              <span className="sm:hidden">CSV</span>
             </button>
 
             {/* Hidden CSV File Input */}
@@ -636,8 +705,8 @@ export const PriceListManager: React.FC<PriceListManagerProps> = ({
                     >
                       <FileSpreadsheet className="w-4 h-4 text-emerald-600" />
                       <div>
-                        <span className="font-bold block leading-tight">Exportar Catálogo a CSV</span>
-                        <span className="text-[10px] text-[#6B6A63]">Descarga todos los {products.length} productos</span>
+                        <span className="font-bold block leading-tight">Descargar Base de Datos Completa (CSV)</span>
+                        <span className="text-[10px] text-[#6B6A63]">Base de datos completa con todos los colores y medidas</span>
                       </div>
                     </button>
 

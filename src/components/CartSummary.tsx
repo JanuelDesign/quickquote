@@ -151,36 +151,61 @@ export const CartSummary: React.FC<CartSummaryProps> = ({
             </div>
           </div>
 
-          {/* Client Card */}
-          <div 
-            onClick={onOpenClientModal}
-            className="bg-white border border-[#E5E5E5] p-3 rounded-lg flex items-center justify-between gap-2 cursor-pointer hover:border-black transition-colors shadow-2xs group"
-          >
-            <div className="flex items-center gap-2.5 min-w-0 flex-1">
-              <div className="w-8 h-8 rounded-md bg-black text-[#FF8407] flex items-center justify-center font-bold text-xs shrink-0">
-                {client ? client.name.charAt(0).toUpperCase() : <User className="w-4 h-4 text-[#FF8407]" />}
-              </div>
-              <div className="min-w-0 flex-1">
-                <div className="flex items-center gap-1.5 flex-wrap">
-                  <span className="text-xs font-bold text-black block leading-snug break-words">
-                    {client ? client.name : t.unassignedClient}
-                  </span>
-                  {client?.clientType && (
-                    <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-[#F2F1EC] text-[#181818] border border-[#E4E2DA] shrink-0">
-                      {client.clientType}
-                    </span>
-                  )}
+          {/* Client Card: Show select button if no client, or full card once chosen */}
+          {!client ? (
+            <button
+              type="button"
+              onClick={onOpenClientModal}
+              className="w-full bg-[#FFF6EC] border-2 border-dashed border-[#FF8407] hover:border-[#E07300] hover:bg-[#FFECD6] p-2.5 rounded-lg flex items-center justify-between gap-2 cursor-pointer transition-colors shadow-2xs group text-left"
+            >
+              <div className="flex items-center gap-2 min-w-0">
+                <div className="w-7 h-7 rounded-md bg-[#FF8407] text-white flex items-center justify-center shrink-0">
+                  <User className="w-4 h-4" />
                 </div>
-                <span className="text-[10px] text-[#8C8C8C] leading-snug break-words block mt-0.5">
-                  {client?.phone || client?.email || (language === 'en' ? 'Click to select or register client' : 'Click para seleccionar o registrar')}
-                </span>
+                <div>
+                  <span className="text-xs font-black text-[#FF8407] block uppercase tracking-wide">
+                    {language === 'en' ? '+ Select Client' : '+ Seleccionar Cliente'}
+                  </span>
+                  <span className="text-[10px] text-[#6B6A63] block">
+                    {language === 'en' ? 'Choose client to quote' : 'Elige un cliente para cotizar'}
+                  </span>
+                </div>
               </div>
-            </div>
+              <span className="text-[10px] font-bold uppercase px-2 py-0.5 rounded bg-[#FF8407] text-white shrink-0">
+                {language === 'en' ? 'Select' : 'Elegir'}
+              </span>
+            </button>
+          ) : (
+            <div 
+              onClick={onOpenClientModal}
+              className="bg-white border border-[#E5E5E5] p-3 rounded-lg flex items-center justify-between gap-2 cursor-pointer hover:border-black transition-colors shadow-2xs group"
+            >
+              <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                <div className="w-8 h-8 rounded-md bg-black text-[#FF8407] flex items-center justify-center font-bold text-xs shrink-0">
+                  {client.name.charAt(0).toUpperCase()}
+                </div>
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    <span className="text-xs font-bold text-black block leading-snug break-words">
+                      {client.name}
+                    </span>
+                    {client.clientType && (
+                      <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-[#F2F1EC] text-[#181818] border border-[#E4E2DA] shrink-0">
+                        {client.clientType}
+                      </span>
+                    )}
+                  </div>
+                  <span className="text-[10px] text-[#8C8C8C] leading-snug break-words block mt-0.5">
+                    {client.phone || client.email || client.company || ''}
+                  </span>
+                </div>
+              </div>
 
-            <span className="text-[10px] font-bold text-[#FF8407] group-hover:underline tracking-wider uppercase shrink-0">
-              {client ? t.changeClient : t.assignClient}
-            </span>
-          </div>
+              <span className="text-[10px] font-bold text-[#FF8407] group-hover:underline tracking-wider uppercase shrink-0">
+                {t.changeClient}
+              </span>
+            </div>
+          )}
         </div>
 
         {/* Cart Items List */}
@@ -483,7 +508,13 @@ export const CartSummary: React.FC<CartSummaryProps> = ({
           <button
             type="button"
             id="btn-generate-quote-action"
-            onClick={onGenerateQuote}
+            onClick={() => {
+              if (!client && onOpenClientModal) {
+                onOpenClientModal();
+                return;
+              }
+              onGenerateQuote();
+            }}
             disabled={items.length === 0}
             className={`w-full py-3.5 px-4 rounded-lg font-bold text-xs sm:text-sm tracking-wide uppercase flex items-center justify-center gap-2 transition-all cursor-pointer shadow-[0_4px_12px_rgba(255,132,7,0.3)] active:scale-98 ${
               items.length > 0
@@ -492,7 +523,7 @@ export const CartSummary: React.FC<CartSummaryProps> = ({
             }`}
           >
             <FileCheck className="w-4 h-4" />
-            <span>{t.generatePdfBtn}</span>
+            <span>{!client ? (language === 'en' ? 'Select Client to Continue' : 'Seleccionar Cliente para Continuar') : t.generatePdfBtn}</span>
           </button>
         </div>
       </aside>

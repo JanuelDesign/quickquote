@@ -1144,20 +1144,9 @@ export default function App() {
             <div className="flex items-center gap-2 shrink-0">
               <button
                 type="button"
-                id="btn-banner-new-quote"
-                onClick={handleStartNewQuote}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#FF8407] hover:bg-[#E07300] active:scale-95 text-white text-xs font-bold transition-all cursor-pointer shadow-2xs tracking-wide"
-                title={language === 'en' ? 'Start fresh quote & select client' : 'Iniciar cotización limpia y elegir cliente'}
-              >
-                <Plus className="w-3.5 h-3.5 stroke-[2.5]" />
-                <span>{language === 'en' ? 'New Quote' : 'Nueva Cotización'}</span>
-              </button>
-
-              <button
-                type="button"
                 id="btn-switch-client"
                 onClick={() => setIsClientModalOpen(true)}
-                className="px-3 py-1.5 rounded-lg border border-[#E4E2DA] hover:border-[#181818] bg-[#F2F1EC] text-[#181818] text-xs font-bold transition-colors cursor-pointer uppercase tracking-wider"
+                className="px-3.5 py-2 rounded-lg border border-[#E4E2DA] hover:border-[#181818] bg-[#F2F1EC] text-[#181818] text-xs font-bold transition-colors cursor-pointer uppercase tracking-wider"
               >
                 {t.changeClient}
               </button>
@@ -1464,6 +1453,10 @@ export default function App() {
               id="btn-bottom-bar-next"
               onClick={() => {
                 if (cartItems.length > 0) {
+                  if (!currentClient) {
+                    setIsClientModalOpen(true);
+                    return;
+                  }
                   setIsQuoteModalOpen(true);
                 } else {
                   setIsCartOpen(true);
@@ -1476,7 +1469,7 @@ export default function App() {
                   : 'bg-zinc-200 text-zinc-400 cursor-not-allowed'
               }`}
             >
-              <span>{language === 'en' ? 'Review Quote' : 'Ver Cotización'}</span>
+              <span>{cartItems.length > 0 && !currentClient ? (language === 'en' ? 'Select Client' : 'Seleccionar Cliente') : (language === 'en' ? 'Review Quote' : 'Ver Cotización')}</span>
               <ChevronRight className="w-4 h-4" />
             </button>
           </div>
