@@ -1090,16 +1090,16 @@ export default function App() {
               type="button"
               id="btn-banner-new-quote-large"
               onClick={handleStartNewQuote}
-              className="w-full py-4 sm:py-5 px-6 rounded-2xl bg-gradient-to-r from-[#FF8407] to-[#E07300] hover:from-[#E07300] hover:to-[#C66500] active:scale-[0.99] text-white shadow-lg hover:shadow-xl transition-all cursor-pointer flex items-center justify-center gap-3 sm:gap-4 group border border-amber-500/30"
+              className="w-full py-4 sm:py-5 px-6 rounded-2xl bg-[#181818] hover:bg-black active:scale-[0.99] text-white shadow-lg hover:shadow-xl transition-all cursor-pointer flex items-center justify-center gap-3 sm:gap-4 group border border-zinc-800"
             >
-              <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-xl bg-black/20 text-white flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform shadow-inner">
+              <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-xl bg-zinc-800 border border-zinc-700 text-[#FF8407] flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform shadow-inner">
                 <Plus className="w-6 h-6 stroke-[3]" />
               </div>
               <div className="text-left sm:text-center">
-                <span className="text-base sm:text-xl font-black uppercase tracking-wider block leading-tight">
+                <span className="text-base sm:text-xl font-black uppercase tracking-wider block leading-tight text-white">
                   {language === 'en' ? '+ START NEW QUOTE' : '+ INICIAR NUEVA COTIZACIÓN'}
                 </span>
-                <span className="text-xs sm:text-sm text-white/90 font-medium block mt-0.5">
+                <span className="text-xs sm:text-sm text-zinc-400 group-hover:text-zinc-300 font-medium block mt-0.5">
                   {language === 'en'
                     ? 'Click here to select or register a client and begin'
                     : 'Haz clic aquí para seleccionar o registrar el cliente y comenzar'}
