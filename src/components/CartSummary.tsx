@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { CartItem, Client, Language } from '../types';
-import { formatCurrency, getItemUnitPriceDetail } from '../utils/calculations';
+import { formatCurrency, getItemUnitPriceDetail, formatItemUnitsLabel } from '../utils/calculations';
+import { getCategoryDisplayName } from '../utils/productSearch';
 import { translations } from '../utils/translations';
 import { 
   ShoppingBag, 
@@ -66,7 +67,8 @@ export const CartSummary: React.FC<CartSummaryProps> = ({
   total,
   language = 'en'
 }) => {
-  const t = translations[language];
+  const currentLang: Language = language === 'es' ? 'es' : 'en';
+  const t = translations[currentLang];
   const [editingItemId, setEditingItemId] = useState<string | null>(null);
   const [editPriceInput, setEditPriceInput] = useState<string>('');
   const [deliveryInput, setDeliveryInput] = useState<string>(Math.max(60, deliveryFee).toString());
@@ -75,6 +77,7 @@ export const CartSummary: React.FC<CartSummaryProps> = ({
     setDeliveryInput(Math.max(60, deliveryFee).toString());
   }, [deliveryFee]);
 
+  const [deliveryAppliedFeedback, setDeliveryAppliedFeedback] = useState<boolean>(false);
   const deliveryInputRef = React.useRef<HTMLInputElement>(null);
 
   const handleDeliveryBlur = () => {
@@ -84,6 +87,10 @@ export const CartSummary: React.FC<CartSummaryProps> = ({
     if (onUpdateDeliveryFee) {
       onUpdateDeliveryFee(clamped);
     }
+    setDeliveryAppliedFeedback(true);
+    setTimeout(() => {
+      setDeliveryAppliedFeedback(false);
+    }, 2200);
   };
 
   const handleDeliverySubmit = (e?: React.FormEvent) => {
@@ -233,7 +240,7 @@ export const CartSummary: React.FC<CartSummaryProps> = ({
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-1.5 flex-wrap">
                         <span className="text-[9px] font-black uppercase px-1.5 py-0.5 rounded bg-black text-white shrink-0">
-                          {item.category}
+                          {getCategoryDisplayName(item.category, currentLang)}
                         </span>
                         {item.color && (
                           <span className="text-[9px] font-semibold text-[#FF8407] bg-amber-500/10 px-1.5 py-0.5 rounded border border-[#FF8407]/20 leading-snug break-words">
@@ -242,7 +249,7 @@ export const CartSummary: React.FC<CartSummaryProps> = ({
                         )}
                         {!item.isTaxable && (
                           <span className="text-[9px] font-bold text-emerald-800 bg-emerald-100 px-1.5 py-0.5 rounded shrink-0">
-                            0% Tax (Labor)
+                            {currentLang === 'en' ? '0% Tax (Labor)' : '0% Tax (Mano de obra)'}
                           </span>
                         )}
                       </div>
@@ -252,7 +259,7 @@ export const CartSummary: React.FC<CartSummaryProps> = ({
                       </h4>
 
                       <p className="text-[11px] text-[#8C8C8C]">
-                        {item.calculatedUnitsLabel}
+                        {formatItemUnitsLabel(item, currentLang)}
                       </p>
                     </div>
 
@@ -385,44 +392,58 @@ export const CartSummary: React.FC<CartSummaryProps> = ({
                   <span className="text-[11px] font-semibold text-[#6B6A63]">
                     {language === 'en' ? 'Delivery Amount (Min. $60):' : 'Monto de Delivery (Mín. $60):'}
                   </span>
-                  <div className="flex items-center gap-1 bg-white border border-[#FF8407] rounded-md pl-2 pr-1 py-0.5">
-                    <span className="text-xs font-bold text-[#181818] font-mono">$</span>
-                    <input
-                      ref={deliveryInputRef}
-                      type="number"
-                      inputMode="decimal"
-                      enterKeyHint="done"
-                      min={60}
-                      step="5"
-                      value={deliveryInput}
-                      onChange={(e) => {
-                        setDeliveryInput(e.target.value);
-                        const val = parseFloat(e.target.value);
-                        if (!isNaN(val) && val >= 60) {
-                          onUpdateDeliveryFee(Number(val.toFixed(2)));
-                        }
-                      }}
-                      onBlur={handleDeliveryBlur}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter' || e.keyCode === 13) {
+                  <div className="flex items-center gap-1.5">
+                    {deliveryAppliedFeedback && (
+                      <span className="text-[10px] font-bold text-emerald-600 animate-fadeIn">
+                        {language === 'en' ? '✓ Saved' : '✓ Guardado'}
+                      </span>
+                    )}
+                    <div className={`flex items-center gap-1 bg-white border rounded-md pl-2 pr-1 py-0.5 transition-colors ${
+                      deliveryAppliedFeedback ? 'border-emerald-500 ring-1 ring-emerald-500' : 'border-[#FF8407]'
+                    }`}>
+                      <span className="text-xs font-bold text-[#181818] font-mono">$</span>
+                      <input
+                        ref={deliveryInputRef}
+                        type="number"
+                        inputMode="decimal"
+                        enterKeyHint="done"
+                        min={60}
+                        step="5"
+                        value={deliveryInput}
+                        onChange={(e) => {
+                          setDeliveryInput(e.target.value);
+                          const val = parseFloat(e.target.value);
+                          if (!isNaN(val) && val >= 60) {
+                            onUpdateDeliveryFee(Number(val.toFixed(2)));
+                          }
+                        }}
+                        onBlur={handleDeliveryBlur}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter' || e.keyCode === 13) {
+                            e.preventDefault();
+                            handleDeliveryBlur();
+                            e.currentTarget.blur();
+                          }
+                        }}
+                        className="w-14 text-xs font-bold font-mono text-right text-[#181818] outline-none bg-transparent py-0.5"
+                      />
+                      <button
+                        type="submit"
+                        onClick={(e) => {
                           e.preventDefault();
-                          handleDeliveryBlur();
-                          e.currentTarget.blur();
-                        }
-                      }}
-                      className="w-14 text-xs font-bold font-mono text-right text-[#181818] outline-none bg-transparent py-0.5"
-                    />
-                    <button
-                      type="submit"
-                      onClick={(e) => {
-                        e.preventDefault();
-                        handleDeliverySubmit();
-                      }}
-                      className="p-1 rounded bg-[#181818] text-[#FF8407] hover:bg-black transition-colors cursor-pointer shrink-0"
-                      title={language === 'en' ? 'Apply delivery amount' : 'Aplicar monto de delivery'}
-                    >
-                      <Check className="w-3 h-3" />
-                    </button>
+                          handleDeliverySubmit();
+                        }}
+                        className={`p-1.5 rounded transition-all cursor-pointer shrink-0 ${
+                          deliveryAppliedFeedback
+                            ? 'bg-emerald-600 text-white shadow-xs scale-105'
+                            : 'bg-[#181818] text-[#FF8407] hover:bg-black active:scale-95'
+                        }`}
+                        title={language === 'en' ? (deliveryAppliedFeedback ? 'Saved!' : 'Apply delivery amount') : (deliveryAppliedFeedback ? '¡Guardado!' : 'Aplicar monto de delivery')}
+                        aria-label="Confirm delivery amount"
+                      >
+                        <Check className="w-3.5 h-3.5 stroke-[2.5]" />
+                      </button>
+                    </div>
                   </div>
                 </form>
               )}

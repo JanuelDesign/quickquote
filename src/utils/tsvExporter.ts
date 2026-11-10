@@ -418,8 +418,19 @@ export const parseProductsFromText = (
     }
   }
 
+  let finalProducts = Array.from(existingMap.values());
+  try {
+    const deletedIdsStr = typeof window !== 'undefined' ? localStorage.getItem('qs_deleted_product_ids') : null;
+    if (deletedIdsStr) {
+      const deletedIds: string[] = JSON.parse(deletedIdsStr);
+      finalProducts = finalProducts.filter(p => !deletedIds.includes(p.id));
+    }
+  } catch (e) {
+    // Ignore
+  }
+
   return {
-    updatedProducts: Array.from(existingMap.values()),
+    updatedProducts: finalProducts,
     rowCount: validRowsCount
   };
 };

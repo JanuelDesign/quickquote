@@ -1,4 +1,4 @@
-import { CartItem, Product, ProductColor, Client } from '../types';
+import { CartItem, Product, ProductColor, Client, Language } from '../types';
 
 export function calculateFloorUnits(sqftRequired: number, sqftPerBox: number): {
   boxesNeeded: number;
@@ -864,6 +864,79 @@ export function formatCurrency(amount: number | undefined | null): string {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2
   }).format(validAmount);
+}
+
+/**
+ * Localizes cart item unit packaging labels on the fly based on the active language
+ */
+export function formatItemUnitsLabel(item: CartItem, lang: Language = 'es'): string {
+  const isEn = lang === 'en';
+  if (!item.calculatedUnitsLabel) return '';
+
+  let label = item.calculatedUnitsLabel;
+  if (isEn) {
+    label = label
+      .replace(/cajas/gi, 'boxes')
+      .replace(/caja\b/gi, 'box')
+      .replace(/tiras de/gi, 'strips of')
+      .replace(/tiras/gi, 'strips')
+      .replace(/tira\b/gi, 'strip')
+      .replace(/piezas/gi, 'pieces')
+      .replace(/pieza\b/gi, 'piece')
+      .replace(/peldaños/gi, 'steps')
+      .replace(/peldaño\b/gi, 'step')
+      .replace(/contrahuellas/gi, 'risers')
+      .replace(/contrahuella\b/gi, 'riser')
+      .replace(/láminas/gi, 'planks')
+      .replace(/lámina\b/gi, 'plank')
+      .replace(/rollos/gi, 'rolls')
+      .replace(/rollo\b/gi, 'roll')
+      .replace(/paneles/gi, 'panels')
+      .replace(/panel\b/gi, 'panel')
+      .replace(/pies lineales/gi, 'linear feet');
+  } else {
+    label = label
+      .replace(/boxes/gi, 'cajas')
+      .replace(/box\b/gi, 'caja')
+      .replace(/strips of/gi, 'tiras de')
+      .replace(/strips/gi, 'tiras')
+      .replace(/strip\b/gi, 'tira')
+      .replace(/pieces/gi, 'piezas')
+      .replace(/piece\b/gi, 'pieza')
+      .replace(/steps/gi, 'peldaños')
+      .replace(/step\b/gi, 'peldaño')
+      .replace(/risers/gi, 'contrahuellas')
+      .replace(/riser\b/gi, 'contrahuella')
+      .replace(/planks/gi, 'láminas')
+      .replace(/plank\b/gi, 'lámina')
+      .replace(/rolls/gi, 'rollos')
+      .replace(/roll\b/gi, 'rollo')
+      .replace(/panels/gi, 'paneles')
+      .replace(/panel\b/gi, 'panel')
+      .replace(/linear feet/gi, 'pies lineales');
+  }
+  return label;
+}
+
+/**
+ * Localizes cart item quantity unit label on the fly
+ */
+export function formatItemQuantityUnit(item: CartItem, lang: Language = 'es'): string {
+  const isEn = lang === 'en';
+  const unit = (item.quantityUnitLabel || '').toLowerCase();
+  if (unit.includes('pie') || unit.includes('linear')) {
+    return isEn ? 'linear feet (LF)' : 'pies lineales (LF)';
+  }
+  if (unit.includes('pieza') || unit.includes('piece')) {
+    return isEn ? (item.userEnteredQuantity > 1 ? 'pieces' : 'piece') : (item.userEnteredQuantity > 1 ? 'piezas' : 'pieza');
+  }
+  if (unit.includes('peldaño') || unit.includes('step') || unit.includes('huella')) {
+    return isEn ? (item.userEnteredQuantity > 1 ? 'steps' : 'step') : (item.userEnteredQuantity > 1 ? 'peldaños' : 'peldaño');
+  }
+  if (unit.includes('sqft')) {
+    return 'sqft';
+  }
+  return item.quantityUnitLabel;
 }
 
 export function getValidUntilDate(days: number = 3, lang: 'en' | 'es' = 'en'): string {

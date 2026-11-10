@@ -7,10 +7,12 @@ import {
   getDocs, 
   getDoc,
   setDoc, 
-  deleteDoc, 
-  onSnapshot, 
+  deleteDoc,
+  onSnapshot,
   getDocFromServer,
-  writeBatch
+  writeBatch,
+  query,
+  where
 } from 'firebase/firestore';
 import { getAuth } from 'firebase/auth';
 import firebaseConfig from '../../firebase-applet-config.json';
@@ -114,8 +116,25 @@ export function subscribeToProducts(
 
       const products: Product[] = [];
       snapshot.forEach((d) => {
-        products.push(d.data() as Product);
+        const data = d.data() as Product;
+        products.push({
+          ...data,
+          id: data.id || d.id
+        });
       });
+
+      // Filter out any locally blacklisted deleted product IDs so they don't flicker back
+      try {
+        const deletedIdsStr = localStorage.getItem('qs_deleted_product_ids');
+        const localDeletedIds: string[] = deletedIdsStr ? JSON.parse(deletedIdsStr) : [];
+        if (localDeletedIds.length > 0) {
+          const filtered = products.filter(p => !localDeletedIds.includes(p.id));
+          onSuccess(filtered);
+          return;
+        }
+      } catch (e) {
+        console.warn('Error reading deleted products filter:', e);
+      }
 
       onSuccess(products);
     },
@@ -130,6 +149,19 @@ export async function saveProductToDb(product: Product): Promise<void> {
   if (!product?.id) {
     product.id = `prod-${Date.now()}`;
   }
+
+  // Remove from deleted blacklist if re-created or edited
+  try {
+    const deletedIdsStr = localStorage.getItem('qs_deleted_product_ids');
+    if (deletedIdsStr) {
+      const localDeletedIds: string[] = JSON.parse(deletedIdsStr);
+      const filtered = localDeletedIds.filter(id => id !== product.id);
+      localStorage.setItem('qs_deleted_product_ids', JSON.stringify(filtered));
+    }
+  } catch (e) {
+    // Ignore localStorage parse errors
+  }
+
   const docRef = doc(db, PRODUCTS_COLLECTION, product.id);
   const cleaned = cleanForFirestore(product);
   await setDoc(docRef, cleaned, { merge: true });
@@ -137,8 +169,39 @@ export async function saveProductToDb(product: Product): Promise<void> {
 
 export async function deleteProductFromDb(productId: string): Promise<void> {
   if (!productId) return;
-  const docRef = doc(db, PRODUCTS_COLLECTION, productId);
-  await deleteDoc(docRef);
+
+  // 1. Immediately store in local blacklist so it never flickers back
+  try {
+    const deletedIdsStr = localStorage.getItem('qs_deleted_product_ids');
+    const localDeletedIds: string[] = deletedIdsStr ? JSON.parse(deletedIdsStr) : [];
+    if (!localDeletedIds.includes(productId)) {
+      localDeletedIds.push(productId);
+      localStorage.setItem('qs_deleted_product_ids', JSON.stringify(localDeletedIds));
+    }
+  } catch (e) {
+    console.error('Error blacklisting deleted product ID:', e);
+  }
+
+  // 2. Delete document directly by ID
+  try {
+    const docRef = doc(db, PRODUCTS_COLLECTION, productId);
+    await deleteDoc(docRef);
+  } catch (e) {
+    console.warn('Error deleting direct doc from Firestore:', e);
+  }
+
+  // 3. Delete any extra docs with matching 'id' field in Firestore
+  try {
+    const q = query(collection(db, PRODUCTS_COLLECTION), where('id', '==', productId));
+    const snaps = await getDocs(q);
+    if (!snaps.empty) {
+      const batch = writeBatch(db);
+      snaps.forEach(s => batch.delete(s.ref));
+      await batch.commit();
+    }
+  } catch (e) {
+    console.warn('Error checking extra doc matches for deletion:', e);
+  }
 }
 
 export async function batchSaveProductsToDb(products: Product[]): Promise<void> {

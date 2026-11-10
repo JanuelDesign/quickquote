@@ -97,24 +97,34 @@ export default function App() {
 
   // Persistence state
   const [products, setProducts] = useState<Product[]>(() => {
+    let deletedIds: string[] = [];
+    try {
+      const deletedIdsStr = localStorage.getItem('qs_deleted_product_ids');
+      if (deletedIdsStr) deletedIds = JSON.parse(deletedIdsStr);
+    } catch (e) {
+      // Ignore
+    }
+
     const savedVersion = localStorage.getItem('qs_catalog_version');
     if (savedVersion !== 'v6_euphoric_cherry_2026_09_14') {
       localStorage.setItem('qs_catalog_version', 'v6_euphoric_cherry_2026_09_14');
-      localStorage.setItem('qs_products_catalog', JSON.stringify(INITIAL_PRODUCTS));
+      const filtered = INITIAL_PRODUCTS.filter(p => !deletedIds.includes(p.id));
+      localStorage.setItem('qs_products_catalog', JSON.stringify(filtered));
       if (!localStorage.getItem('qs_google_sheet_url')) {
         localStorage.setItem('qs_google_sheet_url', DEFAULT_GOOGLE_SHEET_URL);
       }
-      return INITIAL_PRODUCTS;
+      return filtered;
     }
     const saved = localStorage.getItem('qs_products_catalog');
     if (saved) {
       try {
-        return JSON.parse(saved);
+        const parsed: Product[] = JSON.parse(saved);
+        return parsed.filter(p => !deletedIds.includes(p.id));
       } catch (e) {
-        return INITIAL_PRODUCTS;
+        return INITIAL_PRODUCTS.filter(p => !deletedIds.includes(p.id));
       }
     }
-    return INITIAL_PRODUCTS;
+    return INITIAL_PRODUCTS.filter(p => !deletedIds.includes(p.id));
   });
 
   const [clients, setClients] = useState<Client[]>(() => {
@@ -164,13 +174,22 @@ export default function App() {
   );
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const [includeDelivery, setIncludeDelivery] = useState<boolean>(false);
-  const [deliveryFee, setDeliveryFee] = useState<number>(60);
+  const [deliveryFee, setDeliveryFee] = useState<number>(() => {
+    const saved = localStorage.getItem('qs_delivery_fee');
+    if (saved) {
+      const parsed = parseFloat(saved);
+      if (!isNaN(parsed) && parsed >= 60) return parsed;
+    }
+    return 60;
+  });
   const [payWithCard, setPayWithCard] = useState<boolean>(false);
   const [activeCategory, setActiveCategory] = useState<ProductCategory>('piso');
   const [quoteValidDays, setQuoteValidDays] = useState<number>(3);
 
   const handleUpdateDeliveryFee = (newFee: number) => {
-    setDeliveryFee(Math.max(60, Number(newFee.toFixed(2))));
+    const validFee = Math.max(60, Number(newFee.toFixed(2)));
+    setDeliveryFee(validFee);
+    localStorage.setItem('qs_delivery_fee', validFee.toString());
   };
   
   // Sales representative is strictly bound to the authenticated user's profile
@@ -256,22 +275,30 @@ export default function App() {
     return () => unsub();
   }, [currentUser?.uid]);
 
-  // Silent background auto-sync from Google Sheets on app load and window focus
+  // Optional background auto-sync from Google Sheets (Only runs if explicitly enabled by user)
   useEffect(() => {
     if (!currentUser) return;
 
-    const syncQuietly = async () => {
-      const savedUrl = localStorage.getItem('qs_google_sheet_url') || DEFAULT_GOOGLE_SHEET_URL;
-      const isAuto = localStorage.getItem('qs_google_sheet_autosync') !== 'false';
-      const tabName = localStorage.getItem('qs_google_sheet_tab_name') || undefined;
-      if (!savedUrl || !isAuto) return;
+    const isAuto = localStorage.getItem('qs_google_sheet_autosync') === 'true';
+    const savedUrl = localStorage.getItem('qs_google_sheet_url');
+    const tabName = localStorage.getItem('qs_google_sheet_tab_name') || undefined;
+    if (!savedUrl || !isAuto) return;
 
+    const syncQuietly = async () => {
       try {
         const token = await getAccessToken();
         const res = await fetchGoogleSheetsCatalog(savedUrl, products, tabName, token || undefined);
         if (res && res.updatedProducts && res.updatedProducts.length > 0) {
-          setProducts(res.updatedProducts);
-          localStorage.setItem('qs_products_catalog', JSON.stringify(res.updatedProducts));
+          let deletedIds: string[] = [];
+          try {
+            const deletedIdsStr = localStorage.getItem('qs_deleted_product_ids');
+            if (deletedIdsStr) deletedIds = JSON.parse(deletedIdsStr);
+          } catch (e) {
+            // Ignore
+          }
+          const cleanProds = res.updatedProducts.filter(p => !deletedIds.includes(p.id));
+          setProducts(cleanProds);
+          localStorage.setItem('qs_products_catalog', JSON.stringify(cleanProds));
           const now = new Date();
           const nowStr = `${now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} • ${now.toLocaleDateString()}`;
           localStorage.setItem('qs_google_sheet_last_sync', nowStr);
@@ -282,18 +309,6 @@ export default function App() {
     };
 
     syncQuietly();
-
-    const handleWindowFocus = () => {
-      syncQuietly();
-    };
-
-    window.addEventListener('focus', handleWindowFocus);
-    const intervalId = window.setInterval(syncQuietly, 60000);
-
-    return () => {
-      window.removeEventListener('focus', handleWindowFocus);
-      window.clearInterval(intervalId);
-    };
   }, [currentUser]);
 
   // Live Cloud Firestore Subscriptions (Only attach if user is authenticated)
@@ -302,7 +317,15 @@ export default function App() {
 
     const unsubProducts = subscribeToProducts((cloudProds) => {
       if (cloudProds && cloudProds.length > 0) {
-        setProducts(cloudProds);
+        let deletedIds: string[] = [];
+        try {
+          const deletedIdsStr = localStorage.getItem('qs_deleted_product_ids');
+          if (deletedIdsStr) deletedIds = JSON.parse(deletedIdsStr);
+        } catch (e) {
+          // Ignore
+        }
+        const cleanProds = cloudProds.filter(p => !deletedIds.includes(p.id));
+        setProducts(cleanProds);
       }
     });
 
@@ -336,6 +359,26 @@ export default function App() {
       unsubSettings();
     };
   }, [currentUser]);
+
+  // Real-time synchronization: if a product is deleted from catalog, immediately remove it from the active quote (cotizador)
+  useEffect(() => {
+    if (products.length === 0) return;
+    const activeProductIds = new Set(products.map(p => p.id));
+
+    setCartItems(prev => {
+      const filtered = prev.filter(item => item.category === 'otros' || item.isLabor || activeProductIds.has(item.productId));
+      if (filtered.length !== prev.length) {
+        localStorage.setItem('qs_active_cart', JSON.stringify(filtered));
+        return filtered;
+      }
+      return prev;
+    });
+
+    if (targetProductId && !activeProductIds.has(targetProductId)) {
+      setTargetProductId(undefined);
+      setTargetColor(undefined);
+    }
+  }, [products, targetProductId]);
 
   // Sync to localStorage
   useEffect(() => {
@@ -834,6 +877,7 @@ export default function App() {
     setCartItems([]);
     setIncludeDelivery(false);
     setDeliveryFee(60);
+    localStorage.removeItem('qs_delivery_fee');
     setPayWithCard(false);
     setShippingAddress('');
     setSameAsBillingAddress(true);
@@ -1567,6 +1611,23 @@ export default function App() {
           onUpdateProducts={(newProducts) => {
             setProducts(newProducts);
             localStorage.setItem('qs_products_catalog', JSON.stringify(newProducts));
+
+            // Instantly remove any deleted products from the active quote items (cotizador)
+            const remainingProductIds = new Set(newProducts.map((p) => p.id));
+            setCartItems((prev) => {
+              const updated = prev.filter(
+                (item) => item.category === 'otros' || item.isLabor || remainingProductIds.has(item.productId)
+              );
+              if (updated.length !== prev.length) {
+                localStorage.setItem('qs_active_cart', JSON.stringify(updated));
+              }
+              return updated;
+            });
+
+            if (targetProductId && !remainingProductIds.has(targetProductId)) {
+              setTargetProductId(undefined);
+              setTargetColor(undefined);
+            }
           }}
         />
       )}

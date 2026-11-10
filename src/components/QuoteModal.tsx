@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { Quotation, AppSettings, Language } from '../types';
 import { generateQuotePDF, generateWhatsAppMessage } from '../utils/pdfGenerator';
-import { formatCurrency, getItemUnitPriceDetail } from '../utils/calculations';
+import { formatCurrency, getItemUnitPriceDetail, formatItemUnitsLabel, formatItemQuantityUnit } from '../utils/calculations';
+import { getCategoryDisplayName } from '../utils/productSearch';
 import { translations } from '../utils/translations';
 import { QuickSurfacesLogo } from './QuickSurfacesLogo';
 import { 
@@ -80,6 +81,7 @@ export const QuoteModal: React.FC<QuoteModalProps> = ({
   const [successToast, setSuccessToast] = useState<string | null>(null);
   const [postExportAction, setPostExportAction] = useState<'downloaded' | 'shared' | null>(null);
   const [deliveryInput, setDeliveryInput] = useState<string>(Math.max(60, deliveryFee).toString());
+  const [deliveryAppliedFeedback, setDeliveryAppliedFeedback] = useState<boolean>(false);
   const deliveryInputRef = React.useRef<HTMLInputElement>(null);
 
   React.useEffect(() => {
@@ -93,6 +95,10 @@ export const QuoteModal: React.FC<QuoteModalProps> = ({
     if (onUpdateDeliveryFee) {
       onUpdateDeliveryFee(clamped);
     }
+    setDeliveryAppliedFeedback(true);
+    setTimeout(() => {
+      setDeliveryAppliedFeedback(false);
+    }, 2200);
   };
 
   const handleDeliverySubmit = (e?: React.FormEvent) => {
@@ -104,9 +110,20 @@ export const QuoteModal: React.FC<QuoteModalProps> = ({
   const salespersonName = quote.salespersonName || settings.salespersonName;
   const salespersonPhone = quote.salespersonPhone || settings.salespersonPhone;
 
-  // Prepare quote object with latest shipping address
+  // Prepare quote object with latest shipping address & dynamically synchronized delivery fee
+  const effectiveFee = Math.max(60, Number(deliveryFee || quote.deliveryCost || quote.deliveryTotal || 60));
+  const effectiveDeliveryTotal = quote.includeDelivery ? effectiveFee : 0;
+  const recalculatedBaseTotal = Number((quote.subtotalProducts + effectiveDeliveryTotal + quote.taxAmount + (quote.installationTotal || 0)).toFixed(2));
+  const recalculatedCardFee = quote.payWithCard ? Number((recalculatedBaseTotal * 0.03).toFixed(2)) : 0;
+  const recalculatedTotal = Number((recalculatedBaseTotal + recalculatedCardFee).toFixed(2));
+
   const quoteWithShipping: Quotation = {
     ...quote,
+    deliveryCost: effectiveDeliveryTotal,
+    deliveryTotal: effectiveDeliveryTotal,
+    cardFeeAmount: recalculatedCardFee,
+    baseTotal: recalculatedBaseTotal,
+    total: recalculatedTotal,
     shippingAddress: sameAsBillingAddress ? (quote.client.address || '') : (shippingAddress || ''),
     sameAsBillingAddress
   };
@@ -514,7 +531,7 @@ export const QuoteModal: React.FC<QuoteModalProps> = ({
                             {idx + 1}
                           </span>
                           <span className="font-bold uppercase px-1.5 py-0.5 rounded bg-zinc-200 text-zinc-800 text-[10px] shrink-0">
-                            {item.category}
+                            {getCategoryDisplayName(item.category, currentLang)}
                           </span>
                           {item.color && (
                             <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded bg-amber-500/10 border border-[#FF8407]/30 text-[#FF8407] text-[11px] font-bold">
@@ -563,11 +580,11 @@ export const QuoteModal: React.FC<QuoteModalProps> = ({
                         </span>
                         <div className="flex items-center gap-2 flex-wrap">
                           <span className="font-bold text-[#181818] text-xs sm:text-sm">
-                            {item.userEnteredQuantity} {item.quantityUnitLabel}
+                            {item.userEnteredQuantity} {formatItemQuantityUnit(item, currentLang)}
                           </span>
                           <span className="text-zinc-300">•</span>
                           <span className="font-semibold text-[#FF8407] text-xs">
-                            {item.calculatedUnitsLabel}
+                            {formatItemUnitsLabel(item, currentLang)}
                           </span>
                         </div>
                       </div>
@@ -593,32 +610,32 @@ export const QuoteModal: React.FC<QuoteModalProps> = ({
               <div className="w-full sm:w-80 bg-[#181818] text-white p-4 rounded-xl space-y-2 text-xs">
                 <div className="flex justify-between text-zinc-400">
                   <span>{isEn ? 'Products Subtotal (Taxable):' : 'Subtotal Materiales (Gravable):'}</span>
-                  <span className="font-mono font-bold text-white">{formatCurrency(quote.subtotalProducts)}</span>
+                  <span className="font-mono font-bold text-white">{formatCurrency(quoteWithShipping.subtotalProducts)}</span>
                 </div>
 
                 <div className="flex justify-between text-zinc-400">
                   <span>{isEn ? 'FL Sales Tax (7% on products):' : 'Impuesto de Ventas (7%):'}</span>
-                  <span className="font-mono font-bold text-white">{formatCurrency(quote.taxAmount)}</span>
+                  <span className="font-mono font-bold text-white">{formatCurrency(quoteWithShipping.taxAmount)}</span>
                 </div>
 
-                {quote.includeDelivery && (
+                {quoteWithShipping.includeDelivery && (
                   <div className="flex justify-between text-zinc-400">
                     <span>{isEn ? 'Delivery Fee (No Tax):' : 'Delivery (Sin Impuesto):'}</span>
-                    <span className="font-mono font-bold text-white">{formatCurrency(quote.deliveryCost)}</span>
+                    <span className="font-mono font-bold text-white">{formatCurrency(quoteWithShipping.deliveryCost)}</span>
                   </div>
                 )}
 
-                {quote.installationTotal > 0 && (
+                {quoteWithShipping.installationTotal > 0 && (
                   <div className="flex justify-between text-zinc-400">
                     <span>{isEn ? 'Installation / Labor (Tax Exempt):' : 'Instalación / Mano de obra:'}</span>
-                    <span className="font-mono font-bold text-white">{formatCurrency(quote.installationTotal)}</span>
+                    <span className="font-mono font-bold text-white">{formatCurrency(quoteWithShipping.installationTotal)}</span>
                   </div>
                 )}
 
-                {quote.payWithCard && (quote.cardFeeAmount ?? 0) > 0 && (
+                {quoteWithShipping.payWithCard && (quoteWithShipping.cardFeeAmount ?? 0) > 0 && (
                   <div className="flex justify-between items-center gap-2 text-[#FF8407] bg-black/40 px-2 py-1 rounded border border-[#FF8407]/30">
                     <span>{isEn ? 'Card Surcharge (3% on Total + Tax):' : 'Recargo Tarjeta (3% sobre Total + Impuesto):'}</span>
-                    <span className="font-mono font-bold shrink-0">{formatCurrency(quote.cardFeeAmount)}</span>
+                    <span className="font-mono font-bold shrink-0">{formatCurrency(quoteWithShipping.cardFeeAmount)}</span>
                   </div>
                 )}
 
@@ -627,7 +644,7 @@ export const QuoteModal: React.FC<QuoteModalProps> = ({
                     {isEn ? 'TOTAL ESTIMATE:' : 'TOTAL ESTIMADO:'}
                   </span>
                   <span className="font-mono font-black text-2xl text-[#FF8407]">
-                    {formatCurrency(quote.total)}
+                    {formatCurrency(quoteWithShipping.total)}
                   </span>
                 </div>
               </div>
@@ -1020,50 +1037,64 @@ export const QuoteModal: React.FC<QuoteModalProps> = ({
                   {quote.includeDelivery && onUpdateDeliveryFee && (
                     <form
                       onSubmit={handleDeliverySubmit}
-                      className="flex items-center justify-between gap-2 pt-2 border-t border-[#FF8407]/20"
+                      className="space-y-1.5 pt-2 border-t border-[#FF8407]/20"
                     >
-                      <span className="text-[10px] font-bold uppercase text-[#181818]">
-                        {isEn ? 'Delivery Fee (Min $60):' : 'Monto Delivery (Mín $60):'}
-                      </span>
-                      <div className="flex items-center gap-1 bg-white border border-[#FF8407] rounded-md pl-2 pr-1 py-0.5">
-                        <span className="text-xs font-bold text-[#181818] font-mono">$</span>
-                        <input
-                          ref={deliveryInputRef}
-                          type="number"
-                          inputMode="decimal"
-                          enterKeyHint="done"
-                          min={60}
-                          step="5"
-                          value={deliveryInput}
-                          onChange={(e) => {
-                            setDeliveryInput(e.target.value);
-                            const val = parseFloat(e.target.value);
-                            if (!isNaN(val) && val >= 60) {
-                              onUpdateDeliveryFee(Number(val.toFixed(2)));
-                            }
-                          }}
-                          onBlur={handleDeliveryBlur}
-                          onKeyDown={(e) => {
-                            if (e.key === 'Enter' || e.keyCode === 13) {
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="text-[10px] font-bold uppercase text-[#181818]">
+                          {isEn ? 'Delivery Fee (Min $60):' : 'Monto Delivery (Mín $60):'}
+                        </span>
+                        <div className={`flex items-center gap-1 bg-white border rounded-md pl-2 pr-1 py-0.5 transition-all ${
+                          deliveryAppliedFeedback ? 'border-emerald-500 ring-2 ring-emerald-500/20' : 'border-[#FF8407]'
+                        }`}>
+                          <span className="text-xs font-bold text-[#181818] font-mono">$</span>
+                          <input
+                            ref={deliveryInputRef}
+                            type="number"
+                            inputMode="decimal"
+                            enterKeyHint="done"
+                            min={60}
+                            step="5"
+                            value={deliveryInput}
+                            onChange={(e) => {
+                              setDeliveryInput(e.target.value);
+                              const val = parseFloat(e.target.value);
+                              if (!isNaN(val) && val >= 60) {
+                                onUpdateDeliveryFee(Number(val.toFixed(2)));
+                              }
+                            }}
+                            onBlur={handleDeliveryBlur}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter' || e.keyCode === 13) {
+                                e.preventDefault();
+                                handleDeliveryBlur();
+                                e.currentTarget.blur();
+                              }
+                            }}
+                            className="w-14 text-xs font-bold font-mono text-right text-[#181818] outline-none bg-transparent py-0.5"
+                          />
+                          <button
+                            type="submit"
+                            onClick={(e) => {
                               e.preventDefault();
-                              handleDeliveryBlur();
-                              e.currentTarget.blur();
-                            }
-                          }}
-                          className="w-14 text-xs font-bold font-mono text-right text-[#181818] outline-none bg-transparent py-0.5"
-                        />
-                        <button
-                          type="submit"
-                          onClick={(e) => {
-                            e.preventDefault();
-                            handleDeliverySubmit();
-                          }}
-                          className="p-1 rounded bg-[#181818] text-[#FF8407] hover:bg-black transition-colors cursor-pointer shrink-0"
-                          title={isEn ? 'Apply delivery amount' : 'Aplicar monto de delivery'}
-                        >
-                          <Check className="w-3 h-3" />
-                        </button>
+                              handleDeliverySubmit();
+                            }}
+                            className={`p-1 rounded transition-all cursor-pointer shrink-0 ${
+                              deliveryAppliedFeedback 
+                                ? 'bg-emerald-600 text-white scale-105 shadow-xs' 
+                                : 'bg-[#181818] text-[#FF8407] hover:bg-black'
+                            }`}
+                            title={isEn ? 'Apply and save delivery amount' : 'Aplicar y guardar monto de delivery'}
+                          >
+                            <Check className="w-3 h-3" />
+                          </button>
+                        </div>
                       </div>
+                      {deliveryAppliedFeedback && (
+                        <div className="flex items-center justify-end gap-1 text-[10px] text-emerald-700 font-bold">
+                          <Check className="w-3 h-3 text-emerald-600" />
+                          <span>{isEn ? '✓ Saved & Applied to Quote' : '✓ Guardado y Aplicado a la Cotización'}</span>
+                        </div>
+                      )}
                     </form>
                   )}
                 </div>
@@ -1107,32 +1138,32 @@ export const QuoteModal: React.FC<QuoteModalProps> = ({
             <div className="bg-[#181818] text-white p-4 rounded-xl space-y-2">
               <div className="flex justify-between text-zinc-400">
                 <span>{isEn ? 'Products Subtotal:' : 'Subtotal Materiales:'}</span>
-                <span className="font-mono font-bold text-white">{formatCurrency(quote.subtotalProducts)}</span>
+                <span className="font-mono font-bold text-white">{formatCurrency(quoteWithShipping.subtotalProducts)}</span>
               </div>
 
               <div className="flex justify-between text-zinc-400">
                 <span>{isEn ? 'FL Sales Tax (7% on products):' : 'Impuesto (7% solo s/materiales):'}</span>
-                <span className="font-mono font-bold text-white">{formatCurrency(quote.taxAmount)}</span>
+                <span className="font-mono font-bold text-white">{formatCurrency(quoteWithShipping.taxAmount)}</span>
               </div>
 
-              {quote.includeDelivery && (
+              {quoteWithShipping.includeDelivery && (
                 <div className="flex justify-between text-zinc-400">
                   <span>{isEn ? 'Delivery Fee (No Tax):' : 'Delivery (Sin impuesto):'}</span>
-                  <span className="font-mono font-bold text-white">{formatCurrency(quote.deliveryCost)}</span>
+                  <span className="font-mono font-bold text-white">{formatCurrency(quoteWithShipping.deliveryCost)}</span>
                 </div>
               )}
 
-              {quote.installationTotal > 0 && (
+              {quoteWithShipping.installationTotal > 0 && (
                 <div className="flex justify-between text-zinc-400">
                   <span>{isEn ? 'Installation / Labor (Tax Exempt):' : 'Instalación / Mano de obra:'}</span>
-                  <span className="font-mono font-bold text-white">{formatCurrency(quote.installationTotal)}</span>
+                  <span className="font-mono font-bold text-white">{formatCurrency(quoteWithShipping.installationTotal)}</span>
                 </div>
               )}
 
-              {quote.payWithCard && (quote.cardFeeAmount ?? 0) > 0 && (
+              {quoteWithShipping.payWithCard && (quoteWithShipping.cardFeeAmount ?? 0) > 0 && (
                 <div className="flex justify-between items-center gap-2 text-[#FF8407] bg-black/40 px-2.5 py-1.5 rounded-lg border border-[#FF8407]/30">
                   <span>{isEn ? 'Card Surcharge (3% on Total + Tax):' : 'Recargo Tarjeta (3% sobre Total + Impuesto):'}</span>
-                  <span className="font-mono font-bold shrink-0">{formatCurrency(quote.cardFeeAmount)}</span>
+                  <span className="font-mono font-bold shrink-0">{formatCurrency(quoteWithShipping.cardFeeAmount)}</span>
                 </div>
               )}
 
@@ -1141,7 +1172,7 @@ export const QuoteModal: React.FC<QuoteModalProps> = ({
                   {isEn ? 'TOTAL ESTIMATE:' : 'TOTAL:'}
                 </span>
                 <span className="font-mono font-black text-2xl text-[#FF8407]">
-                  {formatCurrency(quote.total)}
+                  {formatCurrency(quoteWithShipping.total)}
                 </span>
               </div>
             </div>

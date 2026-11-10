@@ -1,7 +1,7 @@
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { Quotation, AppSettings, Language } from '../types';
-import { formatCurrency, getItemUnitPriceDetail } from './calculations';
+import { formatCurrency, getItemUnitPriceDetail, formatItemUnitsLabel, formatItemQuantityUnit } from './calculations';
 
 // Create a high-res QuickSurfaces vector logo Data URI on canvas for PDF embedding
 export function generateLogoDataUrl(): string {
@@ -180,9 +180,12 @@ export function generateQuotePDF(quote: Quotation, settings: AppSettings, lang: 
     if (item.stepIncludesRiser) desc += isEn ? `\nIncludes: Step + Matching Flush Riser` : `\nIncluye: Peldaño + Contrahuella (Riser)`;
     if (item.notes) desc += isEn ? `\nNote: ${item.notes}` : `\nNota: ${item.notes}`;
 
-    let qtyText = `${item.userEnteredQuantity} ${item.quantityUnitLabel}`;
-    if (item.calculatedUnitsLabel && item.calculatedUnitsLabel.trim() !== `${item.userEnteredQuantity} ${item.quantityUnitLabel}`.trim()) {
-      qtyText += `\n${item.calculatedUnitsLabel}`;
+    const localizedUnit = formatItemQuantityUnit(item, isEn ? 'en' : 'es');
+    const localizedCalculatedLabel = formatItemUnitsLabel(item, isEn ? 'en' : 'es');
+
+    let qtyText = `${item.userEnteredQuantity} ${localizedUnit}`;
+    if (localizedCalculatedLabel && localizedCalculatedLabel.trim() !== qtyText.trim()) {
+      qtyText += `\n${localizedCalculatedLabel}`;
     }
 
     const priceDetail = getItemUnitPriceDetail(item, isEn ? 'en' : 'es');
@@ -277,7 +280,8 @@ export function generateQuotePDF(quote: Quotation, settings: AppSettings, lang: 
     doc.setTextColor(80, 80, 80);
     doc.text(isEn ? 'Delivery Fee (No Tax):' : 'Delivery (Sin Impuesto):', summaryX + 4, currentTotalY);
     doc.setTextColor(26, 26, 26);
-    doc.text(formatCurrency(quote.deliveryCost), pageWidth - margin - 4, currentTotalY, { align: 'right' });
+    const effectiveDelivery = Math.max(60, Number(quote.deliveryCost ?? quote.deliveryTotal ?? 60));
+    doc.text(formatCurrency(effectiveDelivery), pageWidth - margin - 4, currentTotalY, { align: 'right' });
   }
 
   // Sales Tax 7% (on Products only, Delivery is No Tax)
@@ -479,14 +483,18 @@ export function generateWhatsAppMessage(quote: Quotation, lang: Language = 'en')
     const detail = getItemUnitPriceDetail(item, isEn ? 'en' : 'es');
     message += `▪️ *${item.productName}*`;
     if (item.color) message += ` (${item.color.name})`;
-    message += `\n   ${item.calculatedUnitsLabel}`;
+    const localizedUnits = formatItemUnitsLabel(item, isEn ? 'en' : 'es');
+    if (localizedUnits) {
+      message += `\n   ${localizedUnits}`;
+    }
     message += `\n   ${isEn ? 'Unit Price' : 'Precio Unit.'}: ${detail.primaryRate}${detail.packagingRate ? ` (${detail.packagingRate})` : ''} | Subtotal: ${formatCurrency(item.subtotal)}\n`;
   });
 
   message += `\n*${isEn ? 'FINANCIAL SUMMARY:' : 'RESUMEN:'}*\n`;
   message += `▫️ ${isEn ? 'Products Subtotal' : 'Subtotal Materiales'}: ${formatCurrency(quote.subtotalProducts)}\n`;
   if (quote.includeDelivery) {
-    message += `▫️ ${isEn ? 'Delivery (No Tax)' : 'Delivery (Sin Impuesto)'}: ${formatCurrency(quote.deliveryCost)}\n`;
+    const effectiveDelivery = Math.max(60, Number(quote.deliveryCost ?? quote.deliveryTotal ?? 60));
+    message += `▫️ ${isEn ? 'Delivery (No Tax)' : 'Delivery (Sin Impuesto)'}: ${formatCurrency(effectiveDelivery)}\n`;
   }
   message += `▫️ ${isEn ? 'FL Sales Tax (7%)' : 'Impuesto (7%)'}: ${formatCurrency(quote.taxAmount)}\n`;
   if (quote.installationTotal > 0) {

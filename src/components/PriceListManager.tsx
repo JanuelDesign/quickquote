@@ -176,9 +176,13 @@ export const PriceListManager: React.FC<PriceListManagerProps> = ({
     }
 
     try {
-      await deleteProductFromDb(productId);
+      // 1. Calculate and propagate updated catalog immediately so cotizador removes it without network delay
       const updated = products.filter((p) => p.id !== productId);
       onUpdateProducts(updated);
+
+      // 2. Persist deletion in Firestore and local blacklist
+      await deleteProductFromDb(productId);
+      
       showFeedback('success', `"${productName}" eliminado del catálogo.`);
       return true;
     } catch (err) {
@@ -195,6 +199,7 @@ export const PriceListManager: React.FC<PriceListManagerProps> = ({
     }
 
     try {
+      localStorage.removeItem('qs_deleted_product_ids');
       await batchSaveProductsToDb(INITIAL_PRODUCTS);
       onUpdateProducts(INITIAL_PRODUCTS);
       showFeedback('success', 'Catálogo restablecido a valores iniciales de fábrica.');
