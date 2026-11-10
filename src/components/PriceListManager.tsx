@@ -6,7 +6,6 @@ import {
   Edit3, 
   Trash2, 
   Search, 
-  Download, 
   Upload, 
   FileSpreadsheet, 
   FileText, 
@@ -17,7 +16,6 @@ import {
   Palette, 
   AlertCircle,
   Layers,
-  ChevronDown,
   Lock
 } from 'lucide-react';
 import { INITIAL_PRODUCTS } from '../data/initialProducts';
@@ -587,10 +585,10 @@ export const PriceListManager: React.FC<PriceListManagerProps> = ({
         )}
 
         {/* Actions & Filters Bar */}
-        <div className="p-4 sm:p-5 border-b border-[#E4E2DA] bg-[#FAFAFA] flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-3 shrink-0">
+        <div className="p-4 sm:p-5 border-b border-[#E4E2DA] bg-[#FAFAFA] flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3 shrink-0">
           {/* Search & Category Filter */}
-          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 flex-1">
-            <div className="relative flex-1">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 flex-1 min-w-0">
+            <div className="relative flex-1 min-w-[200px]">
               <Search className="w-4 h-4 text-[#9C9A90] absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
               <input
                 type="text"
@@ -617,8 +615,8 @@ export const PriceListManager: React.FC<PriceListManagerProps> = ({
             </select>
           </div>
 
-          {/* Buttons: + Crear Producto Completo, + Rápido, Descargar CSV & ⋯ Más opciones */}
-          <div className="flex items-center gap-2 shrink-0 flex-wrap sm:flex-nowrap">
+          {/* Buttons: Nuevo Producto, Rápido & ⋯ Más opciones */}
+          <div className="flex items-center gap-2 shrink-0">
             {isAdmin && (
               <button
                 type="button"
@@ -628,7 +626,7 @@ export const PriceListManager: React.FC<PriceListManagerProps> = ({
                 title="Crear un nuevo producto con editor completo, fotos y variantes de color"
               >
                 <Plus className="w-4 h-4 text-[#FF8407]" />
-                <span>+ Crear Producto Completo</span>
+                <span>Nuevo Producto</span>
               </button>
             )}
 
@@ -640,20 +638,7 @@ export const PriceListManager: React.FC<PriceListManagerProps> = ({
               className="px-3.5 py-2.5 rounded-xl bg-[#FF8407] hover:bg-[#E07300] active:scale-95 text-white text-xs font-bold uppercase tracking-wider flex items-center gap-1.5 shadow-xs transition-all cursor-pointer whitespace-nowrap"
             >
               <Plus className="w-4 h-4" />
-              <span>{isAddingNew ? 'Cancelar' : '+ Rápido'}</span>
-            </button>
-
-            {/* Direct CSV Database Download Button */}
-            <button
-              type="button"
-              id="btn-download-csv-database"
-              onClick={handleExportCSV}
-              className="px-3.5 py-2.5 rounded-xl border border-emerald-300 bg-emerald-50 hover:bg-emerald-100 active:scale-95 text-emerald-800 text-xs font-bold uppercase tracking-wider flex items-center gap-1.5 transition-colors cursor-pointer whitespace-nowrap shadow-2xs"
-              title="Descargar base de datos CSV completa actualizada con todos los productos y variantes de color"
-            >
-              <Download className="w-4 h-4 text-emerald-600" />
-              <span className="hidden sm:inline">Descargar CSV</span>
-              <span className="sm:hidden">CSV</span>
+              <span>{isAddingNew ? 'Cancelar' : 'Rápido'}</span>
             </button>
 
             {/* Hidden CSV File Input */}
@@ -665,19 +650,18 @@ export const PriceListManager: React.FC<PriceListManagerProps> = ({
               className="hidden" 
             />
 
-            {/* Secondary Options Dropdown Menu (⋯ Más opciones) - Admin Only */}
+            {/* Secondary Options Dropdown Menu (3-dots only icon button) - Admin Only */}
             {isAdmin && (
               <div className="relative" ref={moreMenuRef}>
                 <button
                   type="button"
                   id="btn-price-manager-more"
                   onClick={() => setIsMoreMenuOpen(prev => !prev)}
-                  className="h-10 px-3 rounded-xl border border-[#E4E2DA] bg-white hover:bg-[#F2F1EC] text-[#181818] text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer"
-                  title="Más opciones de respaldo y CSV"
+                  className="w-10 h-10 rounded-xl border border-[#E4E2DA] bg-white hover:bg-[#F2F1EC] text-[#181818] flex items-center justify-center transition-colors cursor-pointer shrink-0 shadow-2xs"
+                  title="Más opciones de catálogo, respaldo y CSV"
+                  aria-label="Más opciones"
                 >
-                  <MoreHorizontal className="w-4 h-4 text-[#6B6A63]" />
-                  <span className="hidden sm:inline">Más opciones</span>
-                  <ChevronDown className="w-3.5 h-3.5 text-[#9C9A90]" />
+                  <MoreHorizontal className="w-5 h-5 text-[#6B6A63]" />
                 </button>
 
                 {isMoreMenuOpen && (
