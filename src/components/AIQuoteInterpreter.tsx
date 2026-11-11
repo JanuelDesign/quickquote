@@ -18,6 +18,7 @@ export const AIQuoteInterpreter: React.FC<AIQuoteInterpreterProps> = ({
   const [isLoading, setIsLoading] = useState(false);
   const [lastParsedCount, setLastParsedCount] = useState<number | null>(null);
   const [isOpen, setIsOpen] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const samplePrompts = [
     {
@@ -35,6 +36,7 @@ export const AIQuoteInterpreter: React.FC<AIQuoteInterpreterProps> = ({
 
     setIsLoading(true);
     setLastParsedCount(null);
+    setErrorMessage(null);
 
     try {
       const parsedResponse = await interpretCustomerRequest(promptText);
@@ -45,7 +47,7 @@ export const AIQuoteInterpreter: React.FC<AIQuoteInterpreterProps> = ({
         setLastParsedCount(items.length);
         setTimeout(() => setLastParsedCount(null), 5000);
       } else {
-        alert(language === 'en' 
+        setErrorMessage(language === 'en' 
           ? 'No specific items could be detected. Please verify your text.' 
           : 'No se detectaron productos específicos en el texto. Revisa la redacción.');
       }
@@ -104,13 +106,19 @@ export const AIQuoteInterpreter: React.FC<AIQuoteInterpreterProps> = ({
               id="ai-customer-request-input"
               rows={3}
               value={promptText}
-              onChange={(e) => setPromptText(e.target.value)}
+              onChange={(e) => {
+                setPromptText(e.target.value);
+                if (errorMessage) setErrorMessage(null);
+              }}
               placeholder={language === 'en'
                 ? 'e.g., "Need 5.5mm floor, 300 sqft, 134 ft baseboard and 2 stair steps, with installation"'
                 : 'Ej: "Necesito piso 5.5mm, 300 pies, con rodapié 134 pies y 2 escalones, con instalación"'
               }
               className="w-full bg-white border border-[#E4E2DA] rounded-xl p-3 text-xs text-[#181818] placeholder:text-[#9C9A90] focus:outline-hidden focus:border-[#FF8407] focus:ring-1 focus:ring-[#FF8407]"
             />
+            {errorMessage && (
+              <p className="text-[11px] text-red-600 font-medium">{errorMessage}</p>
+            )}
           </div>
 
           {/* Quick sample chips */}

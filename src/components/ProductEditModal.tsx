@@ -114,7 +114,7 @@ export const ProductEditModal: React.FC<ProductEditModalProps> = ({
   const handleAddVariant = (e: React.FormEvent) => {
     e.preventDefault();
     if (!newVariantName.trim() || !newVariantCode.trim()) {
-      alert('Por favor ingresa el nombre y el código de la variante (ej. Q-01).');
+      setErrorMessage('Por favor ingresa el nombre y el código de la variante (ej. Q-01).');
       return;
     }
 

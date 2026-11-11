@@ -1195,7 +1195,7 @@ export const QuoteModal: React.FC<QuoteModalProps> = ({
               if (!sameAsBillingAddress && (!shippingAddress || !shippingAddress.trim())) {
                 const el = document.getElementById('input-shipping-address');
                 el?.focus();
-                alert(isEn ? 'Please enter the delivery address for this order.' : 'Por favor introduce la dirección de entrega para la orden.');
+                showToast(isEn ? 'Please enter the delivery address for this order.' : 'Por favor introduce la dirección de entrega para la orden.');
                 return;
               }
               setIsFullPreviewOpen(true);

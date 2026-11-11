@@ -123,20 +123,25 @@ export const UsersModal: React.FC<UsersModalProps> = ({
     }
   };
 
-  const handleDeleteUser = async (user: UserProfile) => {
+  const [userToDelete, setUserToDelete] = useState<UserProfile | null>(null);
+  const [deleteErrorMessage, setDeleteErrorMessage] = useState<string | null>(null);
+
+  const handleDeleteUser = (user: UserProfile) => {
     if (user.uid === currentUser.uid) {
-      alert(isEn ? 'You cannot delete your own active account.' : 'No puedes eliminar tu propia cuenta activa.');
+      setDeleteErrorMessage(isEn ? 'You cannot delete your own active account.' : 'No puedes eliminar tu propia cuenta activa.');
+      setTimeout(() => setDeleteErrorMessage(null), 3500);
       return;
     }
-    const confirmMsg = isEn 
-      ? `Are you sure you want to remove ${user.displayName} (${user.email})?`
-      : `¿Estás seguro de eliminar a ${user.displayName} (${user.email})?`;
-    if (window.confirm(confirmMsg)) {
-      try {
-        await deleteUserDoc(user.uid);
-      } catch (err) {
-        console.error('Error deleting user:', err);
-      }
+    setUserToDelete(user);
+  };
+
+  const executeDeleteUser = async () => {
+    if (!userToDelete) return;
+    try {
+      await deleteUserDoc(userToDelete.uid);
+      setUserToDelete(null);
+    } catch (err) {
+      console.error('Error deleting user:', err);
     }
   };
 
@@ -707,6 +712,13 @@ export const UsersModal: React.FC<UsersModalProps> = ({
         </div>
 
         {/* Footer */}
+        {/* Delete Self Error Banner */}
+        {deleteErrorMessage && (
+          <div className="px-5 py-2.5 bg-red-50 text-red-700 text-xs font-bold border-t border-red-200">
+            {deleteErrorMessage}
+          </div>
+        )}
+
         <div className="px-5 py-3 border-t border-[#E4E2DA] bg-white flex items-center justify-between text-xs">
           <span className="text-[#9C9A90] text-[11px]">
             {isEn 
@@ -722,6 +734,43 @@ export const UsersModal: React.FC<UsersModalProps> = ({
           </button>
         </div>
       </div>
+
+      {/* In-app Confirmation Modal for Deleting User */}
+      {userToDelete && (
+        <div className="fixed inset-0 z-60 bg-black/70 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in duration-100">
+          <div className="bg-white rounded-2xl max-w-sm w-full p-5 shadow-2xl border border-[#E4E2DA] space-y-4 text-center animate-in zoom-in-95 duration-150">
+            <div className="w-12 h-12 rounded-full bg-red-50 text-red-600 mx-auto flex items-center justify-center border border-red-200">
+              <Trash2 className="w-6 h-6" />
+            </div>
+            <div>
+              <h3 className="text-base font-bold text-[#181818]">
+                {isEn ? 'Remove User?' : '¿Eliminar usuario?'}
+              </h3>
+              <p className="text-xs text-[#6B6A63] mt-1.5 leading-relaxed">
+                {isEn 
+                  ? `Are you sure you want to remove ${userToDelete.displayName} (${userToDelete.email})?`
+                  : `¿Estás seguro de eliminar a ${userToDelete.displayName} (${userToDelete.email})?`}
+              </p>
+            </div>
+            <div className="flex items-center gap-2 pt-2">
+              <button
+                type="button"
+                onClick={() => setUserToDelete(null)}
+                className="flex-1 py-2.5 rounded-xl border border-[#E4E2DA] bg-white hover:bg-[#F2F1EC] text-xs font-bold text-[#181818] transition-colors cursor-pointer"
+              >
+                {isEn ? 'Cancel' : 'Cancelar'}
+              </button>
+              <button
+                type="button"
+                onClick={executeDeleteUser}
+                className="flex-1 py-2.5 rounded-xl bg-red-600 hover:bg-red-700 text-xs font-bold text-white transition-colors cursor-pointer shadow-xs"
+              >
+                {isEn ? 'Remove' : 'Eliminar'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

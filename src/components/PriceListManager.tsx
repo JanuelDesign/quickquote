@@ -16,7 +16,8 @@ import {
   Palette, 
   AlertCircle,
   Layers,
-  Lock
+  Lock,
+  Zap
 } from 'lucide-react';
 import { INITIAL_PRODUCTS } from '../data/initialProducts';
 import { ProductEditModal } from './ProductEditModal';
@@ -69,6 +70,10 @@ export const PriceListManager: React.FC<PriceListManagerProps> = ({
 
   // Feedback notifications
   const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
+
+  // In-app confirmation dialog states (to avoid browser locker behavior)
+  const [productToDelete, setProductToDelete] = useState<{ id: string; name: string } | null>(null);
+  const [isResetConfirmOpen, setIsResetConfirmOpen] = useState(false);
 
   const showFeedback = (type: 'success' | 'error', message: string) => {
     setFeedback({ type, message });
@@ -169,11 +174,11 @@ export const PriceListManager: React.FC<PriceListManagerProps> = ({
     }
   };
 
-  // Handle Delete Product
-  const handleDeleteProduct = async (productId: string, productName: string): Promise<boolean> => {
-    if (!window.confirm(`¿Estás seguro de eliminar "${productName}" del catálogo permanentemente?`)) {
-      return false;
-    }
+  // Handle Delete Product Confirmation Execution
+  const executeConfirmDelete = async () => {
+    if (!productToDelete) return;
+    const { id: productId, name: productName } = productToDelete;
+    setProductToDelete(null);
 
     try {
       // 1. Calculate and propagate updated catalog immediately so cotizador removes it without network delay
@@ -184,26 +189,25 @@ export const PriceListManager: React.FC<PriceListManagerProps> = ({
       await deleteProductFromDb(productId);
       
       showFeedback('success', `"${productName}" eliminado del catálogo.`);
-      return true;
+      if (modalEditingProduct?.id === productId) {
+        setModalEditingProduct(null);
+      }
     } catch (err) {
       console.error('Error eliminando producto:', err);
       showFeedback('error', 'Error al eliminar el producto.');
-      return false;
     }
   };
 
-  // Handle Reset to Default Products
-  const handleResetDefaults = async () => {
-    if (!window.confirm('¿Restablecer todo el catálogo a los productos iniciales de fábrica? Esto reemplazará los productos actuales.')) {
-      return;
-    }
+  // Handle Reset to Default Products Execution
+  const executeResetDefaults = async () => {
+    setIsResetConfirmOpen(false);
+    setIsMoreMenuOpen(false);
 
     try {
       localStorage.removeItem('qs_deleted_product_ids');
       await batchSaveProductsToDb(INITIAL_PRODUCTS);
       onUpdateProducts(INITIAL_PRODUCTS);
       showFeedback('success', 'Catálogo restablecido a valores iniciales de fábrica.');
-      setIsMoreMenuOpen(false);
     } catch (err) {
       console.error('Error restableciendo catálogo:', err);
       showFeedback('error', 'Error al restablecer el catálogo.');
@@ -620,21 +624,22 @@ export const PriceListManager: React.FC<PriceListManagerProps> = ({
             </select>
           </div>
 
-          {/* Buttons: Nuevo Producto, Rápido & ⋯ Más opciones */}
+          {/* Buttons: Nuevo (+ icono), Rápido (Rayo) & ⋯ Más opciones */}
           <div className="flex items-center gap-2 shrink-0">
             {isAdmin && (
               <button
                 type="button"
                 id="btn-open-create-full-product"
                 onClick={handleOpenCreateFullProduct}
-                className="px-3 py-2.5 rounded-xl bg-black hover:bg-zinc-800 active:scale-95 text-white text-xs font-bold uppercase tracking-wider flex items-center justify-center shadow-xs transition-all cursor-pointer whitespace-nowrap"
+                className="px-3.5 py-2.5 rounded-xl bg-black hover:bg-zinc-800 active:scale-95 text-white text-xs font-bold uppercase tracking-wider flex items-center gap-1.5 shadow-xs transition-all cursor-pointer whitespace-nowrap"
                 title="Crear un nuevo producto con editor completo, fotos y variantes de color"
               >
+                <Plus className="w-4 h-4 text-[#FF8407]" />
                 <span>Nuevo</span>
               </button>
             )}
 
-            {/* Quick Add Toggle Button (Solo icono de +) */}
+            {/* Quick Add Toggle Button (Solo icono de rayo) */}
             <button
               type="button"
               id="btn-open-add-product"
@@ -643,7 +648,7 @@ export const PriceListManager: React.FC<PriceListManagerProps> = ({
               title={isAddingNew ? 'Cerrar agregado rápido' : 'Agregar producto rápido'}
               aria-label="Agregar rápido"
             >
-              <Plus className={`w-5 h-5 transition-transform ${isAddingNew ? 'rotate-45' : ''}`} />
+              <Zap className="w-5 h-5 fill-white" />
             </button>
 
             {/* Hidden CSV File Input */}
@@ -714,7 +719,10 @@ export const PriceListManager: React.FC<PriceListManagerProps> = ({
                     <div className="pt-1 border-t border-[#E4E2DA] mt-1">
                       <button
                         type="button"
-                        onClick={handleResetDefaults}
+                        onClick={() => {
+                          setIsMoreMenuOpen(false);
+                          setIsResetConfirmOpen(true);
+                        }}
                         className="w-full px-2.5 py-2 rounded-lg hover:bg-red-50 text-left flex items-center gap-2.5 font-medium text-red-600 transition-colors cursor-pointer"
                       >
                         <RotateCcw className="w-4 h-4 text-red-500" />
@@ -1119,7 +1127,7 @@ export const PriceListManager: React.FC<PriceListManagerProps> = ({
 
                         <button
                           type="button"
-                          onClick={() => handleDeleteProduct(p.id, p.name)}
+                          onClick={() => setProductToDelete({ id: p.id, name: p.name })}
                           className="px-3 py-1.5 rounded-lg text-xs font-bold text-red-600 hover:bg-red-50 border border-red-200 transition-colors flex items-center gap-1 cursor-pointer uppercase tracking-wider"
                           title="Eliminar producto del catálogo"
                         >
@@ -1171,12 +1179,75 @@ export const PriceListManager: React.FC<PriceListManagerProps> = ({
             setSearchTerm('');
           }}
           onDeleteProduct={async (prodId, prodName) => {
-            const deleted = await handleDeleteProduct(prodId, prodName);
-            if (deleted) {
-              setModalEditingProduct(null);
-            }
+            setProductToDelete({ id: prodId, name: prodName });
           }}
         />
+      )}
+
+      {/* In-app Confirmation Dialog for Deleting Product */}
+      {productToDelete && (
+        <div className="fixed inset-0 z-60 bg-black/70 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in duration-100">
+          <div className="bg-white rounded-2xl max-w-sm w-full p-5 shadow-2xl border border-[#E4E2DA] space-y-4 text-center animate-in zoom-in-95 duration-150">
+            <div className="w-12 h-12 rounded-full bg-red-50 text-red-600 mx-auto flex items-center justify-center border border-red-200">
+              <Trash2 className="w-6 h-6" />
+            </div>
+            <div>
+              <h3 className="text-base font-bold text-[#181818]">¿Eliminar producto?</h3>
+              <p className="text-xs text-[#6B6A63] mt-1.5 leading-relaxed">
+                ¿Estás seguro de eliminar <strong className="text-[#181818]">"{productToDelete.name}"</strong> del catálogo permanentemente?
+              </p>
+            </div>
+            <div className="flex items-center gap-2 pt-2">
+              <button
+                type="button"
+                onClick={() => setProductToDelete(null)}
+                className="flex-1 py-2.5 rounded-xl border border-[#E4E2DA] bg-white hover:bg-[#F2F1EC] text-xs font-bold text-[#181818] transition-colors cursor-pointer"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                onClick={executeConfirmDelete}
+                className="flex-1 py-2.5 rounded-xl bg-red-600 hover:bg-red-700 text-xs font-bold text-white transition-colors cursor-pointer shadow-xs"
+              >
+                Sí, Eliminar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* In-app Confirmation Dialog for Resetting Defaults */}
+      {isResetConfirmOpen && (
+        <div className="fixed inset-0 z-60 bg-black/70 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in duration-100">
+          <div className="bg-white rounded-2xl max-w-sm w-full p-5 shadow-2xl border border-[#E4E2DA] space-y-4 text-center animate-in zoom-in-95 duration-150">
+            <div className="w-12 h-12 rounded-full bg-amber-50 text-amber-600 mx-auto flex items-center justify-center border border-amber-200">
+              <RotateCcw className="w-6 h-6" />
+            </div>
+            <div>
+              <h3 className="text-base font-bold text-[#181818]">¿Restablecer catálogo?</h3>
+              <p className="text-xs text-[#6B6A63] mt-1.5 leading-relaxed">
+                Esto restaurará todos los productos iniciales de fábrica y reemplazará las modificaciones actuales.
+              </p>
+            </div>
+            <div className="flex items-center gap-2 pt-2">
+              <button
+                type="button"
+                onClick={() => setIsResetConfirmOpen(false)}
+                className="flex-1 py-2.5 rounded-xl border border-[#E4E2DA] bg-white hover:bg-[#F2F1EC] text-xs font-bold text-[#181818] transition-colors cursor-pointer"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                onClick={executeResetDefaults}
+                className="flex-1 py-2.5 rounded-xl bg-amber-600 hover:bg-amber-700 text-xs font-bold text-white transition-colors cursor-pointer shadow-xs"
+              >
+                Sí, Restablecer
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

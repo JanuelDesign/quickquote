@@ -217,17 +217,19 @@ export const ClientModal: React.FC<ClientModalProps> = ({
     }
   };
 
-  const handleDeleteWithConfirm = async (client: Client) => {
-    const confirmMsg = language === 'en'
-      ? `Are you sure you want to delete client "${client.name}"?`
-      : `¿Estás seguro de eliminar al cliente "${client.name}"?`;
-    
-    if (window.confirm(confirmMsg)) {
-      try {
-        await onDeleteClient(client.id);
-      } catch (err) {
-        console.error('Error deleting client:', err);
-      }
+  const [clientToDelete, setClientToDelete] = useState<Client | null>(null);
+
+  const handleDeleteWithConfirm = (client: Client) => {
+    setClientToDelete(client);
+  };
+
+  const executeDeleteClient = async () => {
+    if (!clientToDelete) return;
+    try {
+      await onDeleteClient(clientToDelete.id);
+      setClientToDelete(null);
+    } catch (err) {
+      console.error('Error deleting client:', err);
     }
   };
 
@@ -767,6 +769,43 @@ export const ClientModal: React.FC<ClientModalProps> = ({
           </form>
         )}
       </div>
+
+      {/* In-app Confirmation Modal for Deleting Client */}
+      {clientToDelete && (
+        <div className="fixed inset-0 z-60 bg-black/70 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in duration-100">
+          <div className="bg-white rounded-2xl max-w-sm w-full p-5 shadow-2xl border border-[#E4E2DA] space-y-4 text-center animate-in zoom-in-95 duration-150">
+            <div className="w-12 h-12 rounded-full bg-red-50 text-red-600 mx-auto flex items-center justify-center border border-red-200">
+              <Trash2 className="w-6 h-6" />
+            </div>
+            <div>
+              <h3 className="text-base font-bold text-[#181818]">
+                {language === 'en' ? 'Delete Client?' : '¿Eliminar cliente?'}
+              </h3>
+              <p className="text-xs text-[#6B6A63] mt-1.5 leading-relaxed">
+                {language === 'en'
+                  ? `Are you sure you want to delete client "${clientToDelete.name}"?`
+                  : `¿Estás seguro de eliminar al cliente "${clientToDelete.name}"?`}
+              </p>
+            </div>
+            <div className="flex items-center gap-2 pt-2">
+              <button
+                type="button"
+                onClick={() => setClientToDelete(null)}
+                className="flex-1 py-2.5 rounded-xl border border-[#E4E2DA] bg-white hover:bg-[#F2F1EC] text-xs font-bold text-[#181818] transition-colors cursor-pointer"
+              >
+                {language === 'en' ? 'Cancel' : 'Cancelar'}
+              </button>
+              <button
+                type="button"
+                onClick={executeDeleteClient}
+                className="flex-1 py-2.5 rounded-xl bg-red-600 hover:bg-red-700 text-xs font-bold text-white transition-colors cursor-pointer shadow-xs"
+              >
+                {language === 'en' ? 'Delete' : 'Eliminar'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
