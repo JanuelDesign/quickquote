@@ -7,7 +7,8 @@ import {
   createStairsCartItem, 
   createRiserCartItem, 
   createStairComplementaryCartItem, 
-  createStairLandingCartItem 
+  createStairLandingCartItem,
+  getClientPriceMultiplier
 } from '../utils/calculations';
 import { translations } from '../utils/translations';
 import { 
@@ -56,8 +57,8 @@ export const StairsCalculator: React.FC<StairsCalculatorProps> = ({
 }) => {
   const t = translations[language];
   const isEn = language === 'en';
-  const isHomeowner = clientCategory === 'Homeowner';
-  const homeownerMultiplier = isHomeowner ? 1.30 : 1.0;
+  const homeownerMultiplier = getClientPriceMultiplier(clientCategory);
+  const isHomeowner = homeownerMultiplier > 1.0;
 
   // Available stair tread products
   const stairProducts = useMemo(() => {
@@ -152,18 +153,31 @@ export const StairsCalculator: React.FC<StairsCalculatorProps> = ({
     }
   };
 
+  // Re-sync stair prices if client category or multiplier changes
+  useEffect(() => {
+    if (materialSupplier === 'client') {
+      setStepUnitPrice(Number((11.00 * homeownerMultiplier).toFixed(2)));
+    } else if (selectedProduct?.basePrice) {
+      setStepUnitPrice(Number((selectedProduct.basePrice * homeownerMultiplier).toFixed(2)));
+    }
+    setPricePerSqft(Number(((floorFormat === '8.0mm' ? 2.09 : 1.49) * homeownerMultiplier).toFixed(2)));
+    setRiserUnitPrice(Number((9.00 * homeownerMultiplier).toFixed(2)));
+    setMoldingsUnitPrice(Number((16.99 * homeownerMultiplier).toFixed(2)));
+    setSkirtPricePerFoot(Number((1.35 * homeownerMultiplier).toFixed(2)));
+  }, [clientCategory, homeownerMultiplier, selectedProduct, materialSupplier, floorFormat]);
+
   // Jump to specific product if passed via search selection
   useEffect(() => {
     if (initialProductId) {
       const match = stairProducts.find(p => p.id === initialProductId);
       if (match) {
         setSelectedProduct(match);
-        setStepUnitPrice(match.basePrice || 19.00);
+        setStepUnitPrice(Number(((match.basePrice || 19.00) * homeownerMultiplier).toFixed(2)));
         setCurrentStep(2);
         scrollToCalculatorTop();
       }
     }
-  }, [initialProductId, initialSelectionKey, stairProducts]);
+  }, [initialProductId, initialSelectionKey, stairProducts, homeownerMultiplier]);
 
   // Sync when products change
   useEffect(() => {
@@ -172,10 +186,10 @@ export const StairsCalculator: React.FC<StairsCalculatorProps> = ({
       const fallback = stairProducts[0];
       if (fallback) {
         setSelectedProduct(fallback);
-        setStepUnitPrice(fallback.basePrice || 19.00);
+        setStepUnitPrice(Number(((fallback.basePrice || 19.00) * homeownerMultiplier).toFixed(2)));
       }
     }
-  }, [stairProducts]);
+  }, [stairProducts, homeownerMultiplier]);
 
   // When floor product from catalog changes, update specs
   const handleSelectFloorFromCatalog = (floorId: string) => {

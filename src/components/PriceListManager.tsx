@@ -627,23 +627,23 @@ export const PriceListManager: React.FC<PriceListManagerProps> = ({
                 type="button"
                 id="btn-open-create-full-product"
                 onClick={handleOpenCreateFullProduct}
-                className="px-3.5 py-2.5 rounded-xl bg-black hover:bg-zinc-800 active:scale-95 text-white text-xs font-bold uppercase tracking-wider flex items-center gap-1.5 shadow-xs transition-all cursor-pointer whitespace-nowrap"
+                className="px-3 py-2.5 rounded-xl bg-black hover:bg-zinc-800 active:scale-95 text-white text-xs font-bold uppercase tracking-wider flex items-center justify-center shadow-xs transition-all cursor-pointer whitespace-nowrap"
                 title="Crear un nuevo producto con editor completo, fotos y variantes de color"
               >
-                <Plus className="w-4 h-4 text-[#FF8407]" />
-                <span>Nuevo Producto</span>
+                <span>Nuevo</span>
               </button>
             )}
 
-            {/* Quick Add Toggle Button */}
+            {/* Quick Add Toggle Button (Solo icono de +) */}
             <button
               type="button"
               id="btn-open-add-product"
               onClick={() => setIsAddingNew(prev => !prev)}
-              className="px-3.5 py-2.5 rounded-xl bg-[#FF8407] hover:bg-[#E07300] active:scale-95 text-white text-xs font-bold uppercase tracking-wider flex items-center gap-1.5 shadow-xs transition-all cursor-pointer whitespace-nowrap"
+              className="w-10 h-10 rounded-xl bg-[#FF8407] hover:bg-[#E07300] active:scale-95 text-white flex items-center justify-center shadow-xs transition-all cursor-pointer shrink-0"
+              title={isAddingNew ? 'Cerrar agregado rápido' : 'Agregar producto rápido'}
+              aria-label="Agregar rápido"
             >
-              <Plus className="w-4 h-4" />
-              <span>{isAddingNew ? 'Cancelar' : 'Rápido'}</span>
+              <Plus className={`w-5 h-5 transition-transform ${isAddingNew ? 'rotate-45' : ''}`} />
             </button>
 
             {/* Hidden CSV File Input */}

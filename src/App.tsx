@@ -23,7 +23,8 @@ import {
   calculateQuoteTotals, 
   formatCurrency, 
   getValidUntilDate,
-  syncCartItemPricesForClient
+  syncCartItemPricesForClient,
+  getClientPriceMultiplier
 } from './utils/calculations';
 import { translations } from './utils/translations';
 
@@ -396,8 +397,13 @@ export default function App() {
   useEffect(() => {
     if (currentClient) {
       localStorage.setItem('qs_active_client_id', currentClient.id);
+      // Synchronize active cart item prices to match the current client's tier (+30% Homeowner vs base)
+      setCartItems(prev => {
+        if (!prev || prev.length === 0) return prev;
+        return syncCartItemPricesForClient(prev, currentClient, products);
+      });
     }
-  }, [currentClient]);
+  }, [currentClient, products]);
 
   useEffect(() => {
     localStorage.setItem('qs_quotes_history', JSON.stringify(quotesHistory));
@@ -430,7 +436,10 @@ export default function App() {
     color?: ProductColor,
     notes?: string
   ) => {
-    const item = createFloorCartItem(product, sqft, pricePerSqft, color, notes);
+    const clientMultiplier = getClientPriceMultiplier(currentClient?.clientType);
+    const minRate = Number(((product.basePrice || 1.49) * clientMultiplier).toFixed(2));
+    const effectivePrice = Math.max(minRate, pricePerSqft);
+    const item = createFloorCartItem(product, sqft, effectivePrice, color, notes);
     setCartItems(prev => [...prev, item]);
   };
 
@@ -441,7 +450,10 @@ export default function App() {
     color?: ProductColor,
     notes?: string
   ) => {
-    const item = createBaseboardCartItem(product, linearFeet, pricePerLinearFt, color, notes);
+    const clientMultiplier = getClientPriceMultiplier(currentClient?.clientType);
+    const minRate = Number(((product.basePrice || 1.19) * clientMultiplier).toFixed(2));
+    const effectivePrice = Math.max(minRate, pricePerLinearFt);
+    const item = createBaseboardCartItem(product, linearFeet, effectivePrice, color, notes);
     setCartItems(prev => [...prev, item]);
   };
 
@@ -452,7 +464,10 @@ export default function App() {
     color?: ProductColor,
     notes?: string
   ) => {
-    const item = createProfileCartItem(product, pieceCount, unitPrice, color, notes);
+    const clientMultiplier = getClientPriceMultiplier(currentClient?.clientType);
+    const minRate = Number(((product.basePrice || 30.00) * clientMultiplier).toFixed(2));
+    const effectivePrice = Math.max(minRate, unitPrice);
+    const item = createProfileCartItem(product, pieceCount, effectivePrice, color, notes);
     setCartItems(prev => [...prev, item]);
   };
 
@@ -467,11 +482,15 @@ export default function App() {
     riserStyle?: 'white' | 'match',
     extraStairItems?: CartItem[]
   ) => {
+    const clientMultiplier = getClientPriceMultiplier(currentClient?.clientType);
+    const minStepRate = Number(((product.basePrice || 19.00) * clientMultiplier).toFixed(2));
+    const effectiveStepPrice = Math.max(minStepRate, stepUnitPrice);
+
     // 1. Huella o peldaño como ítem individual
     const stepItem = createStairsCartItem(
       product,
       stepCount,
-      stepUnitPrice,
+      effectiveStepPrice,
       false,
       0,
       color,
@@ -484,10 +503,11 @@ export default function App() {
     if (extraStairItems && extraStairItems.length > 0) {
       itemsToAdd.push(...extraStairItems);
     } else if (includeRiser) {
-      // Modo legacy si solo venía contrahuella
+      const minRiserRate = Number((9.00 * clientMultiplier).toFixed(2));
+      const effectiveRiserPrice = Math.max(minRiserRate, riserUnitPrice);
       const riserItem = createRiserCartItem(
         stepCount,
-        riserUnitPrice,
+        effectiveRiserPrice,
         riserStyle || 'white',
         color,
         product.thickness,
@@ -506,7 +526,10 @@ export default function App() {
     color?: ProductColor,
     notes?: string
   ) => {
-    const item = createWallPanelCartItem(product, pieceCount, unitPrice, color, notes);
+    const clientMultiplier = getClientPriceMultiplier(currentClient?.clientType);
+    const minRate = Number(((product.basePrice || 17.00) * clientMultiplier).toFixed(2));
+    const effectivePrice = Math.max(minRate, unitPrice);
+    const item = createWallPanelCartItem(product, pieceCount, effectivePrice, color, notes);
     setCartItems(prev => [...prev, item]);
   };
 
@@ -516,7 +539,10 @@ export default function App() {
     unitPrice: number,
     notes?: string
   ) => {
-    const item = createUnderlaymentCartItem(product, rollCount, unitPrice, notes);
+    const clientMultiplier = getClientPriceMultiplier(currentClient?.clientType);
+    const minRate = Number(((product.basePrice || 22.00) * clientMultiplier).toFixed(2));
+    const effectivePrice = Math.max(minRate, unitPrice);
+    const item = createUnderlaymentCartItem(product, rollCount, effectivePrice, notes);
     setCartItems(prev => [...prev, item]);
   };
 

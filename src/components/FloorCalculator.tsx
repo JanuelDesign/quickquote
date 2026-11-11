@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Product, ProductColor, Language } from '../types';
-import { calculateFloorUnits, formatCurrency } from '../utils/calculations';
+import { calculateFloorUnits, formatCurrency, getClientPriceMultiplier } from '../utils/calculations';
 import { translations } from '../utils/translations';
 import { 
   Check, 
@@ -37,8 +37,8 @@ export const FloorCalculator: React.FC<FloorCalculatorProps> = ({
 }) => {
   const t = translations[language];
   const floorProducts = products.filter(p => p.category === 'piso');
-  const isHomeowner = clientCategory === 'Homeowner';
-  const multiplier = isHomeowner ? 1.30 : 1.0;
+  const multiplier = getClientPriceMultiplier(clientCategory);
+  const isHomeowner = multiplier > 1.0;
   const getTargetRate = (base: number) => Number((base * multiplier).toFixed(2));
   
   // Step workflow: 1 = Model, 2 = Color, 3 = Dims/Price
@@ -52,6 +52,13 @@ export const FloorCalculator: React.FC<FloorCalculatorProps> = ({
   const [pricePerSqft, setPricePerSqft] = useState<number>(getTargetRate(initialBasePrice));
   const [notes, setNotes] = useState<string>('');
   const [addedSuccess, setAddedSuccess] = useState(false);
+
+  // Re-sync price if client category or multiplier changes
+  React.useEffect(() => {
+    if (selectedProduct?.basePrice) {
+      setPricePerSqft(getTargetRate(selectedProduct.basePrice));
+    }
+  }, [clientCategory, multiplier, selectedProduct]);
 
   // Jump directly to Step 3 (Quantity & Pricing) when a product is chosen from the search modal
   React.useEffect(() => {
@@ -76,7 +83,7 @@ export const FloorCalculator: React.FC<FloorCalculatorProps> = ({
       if (fallback) {
         setSelectedProduct(fallback);
         setSelectedColor(fallback.colors?.[0]);
-        setPricePerSqft(fallback.basePrice || 1.49);
+        setPricePerSqft(getTargetRate(fallback.basePrice || 1.49));
       }
       return;
     }

@@ -955,7 +955,18 @@ export function getValidUntilDate(days: number = 3, lang: 'en' | 'es' = 'en'): s
  * - Contractor / Installer / Builder / others: base price (x1.00)
  */
 export function getClientPriceMultiplier(clientType?: string): number {
-  return clientType === 'Homeowner' ? 1.30 : 1.0;
+  if (!clientType) return 1.0;
+  const normalized = clientType.toLowerCase().trim();
+  if (
+    normalized.includes('homeowner') ||
+    normalized.includes('particular') ||
+    normalized.includes('propietario') ||
+    normalized.includes('dueño') ||
+    normalized.includes('retail')
+  ) {
+    return 1.30;
+  }
+  return 1.0;
 }
 
 /**

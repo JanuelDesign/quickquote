@@ -57,10 +57,8 @@ export const ProductEditModal: React.FC<ProductEditModalProps> = ({
     product?.colors ? [...product.colors] : []
   );
 
-  // Active section tab: 'specs' | 'variants'
-  const [activeSection, setActiveSection] = useState<'specs' | 'variants'>(() =>
-    product?.category === 'piso' || product?.category === 'wall_panels' ? 'variants' : 'specs'
-  );
+  // Active section tab: 'specs' | 'variants' - default to 'specs' (Especificaciones y Precio)
+  const [activeSection, setActiveSection] = useState<'specs' | 'variants'>('specs');
 
   // Sub-form for adding a new variant
   const [isAddingVariant, setIsAddingVariant] = useState(false);
@@ -85,8 +83,9 @@ export const ProductEditModal: React.FC<ProductEditModalProps> = ({
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
-  // Reset form when product prop changes
+  // Reset form when product prop or modal open state changes
   useEffect(() => {
+    setActiveSection('specs');
     if (product) {
       setFormData({
         ...product,
@@ -99,7 +98,7 @@ export const ProductEditModal: React.FC<ProductEditModalProps> = ({
       setErrorMessage(null);
       setSuccessMessage(null);
     }
-  }, [product]);
+  }, [product, isOpen]);
 
   // Handle reordering variants
   const handleMoveVariant = (index: number, direction: 'up' | 'down') => {
