@@ -250,9 +250,16 @@ export const WallPanelsCalculator: React.FC<WallPanelsCalculatorProps> = ({
                 <div>
                   <div className="flex items-start justify-between gap-2">
                     <div>
-                      <span className="text-[10px] font-bold uppercase tracking-wider text-[#FF8407] block">
-                        {prod.subcategory || 'Wall Panels'}
-                      </span>
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <span className="text-[10px] font-bold uppercase tracking-wider text-[#FF8407]">
+                          {prod.subcategory || 'Wall Panels'}
+                        </span>
+                        {prod.distributorName && (
+                          <span className="text-[10px] font-bold px-1.5 py-0.2 rounded bg-amber-50 text-[#FF8407] border border-amber-200">
+                            Dist: {prod.distributorName}
+                          </span>
+                        )}
+                      </div>
                       <h3 className="text-sm sm:text-base font-bold text-black mt-0.5 leading-snug">
                         {prod.name}
                       </h3>
@@ -277,14 +284,17 @@ export const WallPanelsCalculator: React.FC<WallPanelsCalculatorProps> = ({
                   {prod.colors && prod.colors.length > 0 && (
                     <div className="mt-3">
                       <div className="flex items-center gap-1.5 flex-wrap">
-                        {prod.colors.map((c) => (
-                          <div
-                            key={c.code}
-                            title={`${c.code}: ${c.name}`}
-                            className="w-5 h-5 rounded-full border border-zinc-300 shadow-2xs"
-                            style={{ backgroundColor: c.hex }}
-                          />
-                        ))}
+                        {prod.colors.map((c) => {
+                          const dist = c.distributorName || prod.distributorName;
+                          return (
+                            <div
+                              key={c.code}
+                              title={`${c.code}: ${c.name}${dist ? ` · Dist: ${dist}` : ''}`}
+                              className="w-5 h-5 rounded-full border border-zinc-300 shadow-2xs"
+                              style={{ backgroundColor: c.hex }}
+                            />
+                          );
+                        })}
                         <span className="text-[10px] text-zinc-400 ml-1">
                           {prod.colors.length} {language === 'en' ? 'colors' : 'tonos'}
                         </span>
@@ -353,6 +363,11 @@ export const WallPanelsCalculator: React.FC<WallPanelsCalculatorProps> = ({
                 {selectedColor && (
                   <span className="text-[#FF8407] ml-2 font-semibold">
                     {selectedColor.code} - {selectedColor.name}
+                    {(selectedColor.distributorName || selectedProduct.distributorName) && (
+                      <span className="ml-1.5 text-[10px] font-bold text-[#181818] bg-[#F2F1EC] px-1.5 py-0.5 rounded normal-case">
+                        Dist: {selectedColor.distributorName || selectedProduct.distributorName}
+                      </span>
+                    )}
                   </span>
                 )}
               </label>
@@ -360,6 +375,7 @@ export const WallPanelsCalculator: React.FC<WallPanelsCalculatorProps> = ({
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
                 {selectedProduct.colors.map((c) => {
                   const isColorActive = selectedColor?.code === c.code;
+                  const cDist = c.distributorName || selectedProduct.distributorName;
                   return (
                     <button
                       key={c.code}
@@ -382,6 +398,11 @@ export const WallPanelsCalculator: React.FC<WallPanelsCalculatorProps> = ({
                         <span className="text-[10px] text-zinc-500 block leading-snug break-words">
                           {c.name}
                         </span>
+                        {cDist && (
+                          <span className="inline-block text-[9px] font-bold text-[#FF8407] bg-amber-50 border border-amber-200/70 px-1.5 py-0.2 rounded mt-0.5 leading-tight break-words">
+                            Dist: {cDist}
+                          </span>
+                        )}
                       </div>
                     </button>
                   );

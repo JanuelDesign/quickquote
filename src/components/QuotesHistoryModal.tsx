@@ -1,12 +1,11 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Quotation, AppSettings, Language, QuoteStatus } from '../types';
 import { formatCurrency } from '../utils/calculations';
-import { generateQuotePDF, openWhatsAppShare } from '../utils/pdfGenerator';
+import { generateQuotePDF } from '../utils/pdfGenerator';
 import {
   History,
   Search,
   FileDown,
-  MessageSquare,
   Trash2,
   X,
   RotateCcw,
@@ -505,18 +504,6 @@ export const QuotesHistoryModal: React.FC<QuotesHistoryModalProps> = ({
                                 >
                                   <FileDown className="w-4 h-4 text-[#FF8407] shrink-0" />
                                   <span>{isEn ? 'Download PDF' : 'Descargar PDF'}</span>
-                                </button>
-
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    openWhatsAppShare(q, undefined, currentLang);
-                                    setOpenActionMenuId(null);
-                                  }}
-                                  className="w-full px-3 py-2 rounded-lg hover:bg-emerald-50 text-emerald-700 font-bold flex items-center gap-2.5 transition-colors cursor-pointer text-left"
-                                >
-                                  <MessageSquare className="w-4 h-4 text-emerald-600 shrink-0" />
-                                  <span>{isEn ? 'Share via WhatsApp' : 'Compartir'}</span>
                                 </button>
 
                                 <div className="border-t border-[#E5E5E5] my-1 pt-1">

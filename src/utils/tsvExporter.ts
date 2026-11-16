@@ -6,6 +6,7 @@ export const generateProductsTSV = (products: Product[]): string => {
     'categoria',
     'nombre',
     'coleccion',
+    'distribuidor',
     'badge',
     'espesor',
     'medidas',
@@ -15,6 +16,7 @@ export const generateProductsTSV = (products: Product[]): string => {
     'tira_longitud_ft',
     'color_nombre',
     'color_codigo',
+    'color_distribuidor',
     'color_hex',
     'imagen_url',
     'notas'
@@ -25,6 +27,7 @@ export const generateProductsTSV = (products: Product[]): string => {
   for (const p of products) {
     const badge = p.id === 'spc-5.5mm-pulse-select' ? 'BEST SELLER' : p.id === 'spc-5.7mm-pulse-shield' ? 'PREMIUM' : (p.badge || '');
     const coleccion = p.name.includes('Collection') ? p.name.replace(' Collection', '') : (p.subcategory || '');
+    const distribuidor = p.distributorName || '';
     const espesor = p.thickness || '';
     const medidas = p.size || '';
     const unidad_venta = p.priceUnit || '';
@@ -44,6 +47,7 @@ export const generateProductsTSV = (products: Product[]): string => {
           p.category,
           p.name,
           coleccion,
+          distribuidor,
           badge,
           espesor,
           medidas,
@@ -53,6 +57,7 @@ export const generateProductsTSV = (products: Product[]): string => {
           tira_longitud_ft,
           c.name || '',
           c.code || '',
+          c.distributorName || '',
           c.hex || '',
           c.plankPhotoUrl || c.roomPhotoUrl || '',
           baseNotes
@@ -64,6 +69,7 @@ export const generateProductsTSV = (products: Product[]): string => {
         p.category,
         p.name,
         coleccion,
+        distribuidor,
         badge,
         espesor,
         medidas,
@@ -71,6 +77,7 @@ export const generateProductsTSV = (products: Product[]): string => {
         precio_base,
         cobertura_caja,
         tira_longitud_ft,
+        '',
         '',
         '',
         '',
@@ -269,6 +276,7 @@ export const parseProductsFromText = (
   const idIdx = getColIdx('id', 'codigo', 'sku', 'ref');
   const catIdx = getColIdx('categoria', 'category', 'tipo', 'rubro');
   const subcatIdx = getColIdx('coleccion', 'collection', 'subcategoria', 'subcategory', 'linea');
+  const distIdx = getColIdx('distribuidor', 'distributor', 'distributorname');
   const nameIdx = getColIdx('nombre', 'name', 'producto', 'modelo', 'articulo', 'descripcion');
   const priceIdx = getColIdx('precio_base', 'precio', 'price', 'preciocliente', 'baseprice', 'precioventa', 'pvp', 'costo');
   const sqftIdx = getColIdx('cobertura_caja', 'sqft_box', 'sqftcaja', 'cobertura', 'sqftbox', 'sqft');
@@ -279,6 +287,7 @@ export const parseProductsFromText = (
   const sizeIdx = getColIdx('medidas', 'size', 'plank_size', 'formato', 'dimensiones');
   const colorNameIdx = getColIdx('color_nombre', 'colornombre', 'color', 'tono', 'acabado');
   const colorCodeIdx = getColIdx('color_codigo', 'colorcodigo', 'codigocolor', 'code');
+  const colorDistIdx = getColIdx('color_distribuidor', 'colordistribuidor', 'colordistributor');
   const colorHexIdx = getColIdx('color_hex', 'colorhex', 'hex');
   const imgIdx = getColIdx('imagen_url', 'image_url', 'foto', 'imagen', 'fotoplank');
   const notesIdx = getColIdx('notas', 'comentarios', 'observaciones');
@@ -358,6 +367,7 @@ export const parseProductsFromText = (
         name: name || finalId,
         category: resolvedCategory,
         subcategory: subcatIdx !== -1 ? cols[subcatIdx] || undefined : undefined,
+        distributorName: distIdx !== -1 ? cols[distIdx] || '' : '',
         basePrice: !isNaN(cleanPrice) && cleanPrice > 0 ? cleanPrice : 1.99,
         priceUnit: unitIdx !== -1 && cols[unitIdx] ? cols[unitIdx] as any : 'sqft',
         thickness: thickIdx !== -1 ? cols[thickIdx] || undefined : undefined,
@@ -374,6 +384,7 @@ export const parseProductsFromText = (
       if (name) prod.name = name;
       if (resolvedCategory && resolvedCategory !== 'otros') prod.category = resolvedCategory;
       if (subcatIdx !== -1 && cols[subcatIdx]) prod.subcategory = cols[subcatIdx];
+      if (distIdx !== -1 && cols[distIdx]) prod.distributorName = cols[distIdx];
       if (sqft !== undefined && !isNaN(sqft)) prod.sqftPerBox = sqft;
       if (strip !== undefined && !isNaN(strip)) prod.stripLengthFeet = strip;
       if (thickIdx !== -1 && cols[thickIdx]) prod.thickness = cols[thickIdx];
@@ -383,6 +394,7 @@ export const parseProductsFromText = (
 
     const cName = colorNameIdx !== -1 ? cols[colorNameIdx] : '';
     const cCode = colorCodeIdx !== -1 ? cols[colorCodeIdx] : '';
+    const cDist = colorDistIdx !== -1 ? cols[colorDistIdx] : '';
     const cHex = colorHexIdx !== -1 ? cols[colorHexIdx] : '';
     const cImg = imgIdx !== -1 ? cols[imgIdx] : '';
 
@@ -401,6 +413,7 @@ export const parseProductsFromText = (
           name: cName || cCode,
           code: cCode || cName,
           hex: cHex || existingColorMatch?.hex || '#A09D99',
+          distributorName: cDist || existingColorMatch?.distributorName || '',
           plankPhotoUrl: cImg || existingColorMatch?.plankPhotoUrl || undefined,
           roomPhotoUrl: existingColorMatch?.roomPhotoUrl || undefined
         });

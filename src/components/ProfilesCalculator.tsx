@@ -232,14 +232,19 @@ export const ProfilesCalculator: React.FC<ProfilesCalculatorProps> = ({
                   </p>
 
                   {/* Technical measurement specification cleanly BELOW title and description */}
-                  {(product.size || product.dimensions) && (
-                    <div className="pt-1">
+                  <div className="pt-1 flex items-center gap-1.5 flex-wrap">
+                    {(product.size || product.dimensions) && (
                       <span className="inline-flex items-center gap-1.5 text-[11px] font-mono text-[#181818] bg-[#F2F1EC] border border-[#E4E2DA] px-2.5 py-1 rounded-md font-medium max-w-full break-words">
                         <Ruler className="w-3 h-3 text-[#FF8407] shrink-0" />
                         <span>{product.size || product.dimensions}</span>
                       </span>
-                    </div>
-                  )}
+                    )}
+                    {product.distributorName && (
+                      <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-amber-50 text-[#FF8407] border border-amber-200">
+                        Dist: {product.distributorName}
+                      </span>
+                    )}
+                  </div>
                 </div>
 
                 <div className="flex items-baseline justify-between mt-4 pt-3 border-t border-[#E4E2DA]">
@@ -277,6 +282,11 @@ export const ProfilesCalculator: React.FC<ProfilesCalculatorProps> = ({
               <span className="font-bold text-[#181818]">{selectedProduct.name}</span>
               <span className="text-[#9C9A90]">•</span>
               <span className="text-[#6B6A63] font-medium">{selectedProduct.size || '94"'}</span>
+              {selectedProduct.distributorName && (
+                <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-amber-50 text-[#FF8407] border border-amber-200">
+                  Dist: {selectedProduct.distributorName}
+                </span>
+              )}
             </div>
             <button
               type="button"
@@ -286,6 +296,56 @@ export const ProfilesCalculator: React.FC<ProfilesCalculatorProps> = ({
               {language === 'en' ? 'Change' : 'Cambiar'}
             </button>
           </div>
+
+          {/* Color variant selector if profile has variants */}
+          {selectedProduct.colors && selectedProduct.colors.length > 0 && (
+            <div className="bg-white border border-[#E4E2DA] rounded-xl p-3 space-y-1.5 shadow-xs">
+              <div className="flex items-center justify-between flex-wrap gap-1 text-[11px]">
+                <span className="font-bold text-[#181818] flex items-center gap-1.5 flex-wrap">
+                  <span>{language === 'en' ? 'Color / Finish:' : 'Color / Acabado:'}</span>
+                  {selectedColor && (
+                    <span className="text-[#FF8407] font-semibold">
+                      {selectedColor.code} • {selectedColor.name}
+                      {(selectedColor.distributorName || selectedProduct.distributorName) && (
+                        <span className="ml-1.5 text-[10px] text-[#181818] bg-[#F2F1EC] px-1.5 py-0.5 rounded">
+                          Dist: {selectedColor.distributorName || selectedProduct.distributorName}
+                        </span>
+                      )}
+                    </span>
+                  )}
+                </span>
+              </div>
+              <div className="pill-scroll-row gap-1.5 pt-0.5">
+                {selectedProduct.colors.map((c) => {
+                  const isCur = selectedColor?.code === c.code;
+                  const cDist = c.distributorName || selectedProduct.distributorName;
+                  return (
+                    <button
+                      key={c.code}
+                      type="button"
+                      onClick={() => setSelectedColor(c)}
+                      className={`py-1.5 px-2.5 rounded-lg border text-xs font-medium flex items-center gap-1.5 transition-all cursor-pointer text-left shrink-0 ${
+                        isCur
+                          ? 'border-[#FF8407] bg-amber-50/50 text-[#181818] ring-1 ring-[#FF8407] font-bold shadow-2xs'
+                          : 'border-[#E4E2DA] bg-[#FAFAFA] text-[#6B6A63] hover:border-[#181818]'
+                      }`}
+                    >
+                      <span
+                        className="w-3.5 h-3.5 rounded-full border border-black/15 shrink-0"
+                        style={{ backgroundColor: c.hex }}
+                      />
+                      <span className="whitespace-nowrap">{c.name}</span>
+                      {cDist && (
+                        <span className="text-[9px] font-bold text-[#FF8407] bg-white border border-amber-200 px-1.5 py-0.2 rounded whitespace-nowrap">
+                          {cDist}
+                        </span>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
 
           {/* Unified Cards Grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

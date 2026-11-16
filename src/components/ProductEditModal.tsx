@@ -65,6 +65,7 @@ export const ProductEditModal: React.FC<ProductEditModalProps> = ({
   const [newVariantName, setNewVariantName] = useState('');
   const [newVariantCode, setNewVariantCode] = useState('');
   const [newVariantHex, setNewVariantHex] = useState('#BDB5A4');
+  const [newVariantDistributor, setNewVariantDistributor] = useState('');
   const [newVariantPlankUrl, setNewVariantPlankUrl] = useState('');
 
   // Sub-form for editing an existing variant
@@ -72,6 +73,7 @@ export const ProductEditModal: React.FC<ProductEditModalProps> = ({
   const [editVarName, setEditVarName] = useState('');
   const [editVarCode, setEditVarCode] = useState('');
   const [editVarHex, setEditVarHex] = useState('#BDB5A4');
+  const [editVarDistributor, setEditVarDistributor] = useState('');
   const [editVarPlankUrl, setEditVarPlankUrl] = useState('');
 
   // Confirmation for deleting a variant
@@ -93,7 +95,9 @@ export const ProductEditModal: React.FC<ProductEditModalProps> = ({
       });
       setColorVariants(product.colors ? [...product.colors] : []);
       setIsAddingVariant(false);
+      setNewVariantDistributor('');
       setEditingVariantIndex(null);
+      setEditVarDistributor('');
       setVariantToDeleteIndex(null);
       setErrorMessage(null);
       setSuccessMessage(null);
@@ -122,6 +126,7 @@ export const ProductEditModal: React.FC<ProductEditModalProps> = ({
       name: newVariantName.trim(),
       code: newVariantCode.trim().toUpperCase(),
       hex: newVariantHex || '#BDB5A4',
+      distributorName: newVariantDistributor.trim(),
       plankPhotoUrl: newVariantPlankUrl.trim() || undefined
     };
 
@@ -129,6 +134,7 @@ export const ProductEditModal: React.FC<ProductEditModalProps> = ({
     setNewVariantName('');
     setNewVariantCode('');
     setNewVariantHex('#BDB5A4');
+    setNewVariantDistributor('');
     setNewVariantPlankUrl('');
     setIsAddingVariant(false);
   };
@@ -141,6 +147,7 @@ export const ProductEditModal: React.FC<ProductEditModalProps> = ({
     setEditVarName(v.name);
     setEditVarCode(v.code);
     setEditVarHex(v.hex || '#BDB5A4');
+    setEditVarDistributor(v.distributorName || '');
     setEditVarPlankUrl(v.plankPhotoUrl || '');
   };
 
@@ -153,6 +160,7 @@ export const ProductEditModal: React.FC<ProductEditModalProps> = ({
       name: editVarName.trim(),
       code: editVarCode.trim().toUpperCase(),
       hex: editVarHex || '#BDB5A4',
+      distributorName: editVarDistributor.trim(),
       plankPhotoUrl: editVarPlankUrl.trim() || undefined
     };
     setColorVariants(updated);
@@ -183,6 +191,31 @@ export const ProductEditModal: React.FC<ProductEditModalProps> = ({
     setErrorMessage(null);
     setSuccessMessage(null);
 
+    // Auto-commit any open variant edit or pending new variant so changes aren't lost
+    let effectiveVariants = [...colorVariants];
+    if (editingVariantIndex !== null && effectiveVariants[editingVariantIndex] && editVarName.trim() && editVarCode.trim()) {
+      effectiveVariants[editingVariantIndex] = {
+        ...effectiveVariants[editingVariantIndex],
+        name: editVarName.trim(),
+        code: editVarCode.trim().toUpperCase(),
+        hex: editVarHex || '#BDB5A4',
+        distributorName: editVarDistributor.trim(),
+        plankPhotoUrl: editVarPlankUrl.trim() || undefined
+      };
+      setEditingVariantIndex(null);
+    }
+    if (isAddingVariant && newVariantName.trim() && newVariantCode.trim()) {
+      effectiveVariants.push({
+        name: newVariantName.trim(),
+        code: newVariantCode.trim().toUpperCase(),
+        hex: newVariantHex || '#BDB5A4',
+        distributorName: newVariantDistributor.trim(),
+        plankPhotoUrl: newVariantPlankUrl.trim() || undefined
+      });
+      setIsAddingVariant(false);
+    }
+    setColorVariants(effectiveVariants);
+
     const finalId = formData.id && !formData.id.startsWith('new-') ? formData.id : `prod-${Date.now()}`;
     const productToSave: Product = {
       ...formData,
@@ -191,6 +224,7 @@ export const ProductEditModal: React.FC<ProductEditModalProps> = ({
       category: formData.category,
       subcategory: formData.subcategory?.trim() || undefined,
       model: formData.model?.trim() || undefined,
+      distributorName: formData.distributorName?.trim() || '',
       badge: formData.badge?.trim() || undefined,
       thickness: formData.thickness?.trim() || undefined,
       wearLayer: formData.wearLayer?.trim() || undefined,
@@ -203,7 +237,12 @@ export const ProductEditModal: React.FC<ProductEditModalProps> = ({
       stripLengthFeet: formData.stripLengthFeet ? Number(formData.stripLengthFeet) : undefined,
       basePrice: Number(formData.basePrice),
       isStock: formData.isStock !== undefined ? formData.isStock : true,
-      colors: colorVariants.length > 0 ? colorVariants : []
+      colors: effectiveVariants.length > 0
+        ? effectiveVariants.map(v => ({
+            ...v,
+            distributorName: v.distributorName?.trim() || ''
+          }))
+        : []
     };
 
     try {
@@ -431,6 +470,20 @@ export const ProductEditModal: React.FC<ProductEditModalProps> = ({
                       <option value="order">⏳ Por Pedido (Lead Time)</option>
                     </select>
                   </div>
+                </div>
+
+                {/* Nombre del Distribuidor (Uso interno — solo buscador y colores) */}
+                <div className="mt-3">
+                  <label className="text-[11px] font-bold uppercase tracking-[1px] text-[#8C8C8C] block mb-1">
+                    Otro Nombre / Distribuidor (Uso interno — solo buscador y variantes de color, no sale en PDF)
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.distributorName || ''}
+                    onChange={(e) => setFormData({ ...formData, distributorName: e.target.value })}
+                    placeholder="Ej. MSI Surfaces, Eternity Flooring, Cali Bamboo..."
+                    className="w-full text-xs bg-white border border-[#E5E5E5] focus:border-black rounded-lg p-2.5 outline-none font-medium text-[#181818]"
+                  />
                 </div>
               </div>
 
@@ -721,6 +774,20 @@ export const ProductEditModal: React.FC<ProductEditModalProps> = ({
                     </div>
                   </div>
 
+                  {/* Nombre del Distribuidor para esta variante (Opcional - uso interno) */}
+                  <div>
+                    <label className="text-[10px] font-bold uppercase text-zinc-600 block mb-1">
+                      Nombre del Distribuidor para este color (Opcional — solo buscador y al cotizar, no en PDF)
+                    </label>
+                    <input
+                      type="text"
+                      value={newVariantDistributor}
+                      onChange={(e) => setNewVariantDistributor(e.target.value)}
+                      placeholder="Ej. MSI, Republic Floor, Eternity..."
+                      className="w-full text-xs bg-white border border-zinc-300 focus:border-[#FF8407] rounded-lg p-2 outline-none font-medium"
+                    />
+                  </div>
+
                   {/* URL de Foto de Tabla / Textura (Opcional) */}
                   <div>
                     <label className="text-[10px] font-bold uppercase text-zinc-600 block mb-1">
@@ -766,6 +833,11 @@ export const ProductEditModal: React.FC<ProductEditModalProps> = ({
                         <span className="text-[11px] font-mono text-[#FF8407] font-bold ml-2">
                           {newVariantCode || 'Q-XX'}
                         </span>
+                        {newVariantDistributor.trim() && (
+                          <span className="text-[10px] font-semibold text-zinc-600 bg-zinc-100 px-1.5 py-0.5 rounded ml-2">
+                            Dist: {newVariantDistributor.trim()}
+                          </span>
+                        )}
                       </div>
                     </div>
 
@@ -863,15 +935,29 @@ export const ProductEditModal: React.FC<ProductEditModalProps> = ({
                             </div>
                           </div>
 
-                          <div>
-                            <label className="text-[10px] font-bold uppercase text-zinc-500 block mb-0.5">URL Foto de Plank</label>
-                            <input
-                              type="text"
-                              value={editVarPlankUrl}
-                              onChange={(e) => setEditVarPlankUrl(e.target.value)}
-                              placeholder="https://..."
-                              className="w-full text-xs font-mono bg-white border border-zinc-300 rounded p-1.5"
-                            />
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                            <div>
+                              <label className="text-[10px] font-bold uppercase text-zinc-500 block mb-0.5">
+                                Distribuidor (Solo buscador/cotizar)
+                              </label>
+                              <input
+                                type="text"
+                                value={editVarDistributor}
+                                onChange={(e) => setEditVarDistributor(e.target.value)}
+                                placeholder="Ej. MSI Surfaces, Republic..."
+                                className="w-full text-xs bg-white border border-zinc-300 rounded p-1.5"
+                              />
+                            </div>
+                            <div>
+                              <label className="text-[10px] font-bold uppercase text-zinc-500 block mb-0.5">URL Foto de Plank</label>
+                              <input
+                                type="text"
+                                value={editVarPlankUrl}
+                                onChange={(e) => setEditVarPlankUrl(e.target.value)}
+                                placeholder="https://..."
+                                className="w-full text-xs font-mono bg-white border border-zinc-300 rounded p-1.5"
+                              />
+                            </div>
                           </div>
 
                           <div className="flex items-center justify-end gap-2 pt-1">
@@ -938,6 +1024,11 @@ export const ProductEditModal: React.FC<ProductEditModalProps> = ({
                               <span className="text-xs font-bold text-black leading-snug break-words">
                                 {variant.name}
                               </span>
+                              {variant.distributorName && (
+                                <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-amber-50 text-[#FF8407] border border-amber-200">
+                                  Dist: {variant.distributorName}
+                                </span>
+                              )}
                             </div>
                             <div className="flex items-center gap-2 mt-0.5 text-[10px] text-zinc-500 font-mono">
                               <span className="flex items-center gap-1">

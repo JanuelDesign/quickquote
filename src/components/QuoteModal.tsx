@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Quotation, AppSettings, Language } from '../types';
-import { generateQuotePDF, generateWhatsAppMessage } from '../utils/pdfGenerator';
+import { generateQuotePDF } from '../utils/pdfGenerator';
 import { formatCurrency, getItemUnitPriceDetail, formatItemUnitsLabel, formatItemQuantityUnit } from '../utils/calculations';
 import { getCategoryDisplayName } from '../utils/productSearch';
 import { translations } from '../utils/translations';
@@ -16,7 +16,6 @@ import {
   Eye,
   ArrowRight,
   ArrowLeft,
-  Share2,
   FileText,
   UserCheck,
   Building,
@@ -79,7 +78,7 @@ export const QuoteModal: React.FC<QuoteModalProps> = ({
   const [downloading, setDownloading] = useState(false);
   const [copiedZelle, setCopiedZelle] = useState(false);
   const [successToast, setSuccessToast] = useState<string | null>(null);
-  const [postExportAction, setPostExportAction] = useState<'downloaded' | 'shared' | null>(null);
+  const [postExportAction, setPostExportAction] = useState<'downloaded' | null>(null);
   const [deliveryInput, setDeliveryInput] = useState<string>(Math.max(60, deliveryFee).toString());
   const [deliveryAppliedFeedback, setDeliveryAppliedFeedback] = useState<boolean>(false);
   const deliveryInputRef = React.useRef<HTMLInputElement>(null);
@@ -165,55 +164,6 @@ export const QuoteModal: React.FC<QuoteModalProps> = ({
     }
   };
 
-  // Native Web Share API or Clipboard Fallback
-  const handleShare = async () => {
-    const summaryText = generateWhatsAppMessage(quoteWithShipping, currentLang);
-
-    if (navigator.share) {
-      try {
-        // Try sharing with file if possible
-        const doc = generateQuotePDF(quoteWithShipping, settings, currentLang);
-        const pdfBlob = doc.output('blob');
-        const pdfFile = new File([pdfBlob], `QuickSurfaces_${quote.quoteNumber}.pdf`, { type: 'application/pdf' });
-
-        if (navigator.canShare && navigator.canShare({ files: [pdfFile] })) {
-          await navigator.share({
-            title: `QuickQuote - ${quote.quoteNumber}`,
-            text: summaryText,
-            files: [pdfFile]
-          });
-          onSaveToHistory(quoteWithShipping);
-          setPostExportAction('shared');
-          showToast(isEn ? '✓ Shared & saved to Quote History!' : '✓ ¡Compartido y guardado en el Historial!');
-          return;
-        }
-
-        // Standard text share
-        await navigator.share({
-          title: `QuickQuote - ${quote.quoteNumber}`,
-          text: summaryText
-        });
-        onSaveToHistory(quoteWithShipping);
-        setPostExportAction('shared');
-        showToast(isEn ? '✓ Shared & saved to Quote History!' : '✓ ¡Compartido y guardado en el Historial!');
-        return;
-      } catch (err: any) {
-        if (err.name === 'AbortError') return; // User cancelled share dialog
-        console.warn('Native share failed, copying to clipboard:', err);
-      }
-    }
-
-    // Fallback: Copy to clipboard
-    try {
-      await navigator.clipboard.writeText(summaryText);
-      onSaveToHistory(quoteWithShipping);
-      setPostExportAction('shared');
-      showToast(isEn ? '✓ Summary copied & saved to Quote History' : '✓ Resumen copiado y guardado en el Historial');
-    } catch (clipErr) {
-      console.error('Clipboard copy failed:', clipErr);
-    }
-  };
-
   const handleCopyZelle = () => {
     navigator.clipboard.writeText('quickzelle@gmail.com');
     setCopiedZelle(true);
@@ -250,9 +200,7 @@ export const QuoteModal: React.FC<QuoteModalProps> = ({
                   </div>
                   <div>
                     <span className="text-[10px] font-black uppercase tracking-wider text-emerald-400 block">
-                      {postExportAction === 'downloaded'
-                        ? (isEn ? 'PDF Downloaded & Saved' : 'PDF Descargado y Guardado')
-                        : (isEn ? 'Quote Shared & Saved' : 'Cotización Compartida y Guardada')}
+                      {isEn ? 'PDF Downloaded & Saved' : 'PDF Descargado y Guardado'}
                     </span>
                     <h3 className="text-base font-bold text-white leading-tight">
                       {isEn ? 'Saved in Quote History' : 'Registrada en el Historial'}
@@ -395,9 +343,8 @@ export const QuoteModal: React.FC<QuoteModalProps> = ({
             </span>
           </div>
 
-          {/* The 2 Actions: Descargar PDF (Primary Orange) + Compartir (Secondary) - ICON ONLY */}
+          {/* Action: Descargar PDF (Primary Orange) */}
           <div className="flex items-center gap-2 sm:gap-2.5">
-            {/* Action 1: Descargar PDF (Icon only) */}
             <button
               type="button"
               id="btn-preview-download-pdf"
@@ -405,21 +352,10 @@ export const QuoteModal: React.FC<QuoteModalProps> = ({
               disabled={downloading}
               title={downloading ? (isEn ? 'Saving PDF...' : 'Guardando PDF...') : (isEn ? 'Download PDF' : 'Descargar PDF')}
               aria-label={downloading ? (isEn ? 'Saving PDF...' : 'Guardando PDF...') : (isEn ? 'Download PDF' : 'Descargar PDF')}
-              className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-[#FF8407] hover:bg-[#E07300] active:scale-95 text-white flex items-center justify-center shadow-md cursor-pointer transition-all disabled:opacity-60"
+              className="px-3 sm:px-3.5 h-9 sm:h-10 rounded-xl bg-[#FF8407] hover:bg-[#E07300] active:scale-95 text-white flex items-center justify-center gap-2 shadow-md cursor-pointer transition-all disabled:opacity-60 text-xs font-bold uppercase tracking-wider"
             >
               {downloading ? <Loader2 className="w-4 h-4 sm:w-5 sm:h-5 text-white animate-spin" /> : <FileDown className="w-4 h-4 sm:w-5 sm:h-5 text-white" />}
-            </button>
-
-            {/* Action 2: Compartir (Web Share API - Icon only) */}
-            <button
-              type="button"
-              id="btn-preview-share"
-              onClick={handleShare}
-              title={isEn ? 'Share Quote' : 'Compartir Cotización'}
-              aria-label={isEn ? 'Share Quote' : 'Compartir Cotización'}
-              className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-white hover:bg-zinc-100 text-[#181818] flex items-center justify-center shadow-xs cursor-pointer transition-all active:scale-95"
-            >
-              <Share2 className="w-4 h-4 sm:w-5 sm:h-5 text-[#FF8407]" />
+              <span className="hidden sm:inline">{downloading ? (isEn ? 'Saving...' : 'Guardando...') : (isEn ? 'Download PDF' : 'Descargar PDF')}</span>
             </button>
 
             {/* Close Entire Modal */}
@@ -967,7 +903,7 @@ export const QuoteModal: React.FC<QuoteModalProps> = ({
                               {idx + 1}
                             </span>
                             <span className="font-bold uppercase px-1.5 py-0.2 rounded bg-zinc-200 text-zinc-800 text-[9px]">
-                              {item.category}
+                              {getCategoryDisplayName(item.category, currentLang)}
                             </span>
                             {item.color && (
                               <span className="text-[10px] font-bold text-[#FF8407] bg-amber-500/10 px-1.5 py-0.2 rounded border border-[#FF8407]/20">
@@ -992,10 +928,10 @@ export const QuoteModal: React.FC<QuoteModalProps> = ({
 
                       <div className="bg-white p-2 rounded-lg border border-[#E4E2DA] text-[11px] text-[#6B6A63] flex items-center justify-between gap-2">
                         <span className="font-bold text-[#181818]">
-                          {item.userEnteredQuantity} {item.quantityUnitLabel}
+                          {item.userEnteredQuantity} {formatItemQuantityUnit(item, currentLang)}
                         </span>
                         <span className="font-semibold text-[#FF8407]">
-                          {item.calculatedUnitsLabel}
+                          {formatItemUnitsLabel(item, currentLang)}
                         </span>
                       </div>
                     </div>

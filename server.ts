@@ -1,7 +1,5 @@
 import express from 'express';
 import path from 'path';
-import { createServer as createViteServer } from 'vite';
-import { GoogleGenAI } from '@google/genai';
 import dotenv from 'dotenv';
 
 dotenv.config();
@@ -11,12 +9,13 @@ const PORT = 3000;
 
 app.use(express.json());
 
-// Lazy-initialize GoogleGenAI
-let aiClient: GoogleGenAI | null = null;
-function getAIClient(): GoogleGenAI | null {
+// Lazy-initialize GoogleGenAI only when needed
+let aiClient: any = null;
+async function getAIClient(): Promise<any | null> {
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) return null;
   if (!aiClient) {
+    const { GoogleGenAI } = await import('@google/genai');
     aiClient = new GoogleGenAI({ apiKey });
   }
   return aiClient;
@@ -36,7 +35,7 @@ app.post('/api/parse-quote', async (req, res) => {
       return;
     }
 
-    const ai = getAIClient();
+    const ai = await getAIClient();
     if (!ai) {
       // If no API key is set in environment, return fallback flag so client uses smart local rule parser
       res.json({
@@ -285,11 +284,36 @@ app.post('/api/sheets-sync', async (req, res) => {
 async function startServer() {
   // Vite middleware in development
   if (process.env.NODE_ENV !== 'production') {
-    const vite = await createViteServer({
-      server: { middlewareMode: true },
-      appType: 'spa'
+    let viteMiddlewares: express.RequestHandler | null = null;
+    const vitePromise = (async () => {
+      const { createServer: createViteServer } = await import('vite');
+      const vite = await createViteServer({
+        server: {
+          middlewareMode: true,
+          hmr: false,
+        },
+        appType: 'spa',
+      });
+      viteMiddlewares = vite.middlewares;
+      return vite;
+    })().catch((err) => {
+      console.error('Failed to initialize Vite middleware:', err);
+      throw err;
     });
-    app.use(vite.middlewares);
+
+    app.use(async (req, res, next) => {
+      try {
+        if (!viteMiddlewares) {
+          await vitePromise;
+        }
+        if (viteMiddlewares) {
+          return viteMiddlewares(req, res, next);
+        }
+        next();
+      } catch (err) {
+        next(err);
+      }
+    });
   } else {
     const distPath = path.join(process.cwd(), 'dist');
     app.use(express.static(distPath));
@@ -298,6 +322,7 @@ async function startServer() {
     });
   }
 
+  // Bind port 3000 immediately so health checks and proxy connections never hit ECONNREFUSED during Vite startup
   app.listen(PORT, '0.0.0.0', () => {
     console.log(`QuickQuote server running at http://0.0.0.0:${PORT}`);
   });

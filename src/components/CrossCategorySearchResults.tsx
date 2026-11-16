@@ -161,16 +161,23 @@ export const CrossCategorySearchResults: React.FC<CrossCategorySearchResultsProp
                   </div>
                 </div>
 
-                {/* Product Title & Subcategory */}
+                {/* Product Title, Distributor & Subcategory */}
                 <div>
                   <h4 className="text-sm sm:text-base font-bold text-[#181818] group-hover:text-black leading-snug">
                     {product.name}
                   </h4>
-                  {product.subcategory && (
-                    <p className="text-xs text-[#6B6A63] font-medium mt-0.5">
-                      {product.subcategory}
-                    </p>
-                  )}
+                  <div className="flex items-center gap-1.5 flex-wrap mt-0.5">
+                    {product.subcategory && (
+                      <p className="text-xs text-[#6B6A63] font-medium">
+                        {product.subcategory}
+                      </p>
+                    )}
+                    {product.distributorName && (
+                      <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-amber-50 text-[#FF8407] border border-amber-200">
+                        Dist: {product.distributorName}
+                      </span>
+                    )}
+                  </div>
                 </div>
 
                 {/* Specs and details */}
@@ -209,14 +216,25 @@ export const CrossCategorySearchResults: React.FC<CrossCategorySearchResultsProp
                       {product.colors.length} {language === 'en' ? 'finishes available' : 'acabados disponibles'}
                     </span>
                     <div className="flex items-center gap-1.5 flex-wrap">
-                      {product.colors.slice(0, 6).map((c) => (
-                        <div
-                          key={c.code}
-                          title={`${c.code} - ${c.name}`}
-                          className="w-5 h-5 rounded-md border border-[#E4E2DA] shadow-2xs shrink-0"
-                          style={{ backgroundColor: c.hex || '#ccc' }}
-                        />
-                      ))}
+                      {product.colors.slice(0, 6).map((c) => {
+                        const dist = c.distributorName || product.distributorName;
+                        return (
+                          <div
+                            key={c.code}
+                            title={`${c.code} - ${c.name}${dist ? ` (${dist})` : ''}`}
+                            className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md border border-[#E4E2DA] bg-[#FAFAFA] text-[10px] font-medium text-[#181818]"
+                          >
+                            <span
+                              className="w-3 h-3 rounded-full border border-black/15 shrink-0"
+                              style={{ backgroundColor: c.hex || '#ccc' }}
+                            />
+                            <span className="truncate max-w-[90px]">{c.name}</span>
+                            {c.distributorName && (
+                              <span className="text-[9px] font-bold text-[#FF8407]">({c.distributorName})</span>
+                            )}
+                          </div>
+                        );
+                      })}
                       {product.colors.length > 6 && (
                         <span className="text-[10px] text-[#6B6A63] font-bold">
                           +{product.colors.length - 6}

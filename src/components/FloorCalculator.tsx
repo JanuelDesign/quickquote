@@ -257,9 +257,16 @@ export const FloorCalculator: React.FC<FloorCalculatorProps> = ({
                   </div>
 
                   {/* Technical measurement specification cleanly BELOW title and description */}
-                  <p className="text-xs text-[#6B6A63] leading-relaxed">
-                    {product.sqftPerBox} sq ft / caja • {product.thickness || '5.5 mm'} {product.wearLayer && `• ${product.wearLayer}`}
-                  </p>
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    <p className="text-xs text-[#6B6A63] leading-relaxed">
+                      {product.sqftPerBox} sq ft / caja • {product.thickness || '5.5 mm'} {product.wearLayer && `• ${product.wearLayer}`}
+                    </p>
+                    {product.distributorName && (
+                      <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-amber-50 text-[#FF8407] border border-amber-200">
+                        Dist: {product.distributorName}
+                      </span>
+                    )}
+                  </div>
                 </div>
 
                 {/* Color swatches preview - interactive to select color directly */}
@@ -267,19 +274,22 @@ export const FloorCalculator: React.FC<FloorCalculatorProps> = ({
                   <div className="my-3 pt-2.5 border-t border-[#E4E2DA] flex items-center justify-between">
                     <div className="flex items-center gap-1.5">
                       <div className="flex items-center -space-x-1.5">
-                        {product.colors.slice(0, 6).map((c, i) => (
-                          <button
-                            key={i}
-                            type="button"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleProductSelect(product, c);
-                            }}
-                            className="w-5 h-5 rounded-full border-2 border-white shadow-xs shrink-0 cursor-pointer hover:scale-125 transition-transform"
-                            style={{ backgroundColor: c.hex }}
-                            title={`${c.code} - ${c.name} (${language === 'en' ? 'Click to select' : 'Clic para seleccionar'})`}
-                          />
-                        ))}
+                        {product.colors.slice(0, 6).map((c, i) => {
+                          const dist = c.distributorName || product.distributorName;
+                          return (
+                            <button
+                              key={i}
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleProductSelect(product, c);
+                              }}
+                              className="w-5 h-5 rounded-full border-2 border-white shadow-xs shrink-0 cursor-pointer hover:scale-125 transition-transform"
+                              style={{ backgroundColor: c.hex }}
+                              title={`${c.code} - ${c.name}${dist ? ` · Dist: ${dist}` : ''} (${language === 'en' ? 'Click to select' : 'Clic para seleccionar'})`}
+                            />
+                          );
+                        })}
                       </div>
                       <span className="text-[11px] text-[#6B6A63] font-semibold ml-1">
                         {product.colors.length} {product.colors.length === 1 ? 'color' : (language === 'en' ? 'colors' : 'colores')}
@@ -322,7 +332,14 @@ export const FloorCalculator: React.FC<FloorCalculatorProps> = ({
               <span className="text-[10px] font-bold uppercase tracking-wider text-[#9C9A90] block">
                 {language === 'en' ? 'Selected Collection:' : 'Colección seleccionada:'}
               </span>
-              <h3 className="text-sm font-bold text-[#181818] leading-snug break-words">{selectedProduct.name}</h3>
+              <div className="flex items-center gap-2 flex-wrap">
+                <h3 className="text-sm font-bold text-[#181818] leading-snug break-words">{selectedProduct.name}</h3>
+                {selectedProduct.distributorName && (
+                  <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-amber-50 text-[#FF8407] border border-amber-200">
+                    Dist: {selectedProduct.distributorName}
+                  </span>
+                )}
+              </div>
             </div>
             {selectedColor && (
               <div className="sm:text-right min-w-0">
@@ -331,6 +348,11 @@ export const FloorCalculator: React.FC<FloorCalculatorProps> = ({
                 </span>
                 <p className="text-xs font-bold text-[#FF8407] leading-snug break-words">
                   {selectedColor.code} • {selectedColor.name}
+                  {(selectedColor.distributorName || selectedProduct.distributorName) && (
+                    <span className="ml-1.5 text-[10px] font-semibold text-[#181818] bg-[#F2F1EC] px-1.5 py-0.5 rounded">
+                      Dist: {selectedColor.distributorName || selectedProduct.distributorName}
+                    </span>
+                  )}
                 </p>
               </div>
             )}
@@ -340,6 +362,7 @@ export const FloorCalculator: React.FC<FloorCalculatorProps> = ({
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
             {selectedProduct.colors.map((color) => {
               const isColorSelected = selectedColor?.code === color.code;
+              const colorDistributor = color.distributorName || selectedProduct.distributorName;
               return (
                 <div
                   key={color.code}
@@ -369,6 +392,11 @@ export const FloorCalculator: React.FC<FloorCalculatorProps> = ({
                     <span className="text-[10px] text-[#6B6A63] font-mono mt-0.5 block">
                       {color.code}
                     </span>
+                    {colorDistributor && (
+                      <span className="inline-block text-[10px] font-bold text-[#FF8407] bg-amber-50 border border-amber-200/80 rounded px-1.5 py-0.2 mt-1 leading-tight break-words">
+                        Dist: {colorDistributor}
+                      </span>
+                    )}
                   </div>
                 </div>
               );
@@ -399,9 +427,14 @@ export const FloorCalculator: React.FC<FloorCalculatorProps> = ({
               {selectedColor && (
                 <>
                   <span className="text-[#9C9A90]">•</span>
-                  <span className="flex items-center gap-1.5 font-medium text-[#6B6A63]">
+                  <span className="flex items-center gap-1.5 font-medium text-[#6B6A63] flex-wrap">
                     <span className="w-3.5 h-3.5 rounded-full inline-block border border-black/20 shrink-0" style={{ backgroundColor: selectedColor.hex }}></span>
                     <span>{selectedColor.name} ({selectedColor.code})</span>
+                    {(selectedColor.distributorName || selectedProduct.distributorName) && (
+                      <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-amber-50 text-[#FF8407] border border-amber-200">
+                        Dist: {selectedColor.distributorName || selectedProduct.distributorName}
+                      </span>
+                    )}
                   </span>
                 </>
               )}
@@ -424,6 +457,11 @@ export const FloorCalculator: React.FC<FloorCalculatorProps> = ({
                   {selectedColor && (
                     <span className="text-[#FF8407] font-semibold">
                       {selectedColor.code} • {selectedColor.name}
+                      {(selectedColor.distributorName || selectedProduct.distributorName) && (
+                        <span className="ml-1.5 text-[10px] text-[#181818] bg-[#F2F1EC] px-1.5 py-0.5 rounded">
+                          Dist: {selectedColor.distributorName || selectedProduct.distributorName}
+                        </span>
+                      )}
                     </span>
                   )}
                 </span>
@@ -434,12 +472,13 @@ export const FloorCalculator: React.FC<FloorCalculatorProps> = ({
               <div className="pill-scroll-row gap-1.5 pt-0.5">
                 {selectedProduct.colors.map((c) => {
                   const isCur = selectedColor?.code === c.code;
+                  const cDist = c.distributorName || selectedProduct.distributorName;
                   return (
                     <button
                       key={c.code}
                       type="button"
                       onClick={() => handleColorSelect(c)}
-                      className={`py-1.5 px-2.5 rounded-lg border text-xs font-medium flex items-center gap-1.5 transition-all cursor-pointer text-left ${
+                      className={`py-1.5 px-2.5 rounded-lg border text-xs font-medium flex items-center gap-1.5 transition-all cursor-pointer text-left shrink-0 ${
                         isCur
                           ? 'border-[#FF8407] bg-amber-50/50 text-[#181818] ring-1 ring-[#FF8407] font-bold shadow-2xs'
                           : 'border-[#E4E2DA] bg-[#FAFAFA] text-[#6B6A63] hover:border-[#181818]'
@@ -449,7 +488,12 @@ export const FloorCalculator: React.FC<FloorCalculatorProps> = ({
                         className="w-3.5 h-3.5 rounded-full border border-black/15 shrink-0"
                         style={{ backgroundColor: c.hex }}
                       />
-                      <span className="leading-snug break-words">{c.name}</span>
+                      <span className="leading-snug whitespace-nowrap">{c.name}</span>
+                      {cDist && (
+                        <span className="text-[9px] font-bold text-[#FF8407] bg-white border border-amber-200 px-1.5 py-0.2 rounded whitespace-nowrap">
+                          {cDist}
+                        </span>
+                      )}
                     </button>
                   );
                 })}

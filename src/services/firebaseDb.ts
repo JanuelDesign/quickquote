@@ -62,6 +62,53 @@ const CLIENTS_COLLECTION = 'clients';
 const QUOTATIONS_COLLECTION = 'quotations';
 const SETTINGS_COLLECTION = 'settings';
 
+export enum OperationType {
+  CREATE = 'create',
+  UPDATE = 'update',
+  DELETE = 'delete',
+  LIST = 'list',
+  GET = 'get',
+  WRITE = 'write',
+}
+
+export interface FirestoreErrorInfo {
+  error: string;
+  operationType: OperationType;
+  path: string | null;
+  authInfo: {
+    userId?: string | null;
+    email?: string | null;
+    emailVerified?: boolean | null;
+    isAnonymous?: boolean | null;
+    tenantId?: string | null;
+    providerInfo?: {
+      providerId?: string | null;
+      email?: string | null;
+    }[];
+  };
+}
+
+export function handleFirestoreError(error: unknown, operationType: OperationType, path: string | null): never {
+  const errInfo: FirestoreErrorInfo = {
+    error: error instanceof Error ? error.message : String(error),
+    authInfo: {
+      userId: auth.currentUser?.uid,
+      email: auth.currentUser?.email,
+      emailVerified: auth.currentUser?.emailVerified,
+      isAnonymous: auth.currentUser?.isAnonymous,
+      tenantId: auth.currentUser?.tenantId,
+      providerInfo: auth.currentUser?.providerData?.map(provider => ({
+        providerId: provider.providerId,
+        email: provider.email,
+      })) || []
+    },
+    operationType,
+    path
+  };
+  console.error('Firestore Error: ', JSON.stringify(errInfo));
+  throw new Error(JSON.stringify(errInfo));
+}
+
 // Helper to sanitize objects for Firestore (removes undefined values that Firestore rejects)
 export function cleanForFirestore<T>(data: T): any {
   if (data === null || data === undefined) return null;
@@ -82,9 +129,29 @@ export function cleanForFirestore<T>(data: T): any {
   return data;
 }
 
+/**
+ * Ensures `distributorName` is always present as an explicit string (even if "")
+ * at both the Product root and on every ProductColor variant so the field
+ * exists in Firestore and clearing it overwrites any previous value.
+ */
+export function normalizeProductForDb(product: Product): Product {
+  return {
+    ...product,
+    distributorName: (product.distributorName ?? '').trim(),
+    colors: Array.isArray(product.colors)
+      ? product.colors.map((c) => ({
+          ...c,
+          distributorName: (c.distributorName ?? '').trim()
+        }))
+      : []
+  };
+}
+
 // ==========================================
 // 1. PRODUCTS (Catálogo de Productos en la Nube)
 // ==========================================
+
+let hasBackfilledDistributorField = false;
 
 export function subscribeToProducts(
   onSuccess: (products: Product[]) => void,
@@ -99,29 +166,61 @@ export function subscribeToProducts(
         console.log('Firebase: Colección de productos vacía. Sembrando catálogo inicial...');
         // Seed initial catalog so products are immediately available in Firestore
         try {
+          const normalizedInitial = INITIAL_PRODUCTS.map(normalizeProductForDb);
           const batch = writeBatch(db);
-          for (const prod of INITIAL_PRODUCTS) {
+          for (const prod of normalizedInitial) {
             const docRef = doc(db, PRODUCTS_COLLECTION, prod.id);
             batch.set(docRef, cleanForFirestore(prod));
           }
           await batch.commit();
-          onSuccess(INITIAL_PRODUCTS);
+          onSuccess(normalizedInitial);
           return;
         } catch (e: any) {
           console.error('Error sembrando catálogo en Firestore:', e);
-          onSuccess(INITIAL_PRODUCTS);
+          onSuccess(INITIAL_PRODUCTS.map(normalizeProductForDb));
           return;
         }
       }
 
       const products: Product[] = [];
+      const docsNeedingBackfill: Product[] = [];
+
       snapshot.forEach((d) => {
-        const data = d.data() as Product;
-        products.push({
-          ...data,
-          id: data.id || d.id
+        const raw = d.data() as Product;
+        const missingRootDist = typeof raw.distributorName !== 'string';
+        const missingColorDist = Array.isArray(raw.colors) && raw.colors.some((c) => typeof c.distributorName !== 'string');
+        const normalized = normalizeProductForDb({
+          ...raw,
+          id: raw.id || d.id
         });
+        products.push(normalized);
+
+        if (missingRootDist || missingColorDist) {
+          docsNeedingBackfill.push(normalized);
+        }
       });
+
+      // One-time non-destructive backfill so existing Firestore docs explicitly show `distributorName`
+      if (docsNeedingBackfill.length > 0 && !hasBackfilledDistributorField && auth.currentUser) {
+        hasBackfilledDistributorField = true;
+        try {
+          const batch = writeBatch(db);
+          for (const prod of docsNeedingBackfill) {
+            const docRef = doc(db, PRODUCTS_COLLECTION, prod.id);
+            batch.set(
+              docRef,
+              cleanForFirestore({
+                distributorName: prod.distributorName ?? '',
+                colors: prod.colors ?? []
+              }),
+              { merge: true }
+            );
+          }
+          await batch.commit();
+        } catch (backfillErr) {
+          console.warn('Backfill de campo distributorName omitido:', backfillErr);
+        }
+      }
 
       // Filter out any locally blacklisted deleted product IDs so they don't flicker back
       try {
@@ -162,9 +261,14 @@ export async function saveProductToDb(product: Product): Promise<void> {
     // Ignore localStorage parse errors
   }
 
-  const docRef = doc(db, PRODUCTS_COLLECTION, product.id);
-  const cleaned = cleanForFirestore(product);
-  await setDoc(docRef, cleaned, { merge: true });
+  const normalized = normalizeProductForDb(product);
+  const docRef = doc(db, PRODUCTS_COLLECTION, normalized.id);
+  const cleaned = cleanForFirestore(normalized);
+  try {
+    await setDoc(docRef, cleaned, { merge: true });
+  } catch (error) {
+    handleFirestoreError(error, OperationType.WRITE, `${PRODUCTS_COLLECTION}/${normalized.id}`);
+  }
 }
 
 export async function deleteProductFromDb(productId: string): Promise<void> {
@@ -208,10 +312,15 @@ export async function batchSaveProductsToDb(products: Product[]): Promise<void> 
   const batch = writeBatch(db);
   for (const prod of products) {
     if (!prod?.id) continue;
-    const docRef = doc(db, PRODUCTS_COLLECTION, prod.id);
-    batch.set(docRef, cleanForFirestore(prod), { merge: true });
+    const normalized = normalizeProductForDb(prod);
+    const docRef = doc(db, PRODUCTS_COLLECTION, normalized.id);
+    batch.set(docRef, cleanForFirestore(normalized), { merge: true });
   }
-  await batch.commit();
+  try {
+    await batch.commit();
+  } catch (error) {
+    handleFirestoreError(error, OperationType.WRITE, PRODUCTS_COLLECTION);
+  }
 }
 
 // ==========================================

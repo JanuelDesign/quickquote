@@ -68,9 +68,10 @@ export function matchesProductSearch(product: Product, rawQuery: string): boolea
   // 1. Direct Name check
   if (normalizeSearchText(product.name).includes(query)) return true;
 
-  // 2. Subcategory / Model check
+  // 2. Subcategory / Model / Distributor check
   if (product.subcategory && normalizeSearchText(product.subcategory).includes(query)) return true;
   if (product.model && normalizeSearchText(product.model).includes(query)) return true;
+  if (product.distributorName && normalizeSearchText(product.distributorName).includes(query)) return true;
 
   // 3. Category & Synonym check
   const catSynonyms = CATEGORY_SEARCH_SYNONYMS[product.category];
@@ -90,11 +91,12 @@ export function matchesProductSearch(product: Product, rawQuery: string): boolea
   if (product.dimensions && normalizeSearchText(product.dimensions).includes(query)) return true;
   if (product.description && normalizeSearchText(product.description).includes(query)) return true;
 
-  // 5. Color variants check (code e.g. "Q-01" or name e.g. "White Oak")
+  // 5. Color variants check (code e.g. "Q-01", name e.g. "White Oak", or distributor name)
   if (product.colors && product.colors.length > 0) {
     const hasColorMatch = product.colors.some(c => 
       normalizeSearchText(c.name).includes(query) || 
-      normalizeSearchText(c.code).includes(query)
+      normalizeSearchText(c.code).includes(query) ||
+      (c.distributorName && normalizeSearchText(c.distributorName).includes(query))
     );
     if (hasColorMatch) return true;
   }
@@ -152,6 +154,9 @@ export function getMatchingColorsForProduct(product: Product, rawQuery: string):
   const query = normalizeSearchText(rawQuery);
   if (!query || !product.colors || product.colors.length === 0) return [];
   return product.colors.filter(
-    (c) => normalizeSearchText(c.name).includes(query) || normalizeSearchText(c.code).includes(query)
+    (c) =>
+      normalizeSearchText(c.name).includes(query) ||
+      normalizeSearchText(c.code).includes(query) ||
+      (c.distributorName && normalizeSearchText(c.distributorName).includes(query))
   );
 }

@@ -241,6 +241,11 @@ export const BaseboardCalculator: React.FC<BaseboardCalculatorProps> = ({
                       <Ruler className="w-3 h-3 text-[#FF8407] shrink-0" />
                       <span>{product.size || '5 1/4"'} • ${stripCost.toFixed(2)} / tira</span>
                     </span>
+                    {product.distributorName && (
+                      <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-amber-50 text-[#FF8407] border border-amber-200">
+                        Dist: {product.distributorName}
+                      </span>
+                    )}
                   </div>
                 </div>
 
@@ -279,6 +284,11 @@ export const BaseboardCalculator: React.FC<BaseboardCalculatorProps> = ({
               <span className="font-bold text-[#181818]">{selectedProduct.name}</span>
               <span className="text-[#9C9A90]">•</span>
               <span className="text-[#6B6A63] font-medium">Tiras de {stripLength} ft</span>
+              {selectedProduct.distributorName && (
+                <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-amber-50 text-[#FF8407] border border-amber-200">
+                  Dist: {selectedProduct.distributorName}
+                </span>
+              )}
             </div>
             <button
               type="button"

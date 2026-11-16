@@ -17,6 +17,7 @@ export interface ProductColor {
   code: string;
   name: string;
   hex: string;
+  distributorName?: string;
   plankPhotoUrl?: string;
   roomPhotoUrl?: string;
 }
@@ -27,6 +28,7 @@ export interface Product {
   category: ProductCategory;
   subcategory?: string;
   model?: string; // Model or collection name
+  distributorName?: string; // Internal distributor name (visible in search and quoting color variants only)
   thickness?: string;
   wearLayer?: string;
   size?: string;

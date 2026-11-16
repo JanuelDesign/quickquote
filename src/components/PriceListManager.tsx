@@ -52,6 +52,7 @@ export const PriceListManager: React.FC<PriceListManagerProps> = ({
   const [newName, setNewName] = useState('');
   const [newCategory, setNewCategory] = useState<ProductCategory>('piso');
   const [newSubcategory, setNewSubcategory] = useState('');
+  const [newDistributorName, setNewDistributorName] = useState('');
   const [newThickness, setNewThickness] = useState('');
   const [newBasePrice, setNewBasePrice] = useState<number>(1.49);
   const [newPriceUnit, setNewPriceUnit] = useState<Product['priceUnit']>('sqft');
@@ -61,6 +62,7 @@ export const PriceListManager: React.FC<PriceListManagerProps> = ({
   const [newColors, setNewColors] = useState<ProductColor[]>([]);
   const [tempColorName, setTempColorName] = useState('');
   const [tempColorCode, setTempColorCode] = useState('');
+  const [tempColorDistributor, setTempColorDistributor] = useState('');
   const [tempColorHex, setTempColorHex] = useState('#C8B496');
 
   // Dropdown menu state for "⋯ Más opciones"
@@ -107,12 +109,17 @@ export const PriceListManager: React.FC<PriceListManagerProps> = ({
       p.name.toLowerCase().includes(term) ||
       (p.subcategory && p.subcategory.toLowerCase().includes(term)) ||
       (p.model && p.model.toLowerCase().includes(term)) ||
+      (p.distributorName && p.distributorName.toLowerCase().includes(term)) ||
       (p.badge && p.badge.toLowerCase().includes(term)) ||
       (p.description && p.description.toLowerCase().includes(term)) ||
       (p.thickness && p.thickness.toLowerCase().includes(term)) ||
       (p.size && p.size.toLowerCase().includes(term)) ||
       (p.category && p.category.toLowerCase().includes(term)) ||
-      (p.colors && p.colors.some(c => c.name.toLowerCase().includes(term) || c.code.toLowerCase().includes(term)));
+      (p.colors && p.colors.some(c =>
+        c.name.toLowerCase().includes(term) ||
+        c.code.toLowerCase().includes(term) ||
+        (c.distributorName && c.distributorName.toLowerCase().includes(term))
+      ));
 
     return matchesCat && matchesSearch;
   });
@@ -135,11 +142,22 @@ export const PriceListManager: React.FC<PriceListManagerProps> = ({
     e.preventDefault();
     if (!newName.trim()) return;
 
+    const effectiveColors: ProductColor[] = [...newColors];
+    if (tempColorName.trim()) {
+      effectiveColors.push({
+        name: tempColorName.trim(),
+        code: tempColorCode.trim() || `COL-${effectiveColors.length + 1}`,
+        distributorName: tempColorDistributor.trim(),
+        hex: tempColorHex
+      });
+    }
+
     const newProd: Product = {
       id: `prod-${Date.now()}`,
       name: newName.trim(),
       category: newCategory,
       subcategory: newSubcategory.trim() || undefined,
+      distributorName: newDistributorName.trim(),
       thickness: newThickness.trim() || undefined,
       size: newSize.trim() || undefined,
       basePrice: Number(newBasePrice) || 0,
@@ -147,7 +165,7 @@ export const PriceListManager: React.FC<PriceListManagerProps> = ({
       isStock: true,
       sqftPerBox: newCategory === 'piso' ? Number(newSqftBox) || 20 : undefined,
       stripLengthFeet: newCategory === 'rodapie' ? Number(newStripLength) || 16 : undefined,
-      colors: newColors
+      colors: effectiveColors
     };
 
     try {
@@ -158,11 +176,13 @@ export const PriceListManager: React.FC<PriceListManagerProps> = ({
       setIsAddingNew(false);
       setNewName('');
       setNewSubcategory('');
+      setNewDistributorName('');
       setNewThickness('');
       setNewSize('');
       setNewColors([]);
       setTempColorName('');
       setTempColorCode('');
+      setTempColorDistributor('');
       // Make newly added product immediately visible in the active view
       if (filterCategory !== 'all' && filterCategory !== newProd.category) {
         setFilterCategory('all');
@@ -232,6 +252,7 @@ export const PriceListManager: React.FC<PriceListManagerProps> = ({
       'name',
       'category',
       'subcategory',
+      'distribuidor',
       'thickness',
       'wearLayer',
       'size',
@@ -241,6 +262,10 @@ export const PriceListManager: React.FC<PriceListManagerProps> = ({
       'stripLengthFeet',
       'isStock',
       'badge',
+      'color_nombre',
+      'color_codigo',
+      'color_distribuidor',
+      'color_hex',
       'description'
     ];
 
@@ -249,6 +274,7 @@ export const PriceListManager: React.FC<PriceListManagerProps> = ({
       'Piso SPC Pulse Select 6.5mm',
       'piso',
       'Piso SPC',
+      'MSI Surfaces',
       '6.5mm (5mm + 1.5mm pad)',
       '20 mil (0.5mm)',
       '9" x 60"',
@@ -258,6 +284,10 @@ export const PriceListManager: React.FC<PriceListManagerProps> = ({
       '',
       'true',
       'BEST SELLER',
+      'Natural Oak',
+      'Q-01',
+      'MSI Surfaces',
+      '#C8B496',
       'Piso SPC resistente al agua con capa de uso comercial'
     ];
 
@@ -266,6 +296,7 @@ export const PriceListManager: React.FC<PriceListManagerProps> = ({
       'Rodapié Flat Modern 5-1/4',
       'rodapie',
       'Molding & Trim',
+      'Republic Floor',
       '9/16" x 5-1/4"',
       '',
       '16 ft',
@@ -274,6 +305,10 @@ export const PriceListManager: React.FC<PriceListManagerProps> = ({
       '',
       '16',
       'true',
+      '',
+      '',
+      '',
+      '',
       '',
       'Tira de 16 pies con acabado listo para pintar'
     ];
@@ -304,6 +339,7 @@ export const PriceListManager: React.FC<PriceListManagerProps> = ({
       'categoria',
       'nombre',
       'coleccion',
+      'distribuidor',
       'badge',
       'espesor',
       'medidas',
@@ -313,6 +349,7 @@ export const PriceListManager: React.FC<PriceListManagerProps> = ({
       'tira_longitud_ft',
       'color_nombre',
       'color_codigo',
+      'color_distribuidor',
       'color_hex',
       'imagen_url',
       'notas'
@@ -327,6 +364,7 @@ export const PriceListManager: React.FC<PriceListManagerProps> = ({
             p.category,
             p.name,
             p.subcategory || '',
+            p.distributorName || '',
             p.badge || '',
             p.thickness || '',
             p.size || '',
@@ -336,6 +374,7 @@ export const PriceListManager: React.FC<PriceListManagerProps> = ({
             p.stripLengthFeet !== undefined ? p.stripLengthFeet : '',
             c.name || '',
             c.code || '',
+            c.distributorName || '',
             c.hex || '',
             c.plankPhotoUrl || '',
             p.description || ''
@@ -347,6 +386,7 @@ export const PriceListManager: React.FC<PriceListManagerProps> = ({
           p.category,
           p.name,
           p.subcategory || '',
+          p.distributorName || '',
           p.badge || '',
           p.thickness || '',
           p.size || '',
@@ -354,6 +394,7 @@ export const PriceListManager: React.FC<PriceListManagerProps> = ({
           p.basePrice !== undefined ? p.basePrice : '',
           p.sqftPerBox !== undefined ? p.sqftPerBox : '',
           p.stripLengthFeet !== undefined ? p.stripLengthFeet : '',
+          '',
           '',
           '',
           '',
@@ -388,7 +429,8 @@ export const PriceListManager: React.FC<PriceListManagerProps> = ({
     const reader = new FileReader();
     reader.onload = async (event) => {
       try {
-        const text = event.target?.result as string;
+        const rawText = (event.target?.result as string) || '';
+        const text = rawText.replace(/^\uFEFF/, '');
         if (!text) throw new Error('El archivo CSV está vacío.');
 
         // Parse CSV lines respecting quotes
@@ -439,8 +481,10 @@ export const PriceListManager: React.FC<PriceListManagerProps> = ({
         const sizeIdx = headers.indexOf('size') !== -1 ? headers.indexOf('size') : headers.indexOf('medidas');
         const badgeIdx = headers.indexOf('badge');
         const subcatIdx = headers.indexOf('subcategory') !== -1 ? headers.indexOf('subcategory') : headers.indexOf('coleccion');
+        const distIdx = headers.indexOf('distributorname') !== -1 ? headers.indexOf('distributorname') : (headers.indexOf('distribuidor') !== -1 ? headers.indexOf('distribuidor') : headers.indexOf('distributor'));
         const colorNameIdx = headers.indexOf('color_nombre') !== -1 ? headers.indexOf('color_nombre') : headers.indexOf('color_name');
         const colorCodeIdx = headers.indexOf('color_codigo') !== -1 ? headers.indexOf('color_codigo') : headers.indexOf('color_code');
+        const colorDistIdx = headers.indexOf('color_distribuidor') !== -1 ? headers.indexOf('color_distribuidor') : headers.indexOf('color_distributor');
         const colorHexIdx = headers.indexOf('color_hex') !== -1 ? headers.indexOf('color_hex') : headers.indexOf('hex');
         const imageUrlIdx = headers.indexOf('imagen_url') !== -1 ? headers.indexOf('imagen_url') : headers.indexOf('image_url');
         const notesIdx = headers.indexOf('notas') !== -1 ? headers.indexOf('notas') : headers.indexOf('description');
@@ -457,18 +501,29 @@ export const PriceListManager: React.FC<PriceListManagerProps> = ({
           if (!name) continue;
 
           const productId = (idIdx !== -1 && row[idIdx]) ? row[idIdx] : undefined;
+          const rowDist = distIdx !== -1 ? row[distIdx]?.trim() : undefined;
           const colorName = colorNameIdx !== -1 ? row[colorNameIdx]?.trim() : undefined;
           const colorCode = colorCodeIdx !== -1 ? row[colorCodeIdx]?.trim() : undefined;
+          const colorDist = colorDistIdx !== -1 ? row[colorDistIdx]?.trim() : undefined;
           const colorHex = colorHexIdx !== -1 ? row[colorHexIdx]?.trim() : undefined;
           const imageUrl = imageUrlIdx !== -1 ? row[imageUrlIdx]?.trim() : undefined;
 
           // Check if this product is already in our imported list (aggregating multi-row variants)
           const inBatch = importedProducts.find(p => (productId && p.id === productId) || p.name.toLowerCase() === name.toLowerCase());
           if (inBatch) {
+            if (rowDist && !inBatch.distributorName) {
+              inBatch.distributorName = rowDist;
+            }
             if (colorName && !inBatch.colors?.some(c => c.name.toLowerCase() === colorName.toLowerCase())) {
               inBatch.colors = [
                 ...(inBatch.colors || []),
-                { name: colorName, code: colorCode || '', hex: colorHex || '#CCCCCC', plankPhotoUrl: imageUrl || undefined }
+                {
+                  name: colorName,
+                  code: colorCode || '',
+                  hex: colorHex || '#CCCCCC',
+                  distributorName: colorDist || '',
+                  plankPhotoUrl: imageUrl || undefined
+                }
               ];
             }
             continue;
@@ -483,7 +538,13 @@ export const PriceListManager: React.FC<PriceListManagerProps> = ({
               ? categoryRaw : 'piso';
 
           const initialColors = colorName 
-            ? [{ name: colorName, code: colorCode || '', hex: colorHex || '#CCCCCC', plankPhotoUrl: imageUrl || undefined }]
+            ? [{
+                name: colorName,
+                code: colorCode || '',
+                hex: colorHex || '#CCCCCC',
+                distributorName: colorDist || '',
+                plankPhotoUrl: imageUrl || undefined
+              }]
             : (existing?.colors || []);
 
           const prod: Product = {
@@ -491,6 +552,7 @@ export const PriceListManager: React.FC<PriceListManagerProps> = ({
             name: name,
             category: validCategory,
             subcategory: (subcatIdx !== -1 && row[subcatIdx]) || existing?.subcategory,
+            distributorName: rowDist || existing?.distributorName || '',
             thickness: (thickIdx !== -1 && row[thickIdx]) || existing?.thickness,
             size: (sizeIdx !== -1 && row[sizeIdx]) || existing?.size,
             basePrice: priceIdx !== -1 && !isNaN(parseFloat(row[priceIdx])) ? parseFloat(row[priceIdx]) : (existing?.basePrice || 1.49),
@@ -603,7 +665,7 @@ export const PriceListManager: React.FC<PriceListManagerProps> = ({
                 type="text"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                placeholder="Buscar por nombre, acabado, espesor o código..."
+                placeholder="Buscar por nombre, acabado, distribuidor, espesor o código..."
                 className="w-full text-xs bg-white border border-[#E4E2DA] focus:border-[#FF8407] rounded-xl pl-9 pr-3.5 py-2.5 outline-hidden font-medium text-[#181818]"
               />
             </div>
@@ -803,6 +865,19 @@ export const PriceListManager: React.FC<PriceListManagerProps> = ({
 
                 <div>
                   <label className="block text-[10px] font-bold uppercase tracking-wider text-[#6B6A63] mb-1">
+                    Distribuidor (Solo uso interno)
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="Ej. MSI, Republic, Eternity..."
+                    value={newDistributorName}
+                    onChange={(e) => setNewDistributorName(e.target.value)}
+                    className="w-full px-3 py-2 bg-[#FAFAFA] border border-[#E4E2DA] rounded-lg text-xs font-medium text-[#181818]"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-[10px] font-bold uppercase tracking-wider text-[#6B6A63] mb-1">
                     Precio Base ($) *
                   </label>
                   <input
@@ -910,7 +985,14 @@ export const PriceListManager: React.FC<PriceListManagerProps> = ({
                     placeholder="Código (Ej. Q-01)"
                     value={tempColorCode}
                     onChange={(e) => setTempColorCode(e.target.value)}
-                    className="sm:w-32 px-2.5 py-1.5 bg-white border border-[#E4E2DA] rounded-lg text-xs font-mono text-[#181818]"
+                    className="sm:w-28 px-2.5 py-1.5 bg-white border border-[#E4E2DA] rounded-lg text-xs font-mono text-[#181818]"
+                  />
+                  <input
+                    type="text"
+                    placeholder="Distribuidor (Opcional)"
+                    value={tempColorDistributor}
+                    onChange={(e) => setTempColorDistributor(e.target.value)}
+                    className="sm:w-36 px-2.5 py-1.5 bg-white border border-[#E4E2DA] rounded-lg text-xs text-[#181818]"
                   />
                   <div className="flex items-center gap-2">
                     <input
@@ -928,11 +1010,13 @@ export const PriceListManager: React.FC<PriceListManagerProps> = ({
                           {
                             name: tempColorName.trim(),
                             code: tempColorCode.trim() || `COL-${prev.length + 1}`,
+                            distributorName: tempColorDistributor.trim() || undefined,
                             hex: tempColorHex
                           }
                         ]);
                         setTempColorName('');
                         setTempColorCode('');
+                        setTempColorDistributor('');
                       }}
                       className="px-3 py-1.5 rounded-lg bg-[#181818] hover:bg-black text-white text-xs font-bold cursor-pointer shrink-0"
                     >
@@ -948,7 +1032,10 @@ export const PriceListManager: React.FC<PriceListManagerProps> = ({
                         className="inline-flex items-center gap-1.5 px-2 py-1 rounded-md bg-white border border-[#E4E2DA] text-[11px] font-medium text-[#181818]"
                       >
                         <span className="w-2.5 h-2.5 rounded-full border border-black/20" style={{ backgroundColor: col.hex }} />
-                        <span>{col.name} ({col.code})</span>
+                        <span>
+                          {col.name} ({col.code})
+                          {col.distributorName ? ` · Dist: ${col.distributorName}` : ''}
+                        </span>
                         <button
                           type="button"
                           onClick={() => setNewColors(prev => prev.filter((_, i) => i !== idx))}
@@ -997,6 +1084,13 @@ export const PriceListManager: React.FC<PriceListManagerProps> = ({
                 const colorCount = p.colors?.length || 0;
                 // Correct singular/plural: "1 color" vs "X colores"
                 const colorLabel = colorCount === 1 ? '1 color' : `${colorCount} colores`;
+                const colorDistributors = Array.from(
+                  new Set(
+                    (p.colors || [])
+                      .map((c) => c.distributorName?.trim())
+                      .filter((d): d is string => Boolean(d) && d !== p.distributorName?.trim())
+                  )
+                );
 
                 return (
                   <div
@@ -1032,6 +1126,16 @@ export const PriceListManager: React.FC<PriceListManagerProps> = ({
                           {p.model && (
                             <span className="text-[10px] font-mono text-[#6B6A63] bg-zinc-100 border border-zinc-200 px-1.5 py-0.5 rounded shrink-0">
                               Mod: {p.model}
+                            </span>
+                          )}
+                          {p.distributorName && (
+                            <span className="text-[10px] font-semibold text-[#FF8407] bg-amber-50 border border-amber-200 px-1.5 py-0.5 rounded shrink-0">
+                              Dist: {p.distributorName}
+                            </span>
+                          )}
+                          {colorDistributors.length > 0 && (
+                            <span className="text-[10px] font-semibold text-[#181818] bg-[#F2F1EC] border border-[#E4E2DA] px-1.5 py-0.5 rounded shrink-0">
+                              Dist. colores: {colorDistributors.join(', ')}
                             </span>
                           )}
                         </div>
@@ -1095,14 +1199,17 @@ export const PriceListManager: React.FC<PriceListManagerProps> = ({
 
                           {colorCount > 0 && (
                             <div className="flex items-center gap-0.5 ml-1">
-                              {p.colors!.slice(0, 3).map((c, i) => (
-                                <span
-                                  key={i}
-                                  className="w-2.5 h-2.5 rounded-full border border-black/20 shrink-0 inline-block"
-                                  style={{ backgroundColor: c.hex || '#CCC' }}
-                                  title={`${c.name} (${c.code})`}
-                                />
-                              ))}
+                              {p.colors!.slice(0, 3).map((c, i) => {
+                                const cDist = c.distributorName?.trim() || p.distributorName?.trim();
+                                return (
+                                  <span
+                                    key={i}
+                                    className="w-2.5 h-2.5 rounded-full border border-black/20 shrink-0 inline-block"
+                                    style={{ backgroundColor: c.hex || '#CCC' }}
+                                    title={`${c.name} (${c.code})${cDist ? ` · Dist: ${cDist}` : ''}`}
+                                  />
+                                );
+                              })}
                               {colorCount > 3 && (
                                 <span className="text-[9px] text-[#9C9A90] font-mono">+{colorCount - 3}</span>
                               )}

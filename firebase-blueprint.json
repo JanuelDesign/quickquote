@@ -9,6 +9,7 @@
         "name": { "type": "string" },
         "category": { "type": "string" },
         "subcategory": { "type": "string" },
+        "distributorName": { "type": "string" },
         "basePrice": { "type": "number" },
         "sqftPerBox": { "type": "number" },
         "stripLengthFeet": { "type": "number" },
@@ -17,7 +18,20 @@
         "size": { "type": "string" },
         "priceUnit": { "type": "string" },
         "isStock": { "type": "boolean" },
-        "description": { "type": "string" }
+        "description": { "type": "string" },
+        "colors": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "name": { "type": "string" },
+              "code": { "type": "string" },
+              "hex": { "type": "string" },
+              "distributorName": { "type": "string" },
+              "plankPhotoUrl": { "type": "string" }
+            }
+          }
+        }
       },
       "required": ["id", "name", "category", "basePrice"]
     },

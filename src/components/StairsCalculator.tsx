@@ -8,7 +8,8 @@ import {
   createRiserCartItem, 
   createStairComplementaryCartItem, 
   createStairLandingCartItem,
-  getClientPriceMultiplier
+  getClientPriceMultiplier,
+  sanitizePublicColor
 } from '../utils/calculations';
 import { translations } from '../utils/translations';
 import { 
@@ -345,7 +346,7 @@ export const StairsCalculator: React.FC<StairsCalculatorProps> = ({
           productName: isEn ? `Flush Stair Nose Molding (${activeCollectionName})` : `Moldura de Terminación Flush Nose (${activeCollectionName})`,
           category: 'perfiles',
           subcategory: isEn ? 'Stair Mouldings' : 'Molduras de Escalera',
-          color: selectedColor,
+          color: sanitizePublicColor(selectedColor),
           userEnteredQuantity: moldingsCount,
           quantityUnitLabel: isEn ? 'pieces' : 'piezas',
           calculatedUnits: moldingsCount,
@@ -446,36 +447,36 @@ export const StairsCalculator: React.FC<StairsCalculatorProps> = ({
 
     // Componente 5: Molduras opcionales (Flush Stair Nose)
     if (includeMoldings && moldingsCount > 0) {
-      extraItems.push({
-        id: `item-${Date.now()}-molding-${Math.random().toString(36).substring(2, 6)}`,
-        productId: 'stair-flush-nose-molding',
-        productName: isEn ? `Flush Stair Nose Molding (${activeCollectionName})` : `Moldura Flush Stair Nose (${activeCollectionName})`,
-        category: 'perfiles',
-        subcategory: isEn ? 'Stair Mouldings' : 'Molduras de Escalera',
-        color: selectedColor,
-        userEnteredQuantity: moldingsCount,
-        quantityUnitLabel: isEn ? 'pieces' : 'piezas',
-        calculatedUnits: moldingsCount,
-        calculatedUnitsLabel: `${moldingsCount} ${isEn ? (moldingsCount > 1 ? 'mouldings' : 'moulding') : (moldingsCount > 1 ? 'molduras' : 'moldura')}`,
-        unitPrice: moldingsUnitPrice,
-        pricingMode: 'per_piece',
-        baseListPrice: moldingsUnitPrice,
-        subtotal: Number((moldingsCount * moldingsUnitPrice).toFixed(2)),
-        isTaxable: true,
-        isLabor: false
-      });
-    }
+        extraItems.push({
+          id: `item-${Date.now()}-molding-${Math.random().toString(36).substring(2, 6)}`,
+          productId: 'stair-flush-nose-molding',
+          productName: isEn ? `Flush Stair Nose Molding (${activeCollectionName})` : `Moldura Flush Stair Nose (${activeCollectionName})`,
+          category: 'perfiles',
+          subcategory: isEn ? 'Stair Mouldings' : 'Molduras de Escalera',
+          color: sanitizePublicColor(selectedColor),
+          userEnteredQuantity: moldingsCount,
+          quantityUnitLabel: isEn ? 'pieces' : 'piezas',
+          calculatedUnits: moldingsCount,
+          calculatedUnitsLabel: `${moldingsCount} ${isEn ? (moldingsCount > 1 ? 'mouldings' : 'moulding') : (moldingsCount > 1 ? 'molduras' : 'moldura')}`,
+          unitPrice: moldingsUnitPrice,
+          pricingMode: 'per_piece',
+          baseListPrice: moldingsUnitPrice,
+          subtotal: Number((moldingsCount * moldingsUnitPrice).toFixed(2)),
+          isTaxable: true,
+          isLabor: false
+        });
+      }
 
-    // Componente 6: Rodapié para faldón (Skirt Baseboard)
-    if (includeSkirt && skirtFeet > 0) {
-      extraItems.push({
-        id: `item-${Date.now()}-skirt-${Math.random().toString(36).substring(2, 6)}`,
-        productId: 'stair-skirt-baseboard',
-        productName: isEn ? `Stair Skirt Baseboard (${activeCollectionName})` : `Rodapié para Faldón de Escalera (${activeCollectionName})`,
-        category: 'rodapie',
-        subcategory: isEn ? 'Stair Skirt' : 'Faldón de Escalera',
-        color: selectedColor,
-        userEnteredQuantity: skirtFeet,
+      // Componente 6: Rodapié para faldón (Skirt Baseboard)
+      if (includeSkirt && skirtFeet > 0) {
+        extraItems.push({
+          id: `item-${Date.now()}-skirt-${Math.random().toString(36).substring(2, 6)}`,
+          productId: 'stair-skirt-baseboard',
+          productName: isEn ? `Stair Skirt Baseboard (${activeCollectionName})` : `Rodapié para Faldón de Escalera (${activeCollectionName})`,
+          category: 'rodapie',
+          subcategory: isEn ? 'Stair Skirt' : 'Faldón de Escalera',
+          color: sanitizePublicColor(selectedColor),
+          userEnteredQuantity: skirtFeet,
         quantityUnitLabel: 'LF',
         calculatedUnits: skirtFeet,
         calculatedUnitsLabel: `${skirtFeet} ${isEn ? 'linear feet' : 'pies lineales'}`,
@@ -634,11 +635,16 @@ export const StairsCalculator: React.FC<StairsCalculatorProps> = ({
                       {product.description || (language === 'en' ? 'Stair nose with click system' : 'Peldaño completo con nariz redondeada')}
                     </p>
 
-                    <div className="pt-1">
+                    <div className="pt-1 flex items-center gap-1.5 flex-wrap">
                       <span className="inline-flex items-center gap-1.5 text-[11px] font-mono text-[#181818] bg-[#F2F1EC] border border-[#E4E2DA] px-2.5 py-1 rounded-md font-medium">
                         <Ruler className="w-3 h-3 text-[#FF8407] shrink-0" />
                         <span>{product.size || '12" x 48"'} format</span>
                       </span>
+                      {product.distributorName && (
+                        <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-amber-50 text-[#FF8407] border border-amber-200">
+                          Dist: {product.distributorName}
+                        </span>
+                      )}
                     </div>
                   </div>
 
@@ -680,6 +686,11 @@ export const StairsCalculator: React.FC<StairsCalculatorProps> = ({
               <span className="font-bold text-[#181818]">{selectedProduct.name}</span>
               <span className="text-[#9C9A90]">•</span>
               <span className="text-[#6B6A63] font-medium">{selectedProduct.size || '12" x 48"'}</span>
+              {selectedProduct.distributorName && (
+                <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-amber-50 text-[#FF8407] border border-amber-200">
+                  Dist: {selectedProduct.distributorName}
+                </span>
+              )}
               {isHomeowner ? (
                 <span className="text-[10px] font-bold text-amber-800 bg-amber-100 px-2 py-0.5 rounded border border-amber-300">
                   {isEn ? 'Homeowner Rate (+30% Retail)' : 'Tarifa Homeowner (+30% Retail)'}

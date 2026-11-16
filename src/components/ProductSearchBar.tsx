@@ -224,8 +224,8 @@ export const ProductSearchBar: React.FC<ProductSearchBarProps> = ({
                   }}
                   placeholder={
                     isEn
-                      ? 'Type model, color, thickness or SKU (e.g. Euphoric, Oak, Rodapié, 6.5mm)...'
-                      : 'Escribe modelo, color, espesor o categoría (ej. Euphoric, Oak, Rodapié, 6.5mm)...'
+                      ? 'Type model, color, distributor, thickness or SKU...'
+                      : 'Escribe modelo, color, distribuidor, espesor o categoría...'
                   }
                   className="w-full bg-[#FAFAFA] border-2 border-[#181818] focus:border-[#FF8407] rounded-xl pl-10 pr-24 py-2.5 text-xs sm:text-sm font-medium text-[#181818] placeholder-[#9C9A90] outline-none transition-colors"
                 />
@@ -346,6 +346,12 @@ export const ProductSearchBar: React.FC<ProductSearchBarProps> = ({
                             {product.name}
                           </h4>
 
+                          {product.distributorName && (
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-amber-50 text-[#FF8407] border border-amber-200/80 text-[10px] font-bold">
+                              <span>{isEn ? 'Dist:' : 'Dist:'} {product.distributorName}</span>
+                            </span>
+                          )}
+
                           <p className="text-[11px] text-[#6B6A63] leading-snug">
                             {[
                               product.sqftPerBox ? `${product.sqftPerBox} sqft/caja` : null,
@@ -378,6 +384,7 @@ export const ProductSearchBar: React.FC<ProductSearchBarProps> = ({
                                 const isHighlighted = matchingColors.some(
                                   (mc) => mc.code === color.code && mc.name === color.name
                                 );
+                                const colorDistributor = color.distributorName || product.distributorName;
                                 return (
                                   <button
                                     key={`${product.id}-${color.code}-${color.name}`}
@@ -394,6 +401,15 @@ export const ProductSearchBar: React.FC<ProductSearchBarProps> = ({
                                       style={{ backgroundColor: color.hex || '#ccc' }}
                                     />
                                     <span>{color.name}</span>
+                                    {colorDistributor && (
+                                      <span className={`text-[9px] font-semibold px-1.5 py-0.2 rounded ${
+                                        isHighlighted
+                                          ? 'bg-zinc-800 text-zinc-200'
+                                          : 'bg-amber-50 text-[#FF8407] border border-amber-200/70'
+                                      }`}>
+                                        {colorDistributor}
+                                      </span>
+                                    )}
                                   </button>
                                 );
                               })}

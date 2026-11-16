@@ -250,9 +250,14 @@ export const UnderlaymentCalculator: React.FC<UnderlaymentCalculatorProps> = ({
                     {prod.description}
                   </p>
 
-                  <div className="mt-3 flex items-center gap-2 text-xs text-zinc-700 bg-zinc-50 p-2.5 rounded-lg border border-zinc-200/60 font-medium">
+                  <div className="mt-3 flex items-center gap-2 flex-wrap text-xs text-zinc-700 bg-zinc-50 p-2.5 rounded-lg border border-zinc-200/60 font-medium">
                     <Disc className="w-4 h-4 text-[#FF8407] shrink-0" />
                     <span className="font-mono text-[11px] font-semibold">{prod.size}</span>
+                    {prod.distributorName && (
+                      <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-amber-50 text-[#FF8407] border border-amber-200 ml-auto">
+                        Dist: {prod.distributorName}
+                      </span>
+                    )}
                   </div>
                 </div>
 
@@ -287,9 +292,16 @@ export const UnderlaymentCalculator: React.FC<UnderlaymentCalculatorProps> = ({
           {/* Product Header */}
           <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-4 border-b border-zinc-200 gap-3">
             <div>
-              <span className="text-[10px] font-bold uppercase tracking-wider text-[#FF8407]">
-                {selectedProduct.subcategory}
-              </span>
+              <div className="flex items-center gap-1.5 flex-wrap">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-[#FF8407]">
+                  {selectedProduct.subcategory}
+                </span>
+                {selectedProduct.distributorName && (
+                  <span className="text-[10px] font-bold px-1.5 py-0.2 rounded bg-amber-50 text-[#FF8407] border border-amber-200">
+                    Dist: {selectedProduct.distributorName}
+                  </span>
+                )}
+              </div>
               <h3 className="text-lg font-bold text-black">
                 {selectedProduct.name}
               </h3>

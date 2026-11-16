@@ -1,5 +1,15 @@
 import { CartItem, Product, ProductColor, Client, Language } from '../types';
 
+/**
+ * Removes internal-only fields (like distributorName) from ProductColor
+ * before storing on CartItem / Quotation / Final Preview / PDF.
+ */
+export function sanitizePublicColor(color?: ProductColor): ProductColor | undefined {
+  if (!color) return undefined;
+  const { distributorName: _internalDistributor, ...publicColor } = color;
+  return publicColor;
+}
+
 export function calculateFloorUnits(sqftRequired: number, sqftPerBox: number): {
   boxesNeeded: number;
   totalSqftCovered: number;
@@ -67,7 +77,7 @@ export function createFloorCartItem(
     subcategory: product.subcategory,
     thickness: product.thickness,
     size: product.size,
-    color,
+    color: sanitizePublicColor(color),
     userEnteredQuantity: sqftRequired,
     quantityUnitLabel: 'sqft',
     calculatedUnits: boxesNeeded,
@@ -104,7 +114,7 @@ export function createBaseboardCartItem(
     subcategory: product.subcategory,
     thickness: product.thickness,
     size: product.size,
-    color,
+    color: sanitizePublicColor(color),
     userEnteredQuantity: linearFeetRequired,
     quantityUnitLabel: 'pies lineales (LF)',
     calculatedUnits: stripsNeeded,
@@ -138,7 +148,7 @@ export function createProfileCartItem(
     subcategory: product.subcategory,
     thickness: product.thickness,
     size: product.size,
-    color,
+    color: sanitizePublicColor(color),
     userEnteredQuantity: pieceCount,
     quantityUnitLabel: 'piezas',
     calculatedUnits: pieceCount,
@@ -176,7 +186,7 @@ export function createStairsCartItem(
       subcategory: 'Stair Treads',
       thickness: product.thickness,
       size: product.size || '12" x 48"',
-      color: color || product.colors?.[0],
+      color: sanitizePublicColor(color || product.colors?.[0]),
       userEnteredQuantity: stepCount,
       quantityUnitLabel: 'escalones',
       calculatedUnits: stepCount,
@@ -204,7 +214,7 @@ export function createStairsCartItem(
     subcategory: product.subcategory,
     thickness: product.thickness,
     size: product.size,
-    color,
+    color: sanitizePublicColor(color),
     userEnteredQuantity: stepCount,
     quantityUnitLabel: 'escalones',
     calculatedUnits: stepCount,
@@ -252,7 +262,7 @@ export function createRiserCartItem(
     subcategory: 'Stair Risers',
     thickness: thickness || '4.0 mm / 5.5 mm',
     size: 'Largo 48" (Matching step)',
-    color,
+    color: sanitizePublicColor(color),
     userEnteredQuantity: stepCount,
     quantityUnitLabel: 'contrahuellas',
     calculatedUnits: stepCount,
@@ -557,7 +567,7 @@ export function createStairComplementaryCartItem(
     subcategory: 'Tablas Complementarias',
     thickness: 'SPC Plank',
     size: 'Plank Size',
-    color,
+    color: sanitizePublicColor(color),
     userEnteredQuantity: planksCount,
     quantityUnitLabel: 'láminas',
     calculatedUnits: planksCount,
@@ -591,7 +601,7 @@ export function createStairLandingCartItem(
     subcategory: 'Descanso / Landing',
     thickness: 'SPC Flooring',
     size: `${sqftPerBox} sqft/caja`,
-    color,
+    color: sanitizePublicColor(color),
     userEnteredQuantity: landingsCount,
     quantityUnitLabel: 'descansos',
     calculatedUnits: landingsCount,
@@ -623,7 +633,7 @@ export function createWallPanelCartItem(
     subcategory: product.subcategory,
     thickness: product.thickness,
     size: product.size,
-    color,
+    color: sanitizePublicColor(color),
     userEnteredQuantity: pieceCount,
     quantityUnitLabel: 'piezas / paneles',
     calculatedUnits: pieceCount,
