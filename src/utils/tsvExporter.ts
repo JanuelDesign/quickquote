@@ -261,13 +261,20 @@ export const parseProductsFromText = (
   const normalizedHeaders = rawHeaders.map(h => normalizeCol(h));
 
   const getColIdx = (...candidates: string[]) => {
+    // Pass 1: Exact match across all candidates first
     for (const c of candidates) {
       const cleanCandidate = normalizeCol(c);
-      // Exact match
+      if (!cleanCandidate) continue;
       const exactIdx = normalizedHeaders.indexOf(cleanCandidate);
       if (exactIdx !== -1) return exactIdx;
-      // Substring match
-      const partialIdx = normalizedHeaders.findIndex(h => h.includes(cleanCandidate) || (cleanCandidate.length > 3 && cleanCandidate.includes(h)));
+    }
+    // Pass 2: Partial match only for meaningful length (>= 4 chars) so 'id' never matches 'distribuidor'
+    for (const c of candidates) {
+      const cleanCandidate = normalizeCol(c);
+      if (cleanCandidate.length < 4) continue;
+      const partialIdx = normalizedHeaders.findIndex(
+        (h) => h.length >= 4 && (h.includes(cleanCandidate) || cleanCandidate.includes(h))
+      );
       if (partialIdx !== -1) return partialIdx;
     }
     return -1;
@@ -276,7 +283,8 @@ export const parseProductsFromText = (
   const idIdx = getColIdx('id', 'codigo', 'sku', 'ref');
   const catIdx = getColIdx('categoria', 'category', 'tipo', 'rubro');
   const subcatIdx = getColIdx('coleccion', 'collection', 'subcategoria', 'subcategory', 'linea');
-  const distIdx = getColIdx('distribuidor', 'distributor', 'distributorname');
+  const rawDistIdx = getColIdx('distribuidor', 'distributor', 'distributorname');
+  const distIdx = rawDistIdx !== idIdx ? rawDistIdx : -1;
   const nameIdx = getColIdx('nombre', 'name', 'producto', 'modelo', 'articulo', 'descripcion');
   const priceIdx = getColIdx('precio_base', 'precio', 'price', 'preciocliente', 'baseprice', 'precioventa', 'pvp', 'costo');
   const sqftIdx = getColIdx('cobertura_caja', 'sqft_box', 'sqftcaja', 'cobertura', 'sqftbox', 'sqft');
@@ -360,6 +368,8 @@ export const parseProductsFromText = (
     }
 
     const finalId = prod ? prod.id : (id || `imported-${name.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`);
+    const rawRowDist = distIdx !== -1 ? (cols[distIdx] || '').trim() : '';
+    const safeRowDist = rawRowDist && rawRowDist !== finalId && rawRowDist !== id ? rawRowDist : '';
 
     if (!prod) {
       prod = {
@@ -367,7 +377,7 @@ export const parseProductsFromText = (
         name: name || finalId,
         category: resolvedCategory,
         subcategory: subcatIdx !== -1 ? cols[subcatIdx] || undefined : undefined,
-        distributorName: distIdx !== -1 ? cols[distIdx] || '' : '',
+        distributorName: safeRowDist,
         basePrice: !isNaN(cleanPrice) && cleanPrice > 0 ? cleanPrice : 1.99,
         priceUnit: unitIdx !== -1 && cols[unitIdx] ? cols[unitIdx] as any : 'sqft',
         thickness: thickIdx !== -1 ? cols[thickIdx] || undefined : undefined,
@@ -384,7 +394,8 @@ export const parseProductsFromText = (
       if (name) prod.name = name;
       if (resolvedCategory && resolvedCategory !== 'otros') prod.category = resolvedCategory;
       if (subcatIdx !== -1 && cols[subcatIdx]) prod.subcategory = cols[subcatIdx];
-      if (distIdx !== -1 && cols[distIdx]) prod.distributorName = cols[distIdx];
+      if (safeRowDist) prod.distributorName = safeRowDist;
+      else if (prod.distributorName === finalId || prod.distributorName === id) prod.distributorName = '';
       if (sqft !== undefined && !isNaN(sqft)) prod.sqftPerBox = sqft;
       if (strip !== undefined && !isNaN(strip)) prod.stripLengthFeet = strip;
       if (thickIdx !== -1 && cols[thickIdx]) prod.thickness = cols[thickIdx];
@@ -394,7 +405,8 @@ export const parseProductsFromText = (
 
     const cName = colorNameIdx !== -1 ? cols[colorNameIdx] : '';
     const cCode = colorCodeIdx !== -1 ? cols[colorCodeIdx] : '';
-    const cDist = colorDistIdx !== -1 ? cols[colorDistIdx] : '';
+    const rawCDist = colorDistIdx !== -1 ? (cols[colorDistIdx] || '').trim() : '';
+    const cDist = rawCDist && rawCDist !== finalId && rawCDist !== id ? rawCDist : '';
     const cHex = colorHexIdx !== -1 ? cols[colorHexIdx] : '';
     const cImg = imgIdx !== -1 ? cols[imgIdx] : '';
 
@@ -409,11 +421,17 @@ export const parseProductsFromText = (
           c.name.toLowerCase() === cName.toLowerCase() || 
           (cCode && c.code.toLowerCase() === cCode.toLowerCase())
         );
+        const preservedExistingDist =
+          existingColorMatch?.distributorName &&
+          existingColorMatch.distributorName !== finalId &&
+          existingColorMatch.distributorName !== id
+            ? existingColorMatch.distributorName
+            : '';
         existingColors.push({
           name: cName || cCode,
           code: cCode || cName,
           hex: cHex || existingColorMatch?.hex || '#A09D99',
-          distributorName: cDist || existingColorMatch?.distributorName || '',
+          distributorName: cDist || preservedExistingDist,
           plankPhotoUrl: cImg || existingColorMatch?.plankPhotoUrl || undefined,
           roomPhotoUrl: existingColorMatch?.roomPhotoUrl || undefined
         });

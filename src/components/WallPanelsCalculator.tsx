@@ -254,11 +254,6 @@ export const WallPanelsCalculator: React.FC<WallPanelsCalculatorProps> = ({
                         <span className="text-[10px] font-bold uppercase tracking-wider text-[#FF8407]">
                           {prod.subcategory || 'Wall Panels'}
                         </span>
-                        {prod.distributorName && (
-                          <span className="text-[10px] font-bold px-1.5 py-0.2 rounded bg-amber-50 text-[#FF8407] border border-amber-200">
-                            Dist: {prod.distributorName}
-                          </span>
-                        )}
                       </div>
                       <h3 className="text-sm sm:text-base font-bold text-black mt-0.5 leading-snug">
                         {prod.name}
@@ -285,7 +280,7 @@ export const WallPanelsCalculator: React.FC<WallPanelsCalculatorProps> = ({
                     <div className="mt-3">
                       <div className="flex items-center gap-1.5 flex-wrap">
                         {prod.colors.map((c) => {
-                          const dist = c.distributorName || prod.distributorName;
+                          const dist = c.distributorName?.trim();
                           return (
                             <div
                               key={c.code}
@@ -363,9 +358,9 @@ export const WallPanelsCalculator: React.FC<WallPanelsCalculatorProps> = ({
                 {selectedColor && (
                   <span className="text-[#FF8407] ml-2 font-semibold">
                     {selectedColor.code} - {selectedColor.name}
-                    {(selectedColor.distributorName || selectedProduct.distributorName) && (
+                    {selectedColor.distributorName?.trim() && (
                       <span className="ml-1.5 text-[10px] font-bold text-[#181818] bg-[#F2F1EC] px-1.5 py-0.5 rounded normal-case">
-                        Dist: {selectedColor.distributorName || selectedProduct.distributorName}
+                        Dist: {selectedColor.distributorName.trim()}
                       </span>
                     )}
                   </span>
@@ -375,7 +370,7 @@ export const WallPanelsCalculator: React.FC<WallPanelsCalculatorProps> = ({
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
                 {selectedProduct.colors.map((c) => {
                   const isColorActive = selectedColor?.code === c.code;
-                  const cDist = c.distributorName || selectedProduct.distributorName;
+                  const cDist = c.distributorName?.trim();
                   return (
                     <button
                       key={c.code}

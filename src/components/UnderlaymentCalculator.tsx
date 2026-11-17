@@ -253,11 +253,6 @@ export const UnderlaymentCalculator: React.FC<UnderlaymentCalculatorProps> = ({
                   <div className="mt-3 flex items-center gap-2 flex-wrap text-xs text-zinc-700 bg-zinc-50 p-2.5 rounded-lg border border-zinc-200/60 font-medium">
                     <Disc className="w-4 h-4 text-[#FF8407] shrink-0" />
                     <span className="font-mono text-[11px] font-semibold">{prod.size}</span>
-                    {prod.distributorName && (
-                      <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-amber-50 text-[#FF8407] border border-amber-200 ml-auto">
-                        Dist: {prod.distributorName}
-                      </span>
-                    )}
                   </div>
                 </div>
 
@@ -296,11 +291,6 @@ export const UnderlaymentCalculator: React.FC<UnderlaymentCalculatorProps> = ({
                 <span className="text-[10px] font-bold uppercase tracking-wider text-[#FF8407]">
                   {selectedProduct.subcategory}
                 </span>
-                {selectedProduct.distributorName && (
-                  <span className="text-[10px] font-bold px-1.5 py-0.2 rounded bg-amber-50 text-[#FF8407] border border-amber-200">
-                    Dist: {selectedProduct.distributorName}
-                  </span>
-                )}
               </div>
               <h3 className="text-lg font-bold text-black">
                 {selectedProduct.name}

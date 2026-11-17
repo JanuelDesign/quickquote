@@ -135,14 +135,19 @@ export function cleanForFirestore<T>(data: T): any {
  * exists in Firestore and clearing it overwrites any previous value.
  */
 export function normalizeProductForDb(product: Product): Product {
+  const rawRootDist = (product.distributorName ?? '').trim();
+  const cleanRootDist = rawRootDist === product.id ? '' : rawRootDist;
   return {
     ...product,
-    distributorName: (product.distributorName ?? '').trim(),
+    distributorName: cleanRootDist,
     colors: Array.isArray(product.colors)
-      ? product.colors.map((c) => ({
-          ...c,
-          distributorName: (c.distributorName ?? '').trim()
-        }))
+      ? product.colors.map((c) => {
+          const rawCDist = (c.distributorName ?? '').trim();
+          return {
+            ...c,
+            distributorName: rawCDist === product.id ? '' : rawCDist
+          };
+        })
       : []
   };
 }
@@ -187,20 +192,23 @@ export function subscribeToProducts(
 
       snapshot.forEach((d) => {
         const raw = d.data() as Product;
+        const effectiveId = raw.id || d.id;
+        const hasCorruptedRootDist = raw.distributorName === effectiveId || raw.distributorName === d.id;
+        const hasCorruptedColorDist = Array.isArray(raw.colors) && raw.colors.some((c) => c.distributorName === effectiveId || c.distributorName === d.id);
         const missingRootDist = typeof raw.distributorName !== 'string';
         const missingColorDist = Array.isArray(raw.colors) && raw.colors.some((c) => typeof c.distributorName !== 'string');
         const normalized = normalizeProductForDb({
           ...raw,
-          id: raw.id || d.id
+          id: effectiveId
         });
         products.push(normalized);
 
-        if (missingRootDist || missingColorDist) {
+        if (missingRootDist || missingColorDist || hasCorruptedRootDist || hasCorruptedColorDist) {
           docsNeedingBackfill.push(normalized);
         }
       });
 
-      // One-time non-destructive backfill so existing Firestore docs explicitly show `distributorName`
+      // One-time non-destructive backfill & corrupted-id cleanup in Firestore
       if (docsNeedingBackfill.length > 0 && !hasBackfilledDistributorField && auth.currentUser) {
         hasBackfilledDistributorField = true;
         try {

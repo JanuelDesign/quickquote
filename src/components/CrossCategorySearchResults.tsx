@@ -172,11 +172,6 @@ export const CrossCategorySearchResults: React.FC<CrossCategorySearchResultsProp
                         {product.subcategory}
                       </p>
                     )}
-                    {product.distributorName && (
-                      <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-amber-50 text-[#FF8407] border border-amber-200">
-                        Dist: {product.distributorName}
-                      </span>
-                    )}
                   </div>
                 </div>
 
@@ -217,7 +212,7 @@ export const CrossCategorySearchResults: React.FC<CrossCategorySearchResultsProp
                     </span>
                     <div className="flex items-center gap-1.5 flex-wrap">
                       {product.colors.slice(0, 6).map((c) => {
-                        const dist = c.distributorName || product.distributorName;
+                        const dist = c.distributorName?.trim();
                         return (
                           <div
                             key={c.code}
@@ -229,8 +224,8 @@ export const CrossCategorySearchResults: React.FC<CrossCategorySearchResultsProp
                               style={{ backgroundColor: c.hex || '#ccc' }}
                             />
                             <span className="truncate max-w-[90px]">{c.name}</span>
-                            {c.distributorName && (
-                              <span className="text-[9px] font-bold text-[#FF8407]">({c.distributorName})</span>
+                            {dist && (
+                              <span className="text-[9px] font-bold text-[#FF8407]">({dist})</span>
                             )}
                           </div>
                         );

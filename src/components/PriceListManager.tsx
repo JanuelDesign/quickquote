@@ -1088,7 +1088,7 @@ export const PriceListManager: React.FC<PriceListManagerProps> = ({
                   new Set(
                     (p.colors || [])
                       .map((c) => c.distributorName?.trim())
-                      .filter((d): d is string => Boolean(d) && d !== p.distributorName?.trim())
+                      .filter((d): d is string => Boolean(d))
                   )
                 );
 
@@ -1126,11 +1126,6 @@ export const PriceListManager: React.FC<PriceListManagerProps> = ({
                           {p.model && (
                             <span className="text-[10px] font-mono text-[#6B6A63] bg-zinc-100 border border-zinc-200 px-1.5 py-0.5 rounded shrink-0">
                               Mod: {p.model}
-                            </span>
-                          )}
-                          {p.distributorName && (
-                            <span className="text-[10px] font-semibold text-[#FF8407] bg-amber-50 border border-amber-200 px-1.5 py-0.5 rounded shrink-0">
-                              Dist: {p.distributorName}
                             </span>
                           )}
                           {colorDistributors.length > 0 && (
@@ -1200,7 +1195,7 @@ export const PriceListManager: React.FC<PriceListManagerProps> = ({
                           {colorCount > 0 && (
                             <div className="flex items-center gap-0.5 ml-1">
                               {p.colors!.slice(0, 3).map((c, i) => {
-                                const cDist = c.distributorName?.trim() || p.distributorName?.trim();
+                                const cDist = c.distributorName?.trim();
                                 return (
                                   <span
                                     key={i}

@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import { matchesProductSearch, getMatchingColorsForProduct, getCategoryDisplayName } from '../utils/productSearch';
 import { formatCurrency } from '../utils/calculations';
+import { HorizontalScrollStrip } from './HorizontalScrollStrip';
 
 interface ProductSearchBarProps {
   searchTerm: string;
@@ -346,12 +347,6 @@ export const ProductSearchBar: React.FC<ProductSearchBarProps> = ({
                             {product.name}
                           </h4>
 
-                          {product.distributorName && (
-                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-amber-50 text-[#FF8407] border border-amber-200/80 text-[10px] font-bold">
-                              <span>{isEn ? 'Dist:' : 'Dist:'} {product.distributorName}</span>
-                            </span>
-                          )}
-
                           <p className="text-[11px] text-[#6B6A63] leading-snug">
                             {[
                               product.sqftPerBox ? `${product.sqftPerBox} sqft/caja` : null,
@@ -379,12 +374,15 @@ export const ProductSearchBar: React.FC<ProductSearchBarProps> = ({
                                 ? `Available finishes (${colorsToDisplay.length}) — tap to choose:`
                                 : `Colores disponibles (${colorsToDisplay.length}) — toca para elegir:`}
                             </span>
-                            <div className="pill-scroll-row gap-1.5 py-0.5">
+                            <HorizontalScrollStrip
+                              className="gap-1.5 py-0.5"
+                              depsKey={`${product.id}-${colorsToDisplay.length}`}
+                            >
                               {colorsToDisplay.map((color) => {
                                 const isHighlighted = matchingColors.some(
                                   (mc) => mc.code === color.code && mc.name === color.name
                                 );
-                                const colorDistributor = color.distributorName || product.distributorName;
+                                const colorDistributor = color.distributorName?.trim();
                                 return (
                                   <button
                                     key={`${product.id}-${color.code}-${color.name}`}
@@ -413,7 +411,7 @@ export const ProductSearchBar: React.FC<ProductSearchBarProps> = ({
                                   </button>
                                 );
                               })}
-                            </div>
+                            </HorizontalScrollStrip>
                           </div>
                         )}
 

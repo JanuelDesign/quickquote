@@ -9,6 +9,7 @@ import {
   ChevronRight,
   Ruler
 } from 'lucide-react';
+import { HorizontalScrollStrip } from './HorizontalScrollStrip';
 
 interface ProfilesCalculatorProps {
   products: Product[];
@@ -239,11 +240,6 @@ export const ProfilesCalculator: React.FC<ProfilesCalculatorProps> = ({
                         <span>{product.size || product.dimensions}</span>
                       </span>
                     )}
-                    {product.distributorName && (
-                      <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-amber-50 text-[#FF8407] border border-amber-200">
-                        Dist: {product.distributorName}
-                      </span>
-                    )}
                   </div>
                 </div>
 
@@ -282,11 +278,6 @@ export const ProfilesCalculator: React.FC<ProfilesCalculatorProps> = ({
               <span className="font-bold text-[#181818]">{selectedProduct.name}</span>
               <span className="text-[#9C9A90]">•</span>
               <span className="text-[#6B6A63] font-medium">{selectedProduct.size || '94"'}</span>
-              {selectedProduct.distributorName && (
-                <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-amber-50 text-[#FF8407] border border-amber-200">
-                  Dist: {selectedProduct.distributorName}
-                </span>
-              )}
             </div>
             <button
               type="button"
@@ -306,19 +297,22 @@ export const ProfilesCalculator: React.FC<ProfilesCalculatorProps> = ({
                   {selectedColor && (
                     <span className="text-[#FF8407] font-semibold">
                       {selectedColor.code} • {selectedColor.name}
-                      {(selectedColor.distributorName || selectedProduct.distributorName) && (
+                      {selectedColor.distributorName?.trim() && (
                         <span className="ml-1.5 text-[10px] text-[#181818] bg-[#F2F1EC] px-1.5 py-0.5 rounded">
-                          Dist: {selectedColor.distributorName || selectedProduct.distributorName}
+                          Dist: {selectedColor.distributorName.trim()}
                         </span>
                       )}
                     </span>
                   )}
                 </span>
               </div>
-              <div className="pill-scroll-row gap-1.5 pt-0.5">
+              <HorizontalScrollStrip
+                className="gap-1.5 pt-0.5"
+                depsKey={`${selectedProduct.id}-${selectedProduct.colors.length}`}
+              >
                 {selectedProduct.colors.map((c) => {
                   const isCur = selectedColor?.code === c.code;
-                  const cDist = c.distributorName || selectedProduct.distributorName;
+                  const cDist = c.distributorName?.trim();
                   return (
                     <button
                       key={c.code}
@@ -343,7 +337,7 @@ export const ProfilesCalculator: React.FC<ProfilesCalculatorProps> = ({
                     </button>
                   );
                 })}
-              </div>
+              </HorizontalScrollStrip>
             </div>
           )}
 

@@ -9,6 +9,7 @@ import {
   ChevronRight,
   TrendingUp
 } from 'lucide-react';
+import { HorizontalScrollStrip } from './HorizontalScrollStrip';
 
 interface FloorCalculatorProps {
   products: Product[];
@@ -261,11 +262,6 @@ export const FloorCalculator: React.FC<FloorCalculatorProps> = ({
                     <p className="text-xs text-[#6B6A63] leading-relaxed">
                       {product.sqftPerBox} sq ft / caja • {product.thickness || '5.5 mm'} {product.wearLayer && `• ${product.wearLayer}`}
                     </p>
-                    {product.distributorName && (
-                      <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-amber-50 text-[#FF8407] border border-amber-200">
-                        Dist: {product.distributorName}
-                      </span>
-                    )}
                   </div>
                 </div>
 
@@ -275,7 +271,7 @@ export const FloorCalculator: React.FC<FloorCalculatorProps> = ({
                     <div className="flex items-center gap-1.5">
                       <div className="flex items-center -space-x-1.5">
                         {product.colors.slice(0, 6).map((c, i) => {
-                          const dist = c.distributorName || product.distributorName;
+                          const dist = c.distributorName?.trim();
                           return (
                             <button
                               key={i}
@@ -334,11 +330,6 @@ export const FloorCalculator: React.FC<FloorCalculatorProps> = ({
               </span>
               <div className="flex items-center gap-2 flex-wrap">
                 <h3 className="text-sm font-bold text-[#181818] leading-snug break-words">{selectedProduct.name}</h3>
-                {selectedProduct.distributorName && (
-                  <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-amber-50 text-[#FF8407] border border-amber-200">
-                    Dist: {selectedProduct.distributorName}
-                  </span>
-                )}
               </div>
             </div>
             {selectedColor && (
@@ -348,9 +339,9 @@ export const FloorCalculator: React.FC<FloorCalculatorProps> = ({
                 </span>
                 <p className="text-xs font-bold text-[#FF8407] leading-snug break-words">
                   {selectedColor.code} • {selectedColor.name}
-                  {(selectedColor.distributorName || selectedProduct.distributorName) && (
+                  {selectedColor.distributorName?.trim() && (
                     <span className="ml-1.5 text-[10px] font-semibold text-[#181818] bg-[#F2F1EC] px-1.5 py-0.5 rounded">
-                      Dist: {selectedColor.distributorName || selectedProduct.distributorName}
+                      Dist: {selectedColor.distributorName.trim()}
                     </span>
                   )}
                 </p>
@@ -362,7 +353,7 @@ export const FloorCalculator: React.FC<FloorCalculatorProps> = ({
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
             {selectedProduct.colors.map((color) => {
               const isColorSelected = selectedColor?.code === color.code;
-              const colorDistributor = color.distributorName || selectedProduct.distributorName;
+              const colorDistributor = color.distributorName?.trim();
               return (
                 <div
                   key={color.code}
@@ -430,9 +421,9 @@ export const FloorCalculator: React.FC<FloorCalculatorProps> = ({
                   <span className="flex items-center gap-1.5 font-medium text-[#6B6A63] flex-wrap">
                     <span className="w-3.5 h-3.5 rounded-full inline-block border border-black/20 shrink-0" style={{ backgroundColor: selectedColor.hex }}></span>
                     <span>{selectedColor.name} ({selectedColor.code})</span>
-                    {(selectedColor.distributorName || selectedProduct.distributorName) && (
+                    {selectedColor.distributorName?.trim() && (
                       <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-amber-50 text-[#FF8407] border border-amber-200">
-                        Dist: {selectedColor.distributorName || selectedProduct.distributorName}
+                        Dist: {selectedColor.distributorName.trim()}
                       </span>
                     )}
                   </span>
@@ -457,9 +448,9 @@ export const FloorCalculator: React.FC<FloorCalculatorProps> = ({
                   {selectedColor && (
                     <span className="text-[#FF8407] font-semibold">
                       {selectedColor.code} • {selectedColor.name}
-                      {(selectedColor.distributorName || selectedProduct.distributorName) && (
+                      {selectedColor.distributorName?.trim() && (
                         <span className="ml-1.5 text-[10px] text-[#181818] bg-[#F2F1EC] px-1.5 py-0.5 rounded">
-                          Dist: {selectedColor.distributorName || selectedProduct.distributorName}
+                          Dist: {selectedColor.distributorName.trim()}
                         </span>
                       )}
                     </span>
@@ -469,10 +460,13 @@ export const FloorCalculator: React.FC<FloorCalculatorProps> = ({
                   {selectedProduct.colors.length} {language === 'en' ? 'available' : 'disponibles'}
                 </span>
               </div>
-              <div className="pill-scroll-row gap-1.5 pt-0.5">
+              <HorizontalScrollStrip
+                className="gap-1.5 pt-0.5"
+                depsKey={`${selectedProduct.id}-${selectedProduct.colors.length}`}
+              >
                 {selectedProduct.colors.map((c) => {
                   const isCur = selectedColor?.code === c.code;
-                  const cDist = c.distributorName || selectedProduct.distributorName;
+                  const cDist = c.distributorName?.trim();
                   return (
                     <button
                       key={c.code}
@@ -497,7 +491,7 @@ export const FloorCalculator: React.FC<FloorCalculatorProps> = ({
                     </button>
                   );
                 })}
-              </div>
+              </HorizontalScrollStrip>
             </div>
           )}
 

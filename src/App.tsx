@@ -120,13 +120,24 @@ export default function App() {
     if (saved) {
       try {
         const parsed: Product[] = JSON.parse(saved);
-        return parsed.filter(p => !deletedIds.includes(p.id));
+        return parsed
+          .filter(p => !deletedIds.includes(p.id))
+          .map(p => ({
+            ...p,
+            distributorName: p.distributorName === p.id ? '' : (p.distributorName || ''),
+            colors: p.colors?.map(c => ({
+              ...c,
+              distributorName: c.distributorName === p.id ? '' : (c.distributorName || '')
+            }))
+          }));
       } catch (e) {
         return INITIAL_PRODUCTS.filter(p => !deletedIds.includes(p.id));
       }
     }
     return INITIAL_PRODUCTS.filter(p => !deletedIds.includes(p.id));
   });
+  const productsRef = React.useRef<Product[]>(products);
+  productsRef.current = products;
 
   const [clients, setClients] = useState<Client[]>(() => {
     const saved = localStorage.getItem('qs_clients');
@@ -288,7 +299,7 @@ export default function App() {
     const syncQuietly = async () => {
       try {
         const token = await getAccessToken();
-        const res = await fetchGoogleSheetsCatalog(savedUrl, products, tabName, token || undefined);
+        const res = await fetchGoogleSheetsCatalog(savedUrl, productsRef.current, tabName, token || undefined);
         if (res && res.updatedProducts && res.updatedProducts.length > 0) {
           let deletedIds: string[] = [];
           try {
@@ -297,9 +308,31 @@ export default function App() {
           } catch (e) {
             // Ignore
           }
-          const cleanProds = res.updatedProducts.filter(p => !deletedIds.includes(p.id));
-          setProducts(cleanProds);
-          localStorage.setItem('qs_products_catalog', JSON.stringify(cleanProds));
+          setProducts((latestProducts) => {
+            const latestMap = new Map<string, Product>(latestProducts.map(lp => [lp.id, lp]));
+            const merged = res.updatedProducts
+              .filter(p => !deletedIds.includes(p.id))
+              .map(p => {
+                const live = latestMap.get(p.id);
+                const safeProdDist = p.distributorName === p.id ? '' : (p.distributorName || live?.distributorName || '');
+                const mergedColors = p.colors?.map(c => {
+                  const liveColor = live?.colors?.find(
+                    lc => (c.code && lc.code === c.code) || lc.name === c.name
+                  );
+                  const safeCDist = c.distributorName === p.id
+                    ? (liveColor?.distributorName || '')
+                    : (c.distributorName || liveColor?.distributorName || '');
+                  return { ...c, distributorName: safeCDist };
+                });
+                return {
+                  ...p,
+                  distributorName: safeProdDist,
+                  colors: mergedColors
+                };
+              });
+            localStorage.setItem('qs_products_catalog', JSON.stringify(merged));
+            return merged;
+          });
           const now = new Date();
           const nowStr = `${now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} • ${now.toLocaleDateString()}`;
           localStorage.setItem('qs_google_sheet_last_sync', nowStr);

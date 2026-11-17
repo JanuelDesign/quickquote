@@ -640,11 +640,6 @@ export const StairsCalculator: React.FC<StairsCalculatorProps> = ({
                         <Ruler className="w-3 h-3 text-[#FF8407] shrink-0" />
                         <span>{product.size || '12" x 48"'} format</span>
                       </span>
-                      {product.distributorName && (
-                        <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-amber-50 text-[#FF8407] border border-amber-200">
-                          Dist: {product.distributorName}
-                        </span>
-                      )}
                     </div>
                   </div>
 
@@ -686,11 +681,6 @@ export const StairsCalculator: React.FC<StairsCalculatorProps> = ({
               <span className="font-bold text-[#181818]">{selectedProduct.name}</span>
               <span className="text-[#9C9A90]">•</span>
               <span className="text-[#6B6A63] font-medium">{selectedProduct.size || '12" x 48"'}</span>
-              {selectedProduct.distributorName && (
-                <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-amber-50 text-[#FF8407] border border-amber-200">
-                  Dist: {selectedProduct.distributorName}
-                </span>
-              )}
               {isHomeowner ? (
                 <span className="text-[10px] font-bold text-amber-800 bg-amber-100 px-2 py-0.5 rounded border border-amber-300">
                   {isEn ? 'Homeowner Rate (+30% Retail)' : 'Tarifa Homeowner (+30% Retail)'}
