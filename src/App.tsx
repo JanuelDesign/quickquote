@@ -612,6 +612,7 @@ export default function App() {
   };
 
   const handleUpdateItemQuantity = (itemId: string, newQuantity: number) => {
+    if (!Number.isFinite(newQuantity) || newQuantity <= 0) return;
     setCartItems(prev => prev.map(item => {
       if (item.id === itemId) {
         const matchedProduct = products.find(p => p.id === item.productId);
@@ -716,6 +717,26 @@ export default function App() {
             return { ...updated, id: item.id };
           }
 
+          if (item.productId === 'stairs-complementary-planks') {
+            return {
+              ...item,
+              userEnteredQuantity: newQuantity,
+              calculatedUnits: newQuantity,
+              calculatedUnitsLabel: `${newQuantity} ${newQuantity === 1 ? 'lámina' : 'láminas'}`,
+              subtotal: Number((newQuantity * item.unitPrice).toFixed(2))
+            };
+          }
+
+          if (item.productId === 'stairs-landing-box') {
+            return {
+              ...item,
+              userEnteredQuantity: newQuantity,
+              calculatedUnits: newQuantity,
+              calculatedUnitsLabel: `${newQuantity} caja${newQuantity > 1 ? 's' : ''}`,
+              subtotal: Number((newQuantity * item.unitPrice).toFixed(2))
+            };
+          }
+
           return {
             ...item,
             userEnteredQuantity: newQuantity,
@@ -765,9 +786,12 @@ export default function App() {
         }
         // Custom item update
         const sub = Number((newQuantity * item.unitPrice).toFixed(2));
+        const unitLbl = item.quantityUnitLabel || (language === 'en' ? 'unit' : 'unidad');
         return {
           ...item,
           userEnteredQuantity: newQuantity,
+          calculatedUnits: newQuantity,
+          calculatedUnitsLabel: `${newQuantity} ${unitLbl}${newQuantity > 1 && !unitLbl.endsWith('s') ? 'es/s' : ''}`,
           subtotal: sub
         };
       }
@@ -1705,6 +1729,7 @@ export default function App() {
           isOpen={isKpiModalOpen}
           onClose={() => setIsKpiModalOpen(false)}
           history={quotesHistory}
+          products={products}
           onUpdateQuoteStatus={handleUpdateQuoteStatus}
           language={language}
         />
@@ -1715,6 +1740,7 @@ export default function App() {
           isOpen={isHistoryOpen}
           onClose={() => setIsHistoryOpen(false)}
           history={quotesHistory}
+          products={products}
           settings={settings}
           onLoadQuote={handleLoadQuoteFromHistory}
           onDuplicateQuote={handleDuplicateQuoteFromHistory}

@@ -1,7 +1,8 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Quotation, AppSettings, Language, QuoteStatus } from '../types';
+import { Quotation, AppSettings, Language, QuoteStatus, Product } from '../types';
 import { formatCurrency } from '../utils/calculations';
 import { generateQuotePDF } from '../utils/pdfGenerator';
+import { buildOwnerWhatsAppOrderUrl } from '../utils/whatsappOrder';
 import {
   History,
   Search,
@@ -18,7 +19,8 @@ import {
   ChevronDown,
   Check,
   BarChart3,
-  MoreHorizontal
+  MoreHorizontal,
+  MessageCircle
 } from 'lucide-react';
 import { translations } from '../utils/translations';
 import { FilterPill } from './ui/Badge';
@@ -27,6 +29,7 @@ interface QuotesHistoryModalProps {
   isOpen: boolean;
   onClose: () => void;
   history: Quotation[];
+  products?: Product[];
   settings: AppSettings;
   onLoadQuote: (quote: Quotation) => void;
   onDuplicateQuote: (quote: Quotation) => void;
@@ -41,6 +44,7 @@ export const QuotesHistoryModal: React.FC<QuotesHistoryModalProps> = ({
   isOpen,
   onClose,
   history,
+  products = [],
   settings,
   onLoadQuote,
   onDuplicateQuote,
@@ -567,8 +571,27 @@ export const QuotesHistoryModal: React.FC<QuotesHistoryModalProps> = ({
                       </p>
                     </div>
 
-                    {/* 5. Only 2 visible buttons: Primary (Continuar Cotización) & Secondary (Duplicar) */}
-                    <div className="flex items-center gap-2 shrink-0">
+                    {/* Action buttons */}
+                    <div className="flex items-center gap-2 flex-wrap shrink-0">
+                      {currentStatus === 'approved' && (
+                        <a
+                          href={buildOwnerWhatsAppOrderUrl(q, products, currentLang)}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="px-3 py-2 rounded-lg text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white transition-colors inline-flex items-center gap-1.5 cursor-pointer uppercase tracking-wider shrink-0 shadow-xs"
+                          title={
+                            isEn
+                              ? 'Send approved order with distributors to Owner WhatsApp (+1 305-322-7353)'
+                              : 'Enviar pedido aprobado con distribuidores al WhatsApp del dueño (+1 305-322-7353)'
+                          }
+                        >
+                          <MessageCircle className="w-3.5 h-3.5 shrink-0" />
+                          <span className="whitespace-nowrap">
+                            {isEn ? 'WhatsApp Owner' : 'WhatsApp Dueño'}
+                          </span>
+                        </a>
+                      )}
+
                       <button
                         type="button"
                         onClick={() => {

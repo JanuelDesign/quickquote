@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { CartItem, Client, Language } from '../types';
-import { formatCurrency, getItemUnitPriceDetail, formatItemUnitsLabel } from '../utils/calculations';
+import { formatCurrency, getItemUnitPriceDetail, formatItemUnitsLabel, formatItemQuantityUnit } from '../utils/calculations';
 import { getCategoryDisplayName } from '../utils/productSearch';
 import { translations } from '../utils/translations';
 import { 
@@ -71,6 +71,8 @@ export const CartSummary: React.FC<CartSummaryProps> = ({
   const t = translations[currentLang];
   const [editingItemId, setEditingItemId] = useState<string | null>(null);
   const [editPriceInput, setEditPriceInput] = useState<string>('');
+  const [editingQtyItemId, setEditingQtyItemId] = useState<string | null>(null);
+  const [editQtyInput, setEditQtyInput] = useState<string>('');
   const [deliveryInput, setDeliveryInput] = useState<string>(Math.max(60, deliveryFee).toString());
 
   React.useEffect(() => {
@@ -100,8 +102,9 @@ export const CartSummary: React.FC<CartSummaryProps> = ({
   };
 
   const handleStartEditPrice = (item: CartItem) => {
-    const currentLang: 'en' | 'es' = language === 'es' ? 'es' : 'en';
-    const priceDetail = getItemUnitPriceDetail(item, currentLang);
+    const lang: 'en' | 'es' = language === 'es' ? 'es' : 'en';
+    const priceDetail = getItemUnitPriceDetail(item, lang);
+    setEditingQtyItemId(null);
     setEditingItemId(item.id);
     setEditPriceInput(priceDetail.unitPriceValue.toString());
   };
@@ -113,6 +116,30 @@ export const CartSummary: React.FC<CartSummaryProps> = ({
       onUpdateItemPrice(itemId, Number(val.toFixed(2)));
     }
     setEditingItemId(null);
+  };
+
+  const isDiscreteQuantityCategory = (category: CartItem['category']) =>
+    category === 'perfiles' ||
+    category === 'escalones' ||
+    category === 'wall_panels' ||
+    category === 'underlayment';
+
+  const handleStartEditQty = (item: CartItem) => {
+    setEditingItemId(null);
+    setEditingQtyItemId(item.id);
+    setEditQtyInput(item.userEnteredQuantity.toString());
+  };
+
+  const handleSaveQuantity = (item: CartItem, e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    const val = parseFloat(editQtyInput);
+    if (!isNaN(val) && val > 0) {
+      const normalized = isDiscreteQuantityCategory(item.category)
+        ? Math.max(1, Math.round(val))
+        : Number(val.toFixed(2));
+      onUpdateItemQuantity(item.id, normalized);
+    }
+    setEditingQtyItemId(null);
   };
 
   return (
@@ -230,6 +257,16 @@ export const CartSummary: React.FC<CartSummaryProps> = ({
           ) : (
             items.map((item) => {
               const isEditingPrice = editingItemId === item.id;
+              const isEditingQty = editingQtyItemId === item.id;
+              const discreteQty = isDiscreteQuantityCategory(item.category);
+              const qtyUnitText = formatItemQuantityUnit(item, currentLang);
+              const packagingText = formatItemUnitsLabel(item, currentLang);
+              const showExtraPackaging =
+                Boolean(packagingText) &&
+                (item.category === 'piso' ||
+                  item.category === 'rodapie' ||
+                  item.productId === 'stairs-landing-box' ||
+                  Boolean(item.stepIncludesRiser));
 
               return (
                 <div
@@ -258,9 +295,74 @@ export const CartSummary: React.FC<CartSummaryProps> = ({
                         {item.productName}
                       </h4>
 
-                      <p className="text-[11px] text-[#8C8C8C]">
-                        {formatItemUnitsLabel(item, currentLang)}
-                      </p>
+                      {isEditingQty ? (
+                        <form
+                          onSubmit={(e) => handleSaveQuantity(item, e)}
+                          className="flex items-center gap-1.5 flex-wrap mt-1"
+                        >
+                          <span className="text-[10px] font-bold text-[#6B6A63]">
+                            {currentLang === 'en' ? 'Qty:' : 'Cant:'}
+                          </span>
+                          <input
+                            type="number"
+                            inputMode="decimal"
+                            enterKeyHint="done"
+                            step={discreteQty ? '1' : 'any'}
+                            min={discreteQty ? '1' : '0.01'}
+                            value={editQtyInput}
+                            onChange={(e) => setEditQtyInput(e.target.value)}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter' || e.keyCode === 13) {
+                                e.preventDefault();
+                                handleSaveQuantity(item);
+                                e.currentTarget.blur();
+                              } else if (e.key === 'Escape') {
+                                setEditingQtyItemId(null);
+                              }
+                            }}
+                            className="w-20 px-2 py-0.5 text-xs font-bold border border-[#FF8407] rounded bg-white text-[#181818] font-mono outline-none"
+                            autoFocus
+                          />
+                          <span className="text-[10px] font-semibold text-[#6B6A63]">
+                            {qtyUnitText}
+                          </span>
+                          <button
+                            type="submit"
+                            className="p-1 bg-black text-white rounded text-[9px] font-bold cursor-pointer hover:bg-zinc-800"
+                            title={currentLang === 'en' ? 'Apply quantity' : 'Aplicar cantidad'}
+                          >
+                            <Check className="w-3 h-3 text-[#FF8407]" />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setEditingQtyItemId(null)}
+                            className="p-1 bg-zinc-200 text-zinc-600 rounded text-[9px] font-bold cursor-pointer hover:bg-zinc-300"
+                            title={currentLang === 'en' ? 'Cancel' : 'Cancelar'}
+                          >
+                            <X className="w-3 h-3" />
+                          </button>
+                        </form>
+                      ) : (
+                        <div className="flex items-center gap-1.5 flex-wrap mt-0.5">
+                          <span className="text-[11px] font-semibold text-[#181818] font-mono">
+                            {item.userEnteredQuantity} {qtyUnitText}
+                          </span>
+                          {showExtraPackaging && (
+                            <span className="text-[11px] text-[#8C8C8C]">
+                              • {packagingText}
+                            </span>
+                          )}
+                          <button
+                            type="button"
+                            onClick={() => handleStartEditQty(item)}
+                            className="text-[#8C8C8C] hover:text-[#FF8407] cursor-pointer p-0.5 inline-flex items-center"
+                            title={currentLang === 'en' ? 'Edit quantity' : 'Editar cantidad'}
+                            aria-label={currentLang === 'en' ? 'Edit quantity' : 'Editar cantidad'}
+                          >
+                            <Edit2 className="w-2.5 h-2.5" />
+                          </button>
+                        </div>
+                      )}
                     </div>
 
                     <div className="text-right shrink-0">

@@ -1,6 +1,7 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
-import { Quotation, Language, QuoteStatus, ProductCategory } from '../types';
+import { Quotation, Language, QuoteStatus, ProductCategory, Product } from '../types';
 import { formatCurrency } from '../utils/calculations';
+import { buildOwnerWhatsAppOrderUrl } from '../utils/whatsappOrder';
 import {
   BarChart3,
   X,
@@ -19,13 +20,15 @@ import {
   DollarSign,
   Percent,
   ChevronDown,
-  Check
+  Check,
+  MessageCircle
 } from 'lucide-react';
 
 interface AdminKpiModalProps {
   isOpen: boolean;
   onClose: () => void;
   history: Quotation[];
+  products?: Product[];
   onUpdateQuoteStatus?: (quoteId: string, newStatus: QuoteStatus) => void;
   language?: Language;
 }
@@ -74,6 +77,7 @@ export const AdminKpiModal: React.FC<AdminKpiModalProps> = ({
   isOpen,
   onClose,
   history,
+  products = [],
   onUpdateQuoteStatus,
   language = 'es'
 }) => {
@@ -1169,10 +1173,29 @@ export const AdminKpiModal: React.FC<AdminKpiModalProps> = ({
                           </span>
                         </div>
 
-                        <div className="flex items-center justify-between sm:justify-end gap-2.5 pt-2 sm:pt-0 border-t sm:border-t-0 border-zinc-200/70">
+                        <div className="flex items-center justify-between sm:justify-end gap-2 flex-wrap pt-2 sm:pt-0 border-t sm:border-t-0 border-zinc-200/70">
                           <span className="font-mono font-black text-sm text-[#181818]">
                             {formatCurrency(q.total)}
                           </span>
+
+                          {st === 'approved' && (
+                            <a
+                              href={buildOwnerWhatsAppOrderUrl(q, products, isEn ? 'en' : 'es')}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="px-2.5 py-1 rounded-lg text-[11px] font-bold bg-emerald-600 hover:bg-emerald-700 text-white transition-colors inline-flex items-center gap-1.5 cursor-pointer shrink-0 shadow-2xs"
+                              title={
+                                isEn
+                                  ? 'Send approved order with distributors to Owner WhatsApp (+1 305-322-7353)'
+                                  : 'Enviar pedido aprobado con distribuidores al WhatsApp del dueño (+1 305-322-7353)'
+                              }
+                            >
+                              <MessageCircle className="w-3.5 h-3.5 shrink-0" />
+                              <span className="whitespace-nowrap">
+                                {isEn ? 'WhatsApp Owner' : 'WhatsApp Dueño'}
+                              </span>
+                            </a>
+                          )}
 
                           {onUpdateQuoteStatus ? (
                             <select

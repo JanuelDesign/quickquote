@@ -903,6 +903,8 @@ export function formatItemUnitsLabel(item: CartItem, lang: Language = 'es'): str
       .replace(/rollo\b/gi, 'roll')
       .replace(/paneles/gi, 'panels')
       .replace(/panel\b/gi, 'panel')
+      .replace(/descansos/gi, 'landings')
+      .replace(/descanso\b/gi, 'landing')
       .replace(/pies lineales/gi, 'linear feet');
   } else {
     label = label
@@ -923,6 +925,8 @@ export function formatItemUnitsLabel(item: CartItem, lang: Language = 'es'): str
       .replace(/roll\b/gi, 'rollo')
       .replace(/panels/gi, 'paneles')
       .replace(/panel\b/gi, 'panel')
+      .replace(/landings/gi, 'descansos')
+      .replace(/landing\b/gi, 'descanso')
       .replace(/linear feet/gi, 'pies lineales');
   }
   return label;
@@ -934,13 +938,31 @@ export function formatItemUnitsLabel(item: CartItem, lang: Language = 'es'): str
 export function formatItemQuantityUnit(item: CartItem, lang: Language = 'es'): string {
   const isEn = lang === 'en';
   const unit = (item.quantityUnitLabel || '').toLowerCase();
-  if (unit.includes('pie') || unit.includes('linear')) {
+  if (unit.includes('pie') && (unit.includes('lineal') || unit.includes('lf') || unit.includes('linear'))) {
     return isEn ? 'linear feet (LF)' : 'pies lineales (LF)';
+  }
+  if (unit.includes('linear')) {
+    return isEn ? 'linear feet (LF)' : 'pies lineales (LF)';
+  }
+  if (unit.includes('panel')) {
+    return item.userEnteredQuantity > 1 ? (isEn ? 'panels' : 'paneles') : 'panel';
+  }
+  if (unit.includes('roll')) {
+    return isEn ? (item.userEnteredQuantity > 1 ? 'rolls' : 'roll') : (item.userEnteredQuantity > 1 ? 'rollos' : 'rollo');
+  }
+  if (unit.includes('contrahuella') || unit.includes('riser')) {
+    return isEn ? (item.userEnteredQuantity > 1 ? 'risers' : 'riser') : (item.userEnteredQuantity > 1 ? 'contrahuellas' : 'contrahuella');
+  }
+  if (unit.includes('lámina') || unit.includes('lamina') || unit.includes('plank')) {
+    return isEn ? (item.userEnteredQuantity > 1 ? 'planks' : 'plank') : (item.userEnteredQuantity > 1 ? 'láminas' : 'lámina');
+  }
+  if (unit.includes('descanso') || unit.includes('landing')) {
+    return isEn ? (item.userEnteredQuantity > 1 ? 'landings' : 'landing') : (item.userEnteredQuantity > 1 ? 'descansos' : 'descanso');
   }
   if (unit.includes('pieza') || unit.includes('piece')) {
     return isEn ? (item.userEnteredQuantity > 1 ? 'pieces' : 'piece') : (item.userEnteredQuantity > 1 ? 'piezas' : 'pieza');
   }
-  if (unit.includes('peldaño') || unit.includes('step') || unit.includes('huella')) {
+  if (unit.includes('peldaño') || unit.includes('step') || unit.includes('huella') || unit.includes('escalon') || unit.includes('escalón')) {
     return isEn ? (item.userEnteredQuantity > 1 ? 'steps' : 'step') : (item.userEnteredQuantity > 1 ? 'peldaños' : 'peldaño');
   }
   if (unit.includes('sqft')) {
